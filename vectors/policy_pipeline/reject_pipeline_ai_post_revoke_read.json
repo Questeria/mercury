@@ -1,0 +1,14 @@
+{
+  "name": "reject_pipeline_ai_post_revoke_read",
+  "description": "AI lifecycle post-revoke read/write reasons become a specific pipeline rejection.",
+  "input": {
+    "version": 1,
+    "actor_kind": 2,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 7
+  },
+  "expected_reason": 12,
+  "expected_audit_class": 7
+}

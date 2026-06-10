@@ -1,0 +1,91 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_alert_split_view": true,
+    "can_monitor_privately": false,
+    "can_publish_witnessed_checkpoint": false,
+    "can_retry_witness_conflict": false,
+    "can_submit_add_checkpoint": false,
+    "checkpoint_size": 43,
+    "plaintext_bytes_exposed": false,
+    "policy_epoch": 7,
+    "reason_code": 6,
+    "reason_label": "WITNESS_UNAVAILABLE",
+    "requires_local_recovery": false,
+    "requires_operator_alert": false,
+    "requires_policy_rotation": false,
+    "requires_witness_repair": true,
+    "response_status_code": 503,
+    "witness_quorum_threshold": 2
+  },
+  "fixture": "sealed_audit_witness_client_unavailable",
+  "input": {
+    "checkpoint_decision": {
+      "accepted": true,
+      "anchor_kind_code": 3,
+      "anchor_kind_label": "witnessed_transparency_log",
+      "can_detect_split_view": true,
+      "can_monitor_privately": true,
+      "can_publish_checkpoint": true,
+      "can_request_witness_cosignature": true,
+      "checkpoint_size": 43,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "requires_key_rotation": false,
+      "requires_local_recovery": false,
+      "requires_user_warning": false,
+      "requires_witness_repair": false,
+      "signature_algorithm_code": 4,
+      "signature_algorithm_label": "hybrid_ed25519_ml_dsa_44",
+      "store_event_sequence": 42,
+      "witness_threshold": 2
+    },
+    "endpoints": {
+      "endpoint_tls_pins_present": true,
+      "endpoints_use_https_or_bastion": true,
+      "monitor_endpoint_count": 2,
+      "submission_endpoint_count": 3
+    },
+    "monitor": {
+      "monitor_query_plaintext_selectors": 0,
+      "monitor_query_uses_private_retrieval": true,
+      "monitor_query_uses_vrf_or_blinded_selector": true,
+      "monitor_receives_only_digests": true
+    },
+    "policy": {
+      "log_public_key_pin_count": 1,
+      "policy_binds_log_origin": true,
+      "policy_binds_witness_operators": true,
+      "policy_digest_len": 32,
+      "policy_epoch": 7,
+      "policy_not_expired": true,
+      "witness_key_pin_count": 3,
+      "witness_operator_count": 3,
+      "witness_quorum_threshold": 2
+    },
+    "recovery": {
+      "recovery_checkpoint_authenticated": false,
+      "recovery_requires_user_verification": false
+    },
+    "request": {
+      "request_body_binds_policy_epoch": true,
+      "request_body_plaintext_selector_count": 0,
+      "request_checkpoint_size": 43,
+      "request_consistency_proof_hash_count": 6,
+      "request_old_size": 42
+    },
+    "response": {
+      "persist_latest_checkpoint_atomically": true,
+      "response_cosignature_count": 3,
+      "response_cosignatures_bind_checkpoint": true,
+      "response_cosignatures_timestamped": true,
+      "response_known_cosignature_count": 3,
+      "response_latest_size": 43,
+      "response_operator_count": 3,
+      "response_status_code": 503,
+      "split_view_alert_delivery_configured": true
+    }
+  },
+  "surface": "sealed_audit_witness_client"
+}

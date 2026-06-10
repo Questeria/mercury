@@ -1,0 +1,17 @@
+{
+  "name": "reject_room_epoch_highsec_rotation_required",
+  "description": "High-security removed AI devices require a later room epoch before ordinary membership rejection.",
+  "input": {
+    "version": 1,
+    "room_mode": 3,
+    "device_kind": 2,
+    "device_state": 2,
+    "current_epoch": 7,
+    "message_epoch": 7,
+    "min_accepted_epoch": 1,
+    "revoked_at_epoch": 7,
+    "access_kind": 1
+  },
+  "expected_reason": 12,
+  "expected_audit_class": 5
+}

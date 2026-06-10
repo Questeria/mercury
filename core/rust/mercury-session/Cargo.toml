@@ -1,0 +1,32 @@
+[package]
+name = "mercury-session"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+# `experimental-session-config` unlocks `SessionConfig::version_2()` (Olm v2,
+# untruncated MAC). Without it, `version_2()` does not exist and v2 pre-key
+# messages are rejected by `create_inbound_session`.
+vodozemac = { version = "0.10", features = ["experimental-session-config"] }
+mercury-core = { path = "../mercury-core" }
+mercury-keys = { path = "../mercury-keys" }
+mercury-message = { path = "../mercury-message" }
+mercury-store = { path = "../mercury-store" }
+serde = { version = "1", features = ["derive"] }
+# Serializes the ratchet-state snapshot for the encrypted session pickle (the
+# serialized blob is then sealed with XChaCha20-Poly1305, so the format is internal).
+serde_json = "1"
+# The hybrid first-flight OUTER AEAD layer (keyed by HKDF over the ML-KEM-768
+# shared secret) that adds post-quantum protection to the session bootstrap
+# message. Audited RustCrypto primitives, same as the rest of the workspace.
+hkdf = "0.12"
+sha2 = "0.10"
+chacha20poly1305 = { version = "0.10", features = ["getrandom"] }
+zeroize = "1"
+
+[dev-dependencies]
+# Used only to synthesize a genuine Olm v1 (truncated-MAC) pre-key message in
+# the downgrade-guard test. Same feature gate as the main dependency so
+# `SessionConfig::version_1()` is available.
+vodozemac = { version = "0.10", features = ["experimental-session-config"] }

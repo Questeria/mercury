@@ -1,0 +1,53 @@
+# Mercury relay — one-command deploy: the relay (private) behind Caddy (auto-HTTPS, public).
+#
+#   cd deploy && cp .env.example .env   # then put a real MERCURY_KT_VRF_SEED in .env
+#   docker compose up -d --build
+#
+# Caddy obtains a Let's Encrypt cert for relay.mercury-messaging.com automatically, provided that
+# name's DNS already points at this host and ports 80+443 are reachable. The relay itself is never
+# published to the host — only Caddy is — so the plain-HTTP relay is reachable solely over the
+# private compose network. See docs/DEPLOY-THE-RELAY.md.
+
+services:
+  relay:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: mercury-relay:latest
+    restart: unless-stopped
+    environment:
+      # Listen on all interfaces inside the container (reachable only on the compose network).
+      MERCURY_RELAY_ADDR: 0.0.0.0:8787
+      # Durable redb queue on the mounted volume (survives restarts).
+      MERCURY_RELAY_DB: /data/relay.redb
+      # Stable Key-Transparency VRF key. REQUIRED here (fail-closed): an unset seed would make the
+      # KT directory identity ephemeral and reset on every restart. Generate with `openssl rand -hex 32`.
+      MERCURY_KT_VRF_SEED: "${MERCURY_KT_VRF_SEED:?missing - put 64 hex chars in deploy/.env via openssl rand -hex 32}"
+      # Behind Caddy (the single trusted proxy below), key the flood limiter on the REAL client via
+      # the right-most X-Forwarded-For hop instead of Caddy's shared IP — otherwise every client
+      # collapses into one bucket. Safe ONLY because Caddy is the sole front door and sets/appends
+      # XFF (a client cannot forge the right-most hop). Unset this if the relay is ever exposed
+      # without a trusted proxy in front.
+      MERCURY_TRUSTED_PROXY: "1"
+    volumes:
+      - relay-data:/data
+    expose:
+      - "8787"          # internal only — intentionally NOT published to the host
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - relay
+    ports:
+      - "80:80"         # ACME HTTP challenge + HTTP->HTTPS redirect
+      - "443:443"       # public HTTPS for relay.mercury-messaging.com
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data        # persisted certificates — keep this volume
+      - caddy-config:/config
+
+volumes:
+  relay-data:
+  caddy-data:
+  caddy-config:

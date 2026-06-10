@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Add a contact · Mercury</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+      background: #0b0b12; color: #e8e8f0;
+      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .card {
+      width: 100%; max-width: 440px; background: #14141f; border: 1px solid #262633;
+      border-radius: 18px; padding: 30px;
+    }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p { color: #a9a9c0; font-size: 14px; margin: 0 0 18px; }
+    .id {
+      font-family: ui-monospace, Menlo, monospace; font-size: 12px; word-break: break-all;
+      background: #0b0b12; border: 1px solid #262633; border-radius: 11px; padding: 12px; color: #cfcfe6;
+    }
+    .id.bad { color: #ff7b7b; }
+    .row { display: flex; gap: 10px; margin-top: 16px; }
+    button, a.btn {
+      flex: 1; font: inherit; font-weight: 600; font-size: 14px; text-align: center;
+      text-decoration: none; border-radius: 11px; padding: 12px 14px; cursor: pointer; border: none;
+    }
+    .primary { color: #fff; background: linear-gradient(135deg, #7b5cf0, #4b7bff); }
+    .ghost { color: #e8e8f0; background: #0b0b12; border: 1px solid #3a3a4d; }
+    .note { font-size: 12.5px; color: #8a8aa0; margin-top: 18px; }
+    a { color: #9a82ff; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Add a contact on Mercury</h1>
+    <p id="lead">Add the person who shared this invite with you.</p>
+    <div class="id" id="id">…</div>
+    <div class="row">
+      <a class="btn primary" id="open" href="#">Open in Mercury</a>
+      <button class="ghost" id="copy" type="button">Copy id</button>
+    </div>
+    <p class="note">
+      In Mercury, open <strong>Start a conversation</strong> and paste this id (or tap
+      <em>Open in Mercury</em> if it's installed). Don't have it yet? <a href="/">Download Mercury</a>.
+      The id is public — it only lets people <em>reach</em> you; your keys never leave your device.
+    </p>
+  </div>
+  <script>
+    // The account id rides in the URL fragment (#…), so it is never sent to the server — we read it
+    // here, client-side, and validate it's exactly a 64-hex account id before showing anything.
+    (function () {
+      var raw = (location.hash || "").replace(/^#/, "").trim().toLowerCase();
+      var match = raw.match(/[0-9a-f]{64}/);
+      var id = match ? match[0] : null;
+      var idEl = document.getElementById("id");
+      var openEl = document.getElementById("open");
+      var copyEl = document.getElementById("copy");
+      if (!id) {
+        document.getElementById("lead").textContent = "This invite link is missing or malformed.";
+        idEl.textContent = "No valid invite id in this link.";
+        idEl.className = "id bad";
+        openEl.style.display = "none";
+        copyEl.style.display = "none";
+        return;
+      }
+      idEl.textContent = id;
+      openEl.href = "mercury://add/" + id;
+      copyEl.addEventListener("click", function () {
+        navigator.clipboard.writeText(id).then(
+          function () {
+            copyEl.textContent = "Copied ✓";
+            setTimeout(function () { copyEl.textContent = "Copy id"; }, 1200);
+          },
+          function () {}
+        );
+      });
+    })();
+  </script>
+</body>
+</html>

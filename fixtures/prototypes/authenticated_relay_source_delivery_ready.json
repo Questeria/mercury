@@ -1,0 +1,45 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_poll_relay": true,
+    "can_run_receive_session": true,
+    "pending_delivery": true,
+    "plaintext_bytes_exposed": false,
+    "plaintext_notification_preview_len": 0,
+    "poll_batch_limit": 25,
+    "reason_code": 0,
+    "reason_label": "DELIVERY_READY",
+    "requires_network_retry": false,
+    "requires_user_action": false,
+    "route_id_len": 32,
+    "source_state": "Ready"
+  },
+  "fixture": "authenticated_relay_source_delivery_ready",
+  "inbound_sync": {
+    "accepted": true,
+    "can_poll_relay": true,
+    "can_run_receive_session": true,
+    "can_update_replay_checkpoint": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "DELIVERY_READY",
+    "requires_network_retry": false,
+    "requires_user_action": false
+  },
+  "input": {
+    "device_credential_len": 32,
+    "pending_delivery": true,
+    "plaintext_identity_fields": 0,
+    "plaintext_notification_preview_len": 0,
+    "poll_batch_limit": 25,
+    "replay_window_valid": true,
+    "route_id_len": 32,
+    "route_key_authenticated": true,
+    "server_auth_tag_len": 32,
+    "server_authenticated": true,
+    "session_ticket_len": 32,
+    "transport_code": 1,
+    "transport_label": "ready"
+  },
+  "surface": "authenticated_relay_source"
+}

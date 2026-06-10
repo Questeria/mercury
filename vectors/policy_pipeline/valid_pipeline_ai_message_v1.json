@@ -1,0 +1,14 @@
+{
+  "name": "valid_pipeline_ai_message_v1",
+  "description": "AI actor with accepted envelope, room, grant, and lifecycle policies is accepted.",
+  "input": {
+    "version": 1,
+    "actor_kind": 2,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 0
+  },
+  "expected_reason": 0,
+  "expected_audit_class": 1
+}

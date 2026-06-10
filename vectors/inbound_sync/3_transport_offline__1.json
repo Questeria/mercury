@@ -1,0 +1,25 @@
+{
+  "name": "3_transport_offline__1",
+  "description": "TRANSPORT_OFFLINE / pack=388",
+  "input": {
+    "plaintext_preview_ok": 1,
+    "bootstrap_can_start_sync": 1,
+    "bootstrap_rua": 0,
+    "source_state": 1,
+    "poll_batch_ok": 1,
+    "pending_delivery": 1,
+    "route_id_ok": 1
+  },
+  "expected": {
+    "accepted": false,
+    "can_poll_relay": false,
+    "can_run_receive_session": false,
+    "can_update_replay_checkpoint": false,
+    "requires_network_retry": true,
+    "requires_user_action": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 3,
+    "reason_label": "TRANSPORT_OFFLINE"
+  },
+  "expected_pack": 388
+}

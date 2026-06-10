@@ -1,0 +1,100 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "upload_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 2,
+      "kind_label": "local_store_seal_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 1,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 3,
+      "kind_label": "media_object_store_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 2,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 4,
+      "kind_label": "local_store_write_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 3,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 5,
+      "kind_label": "upload_finished",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 4,
+      "terminal": true
+    }
+  ],
+  "fixture": "media_upload_session_happy_path",
+  "input": {
+    "automatic_download_requested": false,
+    "content_digest_len": 32,
+    "max_ciphertext_len": 16777216,
+    "media_key_commitment_len": 32,
+    "object_id_len": 32,
+    "outbound_send_accepted": true,
+    "outbound_send_reason_code": 0,
+    "outbound_send_reason_label": "ACCEPTED",
+    "plaintext_len": 30,
+    "plaintext_upload_bytes": 0,
+    "seal_record_kind": "media_ciphertext",
+    "sealed_header_len": 96,
+    "store_record_kind": "media_ciphertext"
+  },
+  "outcome": {
+    "completed": true,
+    "crypto_seal_calls": 1,
+    "local_store_records": 1,
+    "media": {
+      "accepted": true,
+      "can_persist_local_ciphertext": true,
+      "can_upload": true,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "requires_user_action": false
+    },
+    "plaintext_exposed": false,
+    "reason_code": 0,
+    "reason_label": "completed",
+    "seal": {
+      "accepted": true,
+      "reason": "Accepted",
+      "record_kind": "media_ciphertext"
+    },
+    "sealed_ciphertext_len": 46,
+    "store_write": {
+      "accepted": true,
+      "reason": "Accepted",
+      "record_kind": "media_ciphertext"
+    },
+    "stored_ciphertext_len": 46
+  },
+  "surface": "prototype_media_upload_session"
+}

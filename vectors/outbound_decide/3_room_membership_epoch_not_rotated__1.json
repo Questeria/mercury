@@ -1,0 +1,21 @@
+{
+  "name": "3_room_membership_epoch_not_rotated__1",
+  "description": "ROOM_MEMBERSHIP_EPOCH_NOT_ROTATED / pack=49",
+  "input": {
+    "dt_can_send": 1,
+    "dt_requires_user_action": 0,
+    "room_state": 3,
+    "room_requires_user_action": 0,
+    "message_policy_accepted": 0,
+    "ciphertext_sealing_accepted": 0
+  },
+  "expected": {
+    "accepted": false,
+    "can_send": false,
+    "can_persist_ciphertext": false,
+    "requires_user_action": true,
+    "reason_code": 3,
+    "reason_label": "ROOM_MEMBERSHIP_EPOCH_NOT_ROTATED"
+  },
+  "expected_pack": 49
+}

@@ -1,0 +1,24 @@
+{
+  "name": "client_receive__local_store_sealing_rejected",
+  "description": "client_receive / LOCAL_STORE_SEALING_REJECTED",
+  "input": {
+    "source": 2,
+    "reason_code": 7
+  },
+  "expected": {
+    "source": "client_receive",
+    "accepted": false,
+    "reason_code": 7,
+    "reason_label": "LOCAL_STORE_SEALING_REJECTED",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": true
+  },
+  "expected_pack": 1
+}

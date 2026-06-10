@@ -1,0 +1,19 @@
+[package]
+name = "mercury-keys"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+ed25519-dalek = { version = "2", features = ["rand_core", "zeroize"] }
+x25519-dalek = { version = "2", features = ["static_secrets", "zeroize"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+zeroize = "1"
+sha2 = "0.10"
+# ML-KEM-768 (FIPS 203) for the post-quantum half of the hybrid KEM. `zeroize`
+# wipes the decapsulation (secret) key on drop; `getrandom` enables keygen +
+# encapsulation from the system CSPRNG (no rand_core RNG to plumb).
+ml-kem = { version = "0.3.2", features = ["zeroize", "getrandom"] }
+
+[dev-dependencies]
+rand_chacha = "0.3"

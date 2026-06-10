@@ -1,0 +1,234 @@
+name: Build Windows installer
+
+# Builds the Mercury desktop installer + its SHA-256 and uploads them as a workflow artifact.
+#
+# This repository is PRIVATE, so GitHub Release assets are not publicly downloadable. The public
+# download is therefore served from the static host (see docs/WEBSITE-AND-RELEASES.md): download
+# this run's "mercury-windows-installer" artifact, drop the two files into site/download/, and
+# deploy the site. The page links to /download/Mercury-Setup-Windows-x64.exe on the same origin.
+#
+# Trigger: a version tag (git tag v0.1.0 && git push origin v0.1.0) or a manual run.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# Read-only: this workflow only produces an artifact, it does not write to the repo.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    environment: signing
+    env:
+      AZURE_TENANT_ID: a2c519c7-dfde-4265-803c-da43cc8d1b31
+      AZURE_CLIENT_ID: 4cb957c5-c9f2-4a16-9951-5a317054f128
+      AZURE_SUBSCRIPTION_ID: bbc1a2e6-5cc1-4973-9910-afff9e2735d7
+      TRUSTED_SIGNING_ENDPOINT: https://eus.codesigning.azure.net/
+      TRUSTED_SIGNING_ACCOUNT: mercurysigning01
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache the Tauri crate build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "ui/app/src-tauri"
+
+      - name: Build frontend + Tauri NSIS installer
+        working-directory: ui/app
+        shell: bash
+        env:
+          # CI produces SIGNED update artifacts: `--config createUpdaterArtifacts` makes tauri emit the
+          # .sig (Tauri v2 needs this flag — the updater plugin config alone does NOT produce a .sig).
+          # That REQUIRES the signing secrets below; if they're unset/wrong this step fails with a
+          # signing error. (Local `tauri build` without --config skips updater artifacts, so it builds
+          # without the key.) See docs/AUTO-UPDATE.md.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          npm ci
+          npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":true}}'
+
+      - name: Stage installer (+ update signature) under stable names
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem ui/app/src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          if (-not $exe) { throw "no NSIS installer was produced" }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $exe.FullName dist/Mercury-Setup-Windows-x64.exe
+          Write-Host "staged $($exe.Name) -> dist/Mercury-Setup-Windows-x64.exe"
+          # Renaming the .exe keeps its bytes, so the .sig (signed over those bytes) stays valid.
+          $sig = Get-ChildItem "$($exe.FullName).sig" -ErrorAction SilentlyContinue
+          if ($sig) {
+            Copy-Item $sig.FullName dist/Mercury-Setup-Windows-x64.exe.sig
+            Write-Host "staged update signature -> dist/Mercury-Setup-Windows-x64.exe.sig"
+          } else {
+            Write-Host "no .sig (TAURI_SIGNING_PRIVATE_KEY unset) — auto-update manifest will be skipped"
+          }
+
+      # --- CODE SIGNING (Azure Artifact Signing) --------------------------------------------
+      # Runs ONLY when the certificate profile secret is present, so builds still succeed unsigned
+      # until Azure identity validation and profile setup are complete.
+      # Add TRUSTED_SIGNING_PROFILE in GitHub Actions secrets after creating the profile.
+      # OIDC values are configured as job env; only TRUSTED_SIGNING_PROFILE is a repo secret.
+      # The Azure app trusts repo:Questeria/mercury:environment:signing.
+      - name: Detect signing secrets
+        id: signcheck
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.TRUSTED_SIGNING_PROFILE }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Trusted Signing profile secret set; producing an UNSIGNED installer."
+          fi
+
+      - name: Azure login (OIDC)
+        if: steps.signcheck.outputs.enabled == 'true'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign the installer (Azure Artifact Signing)
+        if: steps.signcheck.outputs.enabled == 'true'
+        # Consider pinning this action to a commit SHA before a high-stakes public release.
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ env.TRUSTED_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ env.TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.TRUSTED_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\dist
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Re-sign the installer for the updater (over the signed bytes)
+        if: steps.signcheck.outputs.enabled == 'true'
+        working-directory: ui/app
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # Authenticode signing rewrote the .exe bytes, so the pre-signing updater .sig is stale.
+          # Regenerate it over the FINAL signed installer so the in-app updater verifies + latest.json is valid.
+          rm -f "$GITHUB_WORKSPACE/dist/Mercury-Setup-Windows-x64.exe.sig"
+          npx tauri signer sign "$GITHUB_WORKSPACE/dist/Mercury-Setup-Windows-x64.exe"
+          test -f "$GITHUB_WORKSPACE/dist/Mercury-Setup-Windows-x64.exe.sig" || { echo "re-sign failed: no .sig produced"; exit 1; }
+          echo "re-signed updater .sig over the Authenticode-signed installer"
+      # The SHA-256 below is computed AFTER signing, so it covers the SIGNED installer.
+      # --------------------------------------------------------------------------------------
+
+      - name: Compute SHA-256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash dist/Mercury-Setup-Windows-x64.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  Mercury-Setup-Windows-x64.exe" | Set-Content -Encoding ascii dist/Mercury-Setup-Windows-x64.exe.sha256
+          Write-Host "SHA-256: $hash"
+
+      - name: Generate auto-update manifest (latest.json)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path dist/Mercury-Setup-Windows-x64.exe.sig)) {
+            Write-Host "skip latest.json — no update signature (signing key not set)"
+          } else {
+            $ver = (Get-Content ui/app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+            $sig = (Get-Content dist/Mercury-Setup-Windows-x64.exe.sig -Raw).Trim()
+            $m = [ordered]@{
+              version   = $ver
+              notes     = "Mercury $ver"
+              pub_date  = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+              platforms = [ordered]@{
+                "windows-x86_64" = [ordered]@{
+                  signature = $sig
+                  url       = "https://mercury-messaging.com/download/Mercury-Setup-Windows-x64.exe"
+                }
+              }
+            }
+            $m | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 dist/latest.json
+            Write-Host "wrote dist/latest.json (version $ver)"
+          }
+
+      - name: Upload installer + checksum (+ update manifest) artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mercury-windows-installer
+          path: dist/*
+
+  # --- Linux bundles (.AppImage + .deb) ----------------------------------------------------
+  # Experimental + non-blocking: `continue-on-error` means a Linux failure can NEVER hold back a
+  # Windows release. No code signing (normal for Linux distribution outside stores) — integrity is
+  # the published SHA-256 on the same origin as the download. The in-app auto-updater is Windows-
+  # only for now (latest.json carries no linux platform yet); Linux users re-download — disclosed
+  # on the site, not hidden.
+  linux-bundles:
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache the Tauri crate build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "ui/app/src-tauri"
+
+      - name: Install Tauri Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            build-essential \
+            libfuse2
+
+      - name: Build frontend + Tauri Linux bundles
+        working-directory: ui/app
+        run: |
+          npm ci
+          npx tauri build --bundles appimage,deb
+
+      - name: Stage bundles under stable names + SHA-256
+        run: |
+          set -e
+          mkdir -p dist-linux
+          appimage=$(ls ui/app/src-tauri/target/release/bundle/appimage/*.AppImage | head -n1)
+          deb=$(ls ui/app/src-tauri/target/release/bundle/deb/*.deb | head -n1)
+          cp "$appimage" dist-linux/Mercury-Linux-x86_64.AppImage
+          cp "$deb" dist-linux/Mercury-Linux-amd64.deb
+          (cd dist-linux && sha256sum Mercury-Linux-x86_64.AppImage > Mercury-Linux-x86_64.AppImage.sha256)
+          (cd dist-linux && sha256sum Mercury-Linux-amd64.deb > Mercury-Linux-amd64.deb.sha256)
+          ls -la dist-linux
+
+      - name: Upload Linux bundles artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mercury-linux-bundles
+          path: dist-linux/*

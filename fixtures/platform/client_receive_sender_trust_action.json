@@ -1,0 +1,15 @@
+{
+  "accepted": true,
+  "can_open_message_ui": true,
+  "can_persist_ciphertext": true,
+  "can_receive": true,
+  "can_send": false,
+  "can_start_sync": false,
+  "reason_code": 0,
+  "reason_label": "ACCEPTED",
+  "requires_client_retry": false,
+  "requires_recovery": false,
+  "requires_sync": false,
+  "requires_user_action": true,
+  "source": "client_receive"
+}

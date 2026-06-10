@@ -1,0 +1,21 @@
+{
+  "name": "reject_ai_grant_bad_version_v0",
+  "description": "Rejects AI grant policy version 0.",
+  "input": {
+    "version": 0,
+    "principal_kind": 2,
+    "room_mode": 1,
+    "ai_mode": 1,
+    "ttl_s": 900,
+    "approver_count": 1,
+    "read_scope": 1,
+    "write_scope": 1,
+    "tool_scope": 0,
+    "retention_mode": 0,
+    "training_allowed": 0,
+    "prompt_store_allowed": 0
+  },
+  "expected_reason": 1,
+  "expected_audit_class": 2
+}
+

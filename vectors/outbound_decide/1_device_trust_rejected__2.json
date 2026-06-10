@@ -1,0 +1,21 @@
+{
+  "name": "1_device_trust_rejected__2",
+  "description": "DEVICE_TRUST_REJECTED / pack=17",
+  "input": {
+    "dt_can_send": 0,
+    "dt_requires_user_action": 0,
+    "room_state": 1,
+    "room_requires_user_action": 0,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 1
+  },
+  "expected": {
+    "accepted": false,
+    "can_send": false,
+    "can_persist_ciphertext": false,
+    "requires_user_action": true,
+    "reason_code": 1,
+    "reason_label": "DEVICE_TRUST_REJECTED"
+  },
+  "expected_pack": 17
+}

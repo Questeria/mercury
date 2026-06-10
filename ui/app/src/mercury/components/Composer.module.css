@@ -1,0 +1,153 @@
+.wrap {
+  padding: 12px 28px 16px;
+  border-top: 1px solid var(--mc-border);
+  background: color-mix(in srgb, var(--mc-surface) 85%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+}
+.wrap[data-mobile] {
+  padding: 10px 14px 14px;
+}
+
+/* Two iridescent accent lines flush to the LEFT and RIGHT ends of the entire message bar
+   (not inset). A static rainbow bookend on each side, behind the input row. STATIC + vertical
+   (`--mc-irid-v`) so each thin line shows the full rainbow top-to-bottom WITHOUT animating: the old
+   60fps `background-position` slide repainted these lines inside the composer's blur(20px) panel
+   every frame — a continuous GPU repaint that helped make the whole machine laggy while open. */
+.wrap::before,
+.wrap::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  background: var(--mc-irid-v);
+  background-size: 100% 100%;
+  pointer-events: none;
+}
+.wrap::before {
+  left: 0;
+  border-radius: 0 3px 3px 0;
+}
+.wrap::after {
+  right: 0;
+  border-radius: 3px 0 0 3px;
+}
+
+.inputRow {
+  display: flex;
+  align-items: stretch;
+  background: var(--mc-surface-warm);
+  border: 1px solid var(--mc-border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.inputRow[data-blocked] {
+  background: var(--mc-bad-soft);
+  border-color: color-mix(in srgb, var(--mc-bad) 33%, transparent);
+}
+
+.prefix {
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--mc-muted);
+  flex-shrink: 0;
+  border-right: 1px solid var(--mc-border);
+  background: var(--mc-surface);
+}
+.prefixPath {
+  color: var(--mc-ink3);
+}
+.prefixCaret {
+  color: var(--mc-ink);
+}
+
+.textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--mc-ink);
+  font-size: 14.5px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  min-height: 22px;
+  max-height: 120px;
+  font-family: inherit;
+}
+
+.idleCursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--mc-ink);
+  align-self: center;
+  margin-right: 4px;
+  margin-left: -6px;
+}
+
+.attachCell,
+.sendCell {
+  padding: 5px;
+  display: flex;
+  align-items: flex-end;
+}
+.attachCell {
+  padding-right: 0;
+}
+.attachBtn {
+  border: 1px solid var(--mc-border);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mc-ink2);
+  background: var(--mc-surface);
+  padding: 0;
+}
+.sendBtn {
+  border: none;
+  cursor: not-allowed;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mc-muted);
+  background: var(--mc-surface);
+  overflow: hidden;
+  transition: background 0.2s ease;
+}
+.sendBtn[data-cansend] {
+  cursor: pointer;
+  color: var(--mc-ink);
+}
+.icon {
+  position: relative;
+}
+
+.diag {
+  font-size: 10.5px;
+  margin-top: 6px;
+  padding-left: 4px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  transition: color 0.2s ease;
+}
+.sendHint {
+  margin-left: auto;
+  color: var(--mc-muted);
+}

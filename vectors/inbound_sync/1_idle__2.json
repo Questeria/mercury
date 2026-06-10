@@ -1,0 +1,25 @@
+{
+  "name": "1_idle__2",
+  "description": "IDLE / pack=232",
+  "input": {
+    "plaintext_preview_ok": 1,
+    "bootstrap_can_start_sync": 1,
+    "bootstrap_rua": 0,
+    "source_state": 0,
+    "poll_batch_ok": 1,
+    "pending_delivery": 0,
+    "route_id_ok": 0
+  },
+  "expected": {
+    "accepted": true,
+    "can_poll_relay": true,
+    "can_run_receive_session": false,
+    "can_update_replay_checkpoint": true,
+    "requires_network_retry": false,
+    "requires_user_action": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 1,
+    "reason_label": "IDLE"
+  },
+  "expected_pack": 232
+}

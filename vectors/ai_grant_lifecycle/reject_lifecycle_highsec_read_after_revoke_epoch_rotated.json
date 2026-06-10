@@ -1,0 +1,16 @@
+{
+  "name": "reject_lifecycle_highsec_read_after_revoke_epoch_rotated",
+  "description": "After high-security epoch rotation, the revoked grant still cannot read.",
+  "input": {
+    "version": 1,
+    "grant_state": 2,
+    "revoke_reason": 1,
+    "now_s": 100,
+    "expires_at_s": 200,
+    "room_mode": 3,
+    "access_kind": 1,
+    "epoch_rotated": 1
+  },
+  "expected_reason": 7,
+  "expected_audit_class": 5
+}

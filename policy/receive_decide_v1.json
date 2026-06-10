@@ -1,0 +1,60 @@
+{
+  "schema": "mercury.receive_decide_policy.v1",
+  "description": "Client-receive decider: mirrors mercury-core evaluate_client_receive (ClientReceiveInput -> ClientReceiveDecision), an 11-gate priority chain, staged into relay/content/trust stage reasons + a first-non-zero composer + output derivation (<=6 int params per fn). Pure scalar; no crypto/JSON/ciphertext.",
+  "generated_by": "tools/gen_receive_decide_vectors.py --write (do not hand-edit)",
+  "input_fields": [
+    "relay_accepted",
+    "relay_delivered",
+    "ack_duplicate",
+    "ack_accepted",
+    "ack_requires_client_retry",
+    "ciphertext_digest_ok",
+    "plaintext_identity_ok",
+    "replay_state",
+    "dt_can_send",
+    "message_policy_accepted",
+    "ciphertext_sealing_accepted",
+    "dt_requires_user_action"
+  ],
+  "decision_fields": [
+    "accepted",
+    "can_decrypt",
+    "can_persist_ciphertext",
+    "can_expose_to_ui",
+    "requires_client_retry",
+    "requires_user_action",
+    "reason_code",
+    "reason_label"
+  ],
+  "stage_fields": [
+    "relay_reason",
+    "content_reason",
+    "trust_reason"
+  ],
+  "pack_low_bits_msb_to_lsb": [
+    "accepted",
+    "can_decrypt",
+    "can_persist_ciphertext",
+    "can_expose_to_ui",
+    "requires_client_retry",
+    "requires_user_action"
+  ],
+  "pack_layout": "reason_code*64 + accepted*32 + can_decrypt*16 + can_persist_ciphertext*8 + can_expose_to_ui*4 + requires_client_retry*2 + requires_user_action",
+  "reason_codes": {
+    "ACCEPTED": 0,
+    "RELAY_DELIVERY_REJECTED": 1,
+    "RELAY_DELIVERY_NOT_DELIVERED": 2,
+    "DELIVERY_ACK_REJECTED": 3,
+    "DUPLICATE_DELIVERY_ACK": 4,
+    "SENDER_DEVICE_TRUST_REJECTED": 5,
+    "MESSAGE_POLICY_REJECTED": 6,
+    "LOCAL_STORE_SEALING_REJECTED": 7,
+    "REPLAY_DUPLICATE": 8,
+    "REPLAY_STALE": 9,
+    "ORDERING_GAP": 10,
+    "BAD_CIPHERTEXT_DIGEST_LENGTH": 11,
+    "PLAINTEXT_IDENTITY_FORBIDDEN": 12
+  },
+  "vector_count": 19,
+  "source_of_truth": "core/rust/mercury-core/src/lib.rs evaluate_client_receive (17813); pinned by core/rust/mercury-core/tests/receive_decide_vectors.rs. Exhaustive agreement: the FU-4 exhaustive differential."
+}

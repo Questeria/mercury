@@ -1,0 +1,45 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_poll_relay": false,
+    "can_run_receive_session": false,
+    "pending_delivery": true,
+    "plaintext_bytes_exposed": false,
+    "plaintext_notification_preview_len": 0,
+    "poll_batch_limit": 25,
+    "reason_code": 10,
+    "reason_label": "PLAINTEXT_IDENTITY_FORBIDDEN",
+    "requires_network_retry": false,
+    "requires_user_action": true,
+    "route_id_len": 32,
+    "source_state": "AuthRejected"
+  },
+  "fixture": "authenticated_relay_source_plaintext_forbidden",
+  "inbound_sync": {
+    "accepted": false,
+    "can_poll_relay": false,
+    "can_run_receive_session": false,
+    "can_update_replay_checkpoint": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 4,
+    "reason_label": "TRANSPORT_AUTH_REJECTED",
+    "requires_network_retry": false,
+    "requires_user_action": true
+  },
+  "input": {
+    "device_credential_len": 32,
+    "pending_delivery": true,
+    "plaintext_identity_fields": 1,
+    "plaintext_notification_preview_len": 0,
+    "poll_batch_limit": 25,
+    "replay_window_valid": true,
+    "route_id_len": 32,
+    "route_key_authenticated": true,
+    "server_auth_tag_len": 32,
+    "server_authenticated": true,
+    "session_ticket_len": 32,
+    "transport_code": 1,
+    "transport_label": "ready"
+  },
+  "surface": "authenticated_relay_source"
+}

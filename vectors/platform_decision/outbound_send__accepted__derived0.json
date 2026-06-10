@@ -1,0 +1,25 @@
+{
+  "name": "outbound_send__accepted__derived0",
+  "description": "outbound_send / ACCEPTED / derived=0",
+  "input": {
+    "source": 1,
+    "reason_code": 0,
+    "derived": 0
+  },
+  "expected": {
+    "source": "outbound_send",
+    "accepted": true,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": true,
+    "can_receive": false,
+    "can_persist_ciphertext": true,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": false
+  },
+  "expected_pack": 592
+}

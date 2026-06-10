@@ -1,0 +1,21 @@
+{
+  "name": "0_accepted__5",
+  "description": "ACCEPTED / pack=15",
+  "input": {
+    "dt_can_send": 1,
+    "dt_requires_user_action": 1,
+    "room_state": 1,
+    "room_requires_user_action": 1,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 1
+  },
+  "expected": {
+    "accepted": true,
+    "can_send": true,
+    "can_persist_ciphertext": true,
+    "requires_user_action": true,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED"
+  },
+  "expected_pack": 15
+}

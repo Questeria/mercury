@@ -1,0 +1,67 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "cleanup_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": false,
+      "kind_code": 2,
+      "kind_label": "media_retention_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 1,
+      "reason_label": "media_retention_rejected",
+      "sequence": 1,
+      "terminal": true
+    }
+  ],
+  "fixture": "media_cleanup_session_retention_rejected",
+  "input": {
+    "adapter_kind_code": 1,
+    "adapter_kind_label": "production_object_store",
+    "cache_eviction_requested": false,
+    "cached_ciphertext_len": 64,
+    "content_digest_verified": true,
+    "delete_authorized": true,
+    "object_namespace_bound": true,
+    "operation_code": 3,
+    "operation_label": "delete_remote_and_evict_local_cache",
+    "record_kind": "media_ciphertext",
+    "retention_hold_active": true,
+    "seed_local_cache": true,
+    "service_authenticated": true,
+    "user_delete_requested": true
+  },
+  "outcome": {
+    "completed": false,
+    "local_cache_delete_attempted": false,
+    "local_cache_deleted": false,
+    "local_store_records": 1,
+    "plaintext_exposed": false,
+    "reason_code": 1,
+    "reason_label": "media_retention_rejected",
+    "remote_delete_calls": 0,
+    "retention": {
+      "accepted": false,
+      "can_delete_remote_object": false,
+      "can_evict_local_cache": false,
+      "forbids_plaintext_deletion": true,
+      "keeps_audit_hash": true,
+      "operation_code": 0,
+      "operation_label": "retain",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 5,
+      "reason_label": "RETENTION_HOLD_ACTIVE",
+      "requires_network_setup": false,
+      "requires_user_action": true
+    },
+    "seeded_cache_ciphertext_len": 64
+  },
+  "surface": "prototype_media_cleanup_session"
+}

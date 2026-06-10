@@ -1,0 +1,37 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_restore_device_secret": false,
+    "can_start_recovery": false,
+    "forbids_low_entropy_recovery": true,
+    "forbids_plaintext_backup": true,
+    "method_code": 1,
+    "method_label": "high_entropy_recovery_key",
+    "plaintext_bytes_exposed": false,
+    "reason_code": 11,
+    "reason_label": "KEY_ROTATION_MISSING",
+    "requires_key_rotation": true,
+    "requires_server_setup": false,
+    "requires_user_action": false
+  },
+  "fixture": "account_recovery_key_rotation_required",
+  "input": {
+    "audit_digest_len": 32,
+    "backup_encrypted": true,
+    "device_approval_present": true,
+    "high_security_account": true,
+    "method_code": 1,
+    "method_label": "high_entropy_recovery_key",
+    "plaintext_backup_fields": 0,
+    "recovery_key_digest_len": 32,
+    "recovery_key_entropy_bits": 192,
+    "recovery_requested": true,
+    "rotates_device_secret": false,
+    "server_authenticated": true,
+    "server_rate_limited": true,
+    "threshold_approvals": 2,
+    "threshold_required": 2,
+    "threshold_shares": 3
+  },
+  "surface": "account_recovery"
+}

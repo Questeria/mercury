@@ -1,0 +1,48 @@
+{
+  "schema": "mercury.inbound_sync_policy.v1",
+  "description": "Client-sync decider: mirrors mercury-core evaluate_inbound_sync (InboundSyncInput -> InboundSyncDecision), a 9-reason priority chain whose reason is computable in 6 int params (no staging). The rich InboundSyncInput is reduced to scalars (bootstrap.can_start_sync + requires_user_action, the InboundSyncSourceState code, and length/limit predicates). Pure scalar; no crypto/JSON.",
+  "generated_by": "tools/gen_inbound_sync_vectors.py --write (do not hand-edit)",
+  "input_fields": [
+    "plaintext_preview_ok",
+    "bootstrap_can_start_sync",
+    "bootstrap_rua",
+    "source_state",
+    "poll_batch_ok",
+    "pending_delivery",
+    "route_id_ok"
+  ],
+  "decision_fields": [
+    "accepted",
+    "can_poll_relay",
+    "can_run_receive_session",
+    "can_update_replay_checkpoint",
+    "requires_network_retry",
+    "requires_user_action",
+    "plaintext_bytes_exposed",
+    "reason_code",
+    "reason_label"
+  ],
+  "pack_low_bits_msb_to_lsb": [
+    "accepted",
+    "can_poll_relay",
+    "can_run_receive_session",
+    "can_update_replay_checkpoint",
+    "requires_network_retry",
+    "requires_user_action",
+    "plaintext_bytes_exposed"
+  ],
+  "pack_layout": "reason_code*128 + accepted*64 + can_poll_relay*32 + can_run_receive_session*16 + can_update_replay_checkpoint*8 + requires_network_retry*4 + requires_user_action*2 + plaintext_bytes_exposed",
+  "reason_codes": {
+    "DELIVERY_READY": 0,
+    "IDLE": 1,
+    "BOOTSTRAP_BLOCKED": 2,
+    "TRANSPORT_OFFLINE": 3,
+    "TRANSPORT_AUTH_REJECTED": 4,
+    "BACKOFF_REQUIRED": 5,
+    "BAD_POLL_BATCH_LIMIT": 6,
+    "BAD_ROUTE_ID_LENGTH": 7,
+    "PLAINTEXT_NOTIFICATION_PREVIEW_FORBIDDEN": 8
+  },
+  "vector_count": 15,
+  "source_of_truth": "core/rust/mercury-core/src/lib.rs evaluate_inbound_sync (30212); pinned by core/rust/mercury-core/tests/inbound_sync_vectors.rs. Exhaustive agreement: the FU-4 exhaustive differential."
+}

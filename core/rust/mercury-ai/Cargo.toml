@@ -1,0 +1,29 @@
+[package]
+name = "mercury-ai"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# Stage 10 on-device AI engine. Computes the auditable SHA-256 digests that bind
+# what a LOCAL AI principal SAW (selected conversation context) and PRODUCED (a
+# draft reply), and produces the inputs for mercury-core's AI policy gates
+# (evaluate_ai_participant_action -> evaluate_ai_connector). Enforces "AI as a
+# visible principal that never becomes a hidden plaintext backdoor": local,
+# user-selected, draft-only, no plaintext bridge / retention / training, every
+# action recorded with its digests. The engine does NOT run a model -- it takes
+# the model's draft as bytes; the digests + gate-feeding + audit trail are the
+# work. Mirrors how mercury-mls / mercury-backup feed their gates.
+
+[dependencies]
+mercury-core = { path = "../mercury-core" }
+sha2 = "0.10"
+
+[dev-dependencies]
+# Test-only (acyclic): prove the AI audit trail composes with the sealed-audit
+# transparency log by sealing AI records with Mercury's real envelope and anchoring
+# each record's commitment into the RFC 6962 audit log. None of these are runtime
+# dependencies of mercury-ai.
+mercury-audit = { path = "../mercury-audit" }
+mercury-sealedbox = { path = "../mercury-sealedbox" }
+mercury-keys = { path = "../mercury-keys" }
+ed25519-dalek = { version = "2", features = ["zeroize"] }

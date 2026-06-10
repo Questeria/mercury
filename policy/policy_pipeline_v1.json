@@ -1,0 +1,70 @@
+{
+  "schema": "mercury.policy_pipeline.v1",
+  "supported_version": 1,
+  "actor_kinds": {
+    "human": 1,
+    "local_ai": 2,
+    "remote_ai": 3
+  },
+  "component_reason_ranges": {
+    "envelope": {
+      "min": 0,
+      "max": 12
+    },
+    "room_epoch": {
+      "min": 0,
+      "max": 13
+    },
+    "ai_grant": {
+      "min": 0,
+      "max": 20
+    },
+    "ai_lifecycle": {
+      "min": 0,
+      "max": 10
+    }
+  },
+  "reason_codes": {
+    "ACCEPT": 0,
+    "BAD_VERSION": 1,
+    "BAD_ACTOR_KIND": 2,
+    "BAD_ENVELOPE_REASON": 3,
+    "BAD_ROOM_EPOCH_REASON": 4,
+    "BAD_AI_GRANT_REASON": 5,
+    "BAD_AI_LIFECYCLE_REASON": 6,
+    "AI_COMPONENT_FOR_HUMAN": 7,
+    "ENVELOPE_REJECT": 8,
+    "ROOM_EPOCH_REJECT": 9,
+    "AI_GRANT_REJECT": 10,
+    "AI_LIFECYCLE_REJECT": 11,
+    "AI_POST_REVOKE_ACCESS_REJECT": 12,
+    "AI_HIGHSEC_ROTATION_REQUIRED": 13
+  },
+  "audit_classes": {
+    "ACCEPTED_POLICY_DECISION": 1,
+    "PIPELINE_CONTRACT_REJECT": 2,
+    "MESSAGE_POLICY_REJECT": 3,
+    "ROOM_POLICY_REJECT": 4,
+    "AI_POLICY_REJECT": 5,
+    "AI_LIFECYCLE_POLICY_REJECT": 6,
+    "AI_POST_REVOKE_REJECT": 7,
+    "AI_HIGHSEC_ROTATION_REJECT": 8
+  },
+  "vectors": [
+    "valid_pipeline_human_message_v1",
+    "valid_pipeline_ai_message_v1",
+    "reject_pipeline_bad_version_v0",
+    "reject_pipeline_bad_actor_kind",
+    "reject_pipeline_bad_envelope_reason",
+    "reject_pipeline_bad_room_epoch_reason",
+    "reject_pipeline_bad_ai_grant_reason",
+    "reject_pipeline_bad_ai_lifecycle_reason",
+    "reject_pipeline_envelope_policy_reject",
+    "reject_pipeline_room_epoch_policy_reject",
+    "reject_pipeline_ai_component_for_human",
+    "reject_pipeline_ai_grant_policy_reject",
+    "reject_pipeline_ai_lifecycle_expired",
+    "reject_pipeline_ai_post_revoke_read",
+    "reject_pipeline_ai_highsec_rotation_required"
+  ]
+}

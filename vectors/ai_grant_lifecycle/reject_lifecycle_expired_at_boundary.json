@@ -1,0 +1,16 @@
+{
+  "name": "reject_lifecycle_expired_at_boundary",
+  "description": "Grant expiry is inclusive at now_s equal to expires_at_s.",
+  "input": {
+    "version": 1,
+    "grant_state": 1,
+    "revoke_reason": 0,
+    "now_s": 200,
+    "expires_at_s": 200,
+    "room_mode": 1,
+    "access_kind": 0,
+    "epoch_rotated": 0
+  },
+  "expected_reason": 5,
+  "expected_audit_class": 3
+}

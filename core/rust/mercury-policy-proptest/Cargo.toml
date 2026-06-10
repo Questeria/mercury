@@ -1,0 +1,11 @@
+[package]
+name = "mercury-policy-proptest"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+mercury-policy = { path = "../mercury-policy" }
+
+[dev-dependencies]
+proptest = "1"

@@ -1,0 +1,21 @@
+{
+  "name": "2_room_membership_transition_rejected__1",
+  "description": "ROOM_MEMBERSHIP_TRANSITION_REJECTED / pack=33",
+  "input": {
+    "dt_can_send": 1,
+    "dt_requires_user_action": 0,
+    "room_state": 2,
+    "room_requires_user_action": 0,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 1
+  },
+  "expected": {
+    "accepted": false,
+    "can_send": false,
+    "can_persist_ciphertext": false,
+    "requires_user_action": true,
+    "reason_code": 2,
+    "reason_label": "ROOM_MEMBERSHIP_TRANSITION_REJECTED"
+  },
+  "expected_pack": 33
+}

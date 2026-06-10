@@ -1,0 +1,6 @@
+# Files in site/ that should NOT be served as public assets by Cloudflare.
+.gitignore
+**/.gitignore
+README.md
+**/README.md
+.assetsignore

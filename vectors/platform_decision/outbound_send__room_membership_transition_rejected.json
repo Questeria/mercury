@@ -1,0 +1,24 @@
+{
+  "name": "outbound_send__room_membership_transition_rejected",
+  "description": "outbound_send / ROOM_MEMBERSHIP_TRANSITION_REJECTED",
+  "input": {
+    "source": 1,
+    "reason_code": 2
+  },
+  "expected": {
+    "source": "outbound_send",
+    "accepted": false,
+    "reason_code": 2,
+    "reason_label": "ROOM_MEMBERSHIP_TRANSITION_REJECTED",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": true
+  },
+  "expected_pack": 1
+}

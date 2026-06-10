@@ -1,0 +1,24 @@
+{
+  "name": "client_receive__message_policy_rejected",
+  "description": "client_receive / MESSAGE_POLICY_REJECTED",
+  "input": {
+    "source": 2,
+    "reason_code": 6
+  },
+  "expected": {
+    "source": "client_receive",
+    "accepted": false,
+    "reason_code": 6,
+    "reason_label": "MESSAGE_POLICY_REJECTED",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": true
+  },
+  "expected_pack": 1
+}

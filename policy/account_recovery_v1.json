@@ -1,0 +1,69 @@
+{
+  "schema": "mercury.account_recovery_policy.v1",
+  "description": "Account-recovery decider: mirrors mercury-core evaluate_account_recovery (AccountRecoveryInput -> AccountRecoveryDecision), a 12-gate priority chain (13 reasons) staged into pre-key/method-quorum/server-backup/rotation-audit stage reasons + a first-non-zero composer + output derivation (<=6 int params per fn). The rich input is reduced to scalars (method_code + entropy/digest/threshold/audit predicates); the recovery method passes through to the decision. Pure scalar; no crypto/JSON.",
+  "generated_by": "tools/gen_account_recovery_vectors.py --write (do not hand-edit)",
+  "input_fields": [
+    "recovery_requested",
+    "method_code",
+    "high_security_account",
+    "entropy_ok",
+    "digest_ok",
+    "threshold_ok",
+    "device_approval_present",
+    "server_authenticated",
+    "server_rate_limited",
+    "backup_encrypted",
+    "plaintext_backup_ok",
+    "rotates_device_secret",
+    "audit_ok"
+  ],
+  "decision_fields": [
+    "accepted",
+    "can_start_recovery",
+    "can_restore_device_secret",
+    "requires_user_action",
+    "requires_server_setup",
+    "requires_key_rotation",
+    "forbids_low_entropy_recovery",
+    "forbids_plaintext_backup",
+    "plaintext_bytes_exposed",
+    "method_code",
+    "reason_code",
+    "reason_label"
+  ],
+  "stage_fields": [
+    "stage_a_reason",
+    "stage_b_reason",
+    "stage_c_reason",
+    "stage_d_reason"
+  ],
+  "pack_low_bits_msb_to_lsb": [
+    "accepted",
+    "can_start_recovery",
+    "can_restore_device_secret",
+    "requires_user_action",
+    "requires_server_setup",
+    "requires_key_rotation",
+    "forbids_low_entropy_recovery",
+    "forbids_plaintext_backup",
+    "plaintext_bytes_exposed"
+  ],
+  "pack_layout": "reason_code*512 + accepted*256 + can_start_recovery*128 + can_restore_device_secret*64 + requires_user_action*32 + requires_server_setup*16 + requires_key_rotation*8 + forbids_low_entropy_recovery*4 + forbids_plaintext_backup*2 + plaintext_bytes_exposed (method passes through, asserted separately not packed)",
+  "reason_codes": {
+    "ACCEPTED": 0,
+    "RECOVERY_NOT_REQUESTED": 1,
+    "LOW_ENTROPY_PIN_FORBIDDEN": 2,
+    "RECOVERY_KEY_TOO_WEAK": 3,
+    "RECOVERY_KEY_DIGEST_MISSING": 4,
+    "THRESHOLD_QUORUM_INSUFFICIENT": 5,
+    "DEVICE_APPROVAL_MISSING": 6,
+    "SERVER_AUTHENTICATION_MISSING": 7,
+    "SERVER_RATE_LIMIT_MISSING": 8,
+    "BACKUP_ENCRYPTION_MISSING": 9,
+    "PLAINTEXT_BACKUP_FORBIDDEN": 10,
+    "KEY_ROTATION_MISSING": 11,
+    "AUDIT_DIGEST_MISSING": 12
+  },
+  "vector_count": 24,
+  "source_of_truth": "core/rust/mercury-core/src/lib.rs evaluate_account_recovery (21949); pinned by core/rust/mercury-core/tests/account_recovery_vectors.rs. Exhaustive agreement: the FU-4 exhaustive differential."
+}

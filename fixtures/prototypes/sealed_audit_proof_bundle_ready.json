@@ -1,0 +1,86 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_persist_proof_bundle": true,
+    "can_recover_proof_cache": false,
+    "can_show_ui_status": true,
+    "can_verify_offline": true,
+    "checkpoint_size": 43,
+    "event_sequence": 42,
+    "log_index": 42,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "requires_policy_refresh": false,
+    "requires_proof_cache_recovery": false,
+    "requires_redaction": false,
+    "requires_witness_refresh": false,
+    "verifier_policy_epoch": 7
+  },
+  "fixture": "sealed_audit_proof_bundle_ready",
+  "input": {
+    "cache": {
+      "local_proof_cache_available": true,
+      "proof_cache_append_only": true,
+      "proof_cache_digest_len": 32,
+      "proof_cache_encrypted": true,
+      "proof_cache_recovery_authenticated": false,
+      "proof_cache_recovery_user_verified": false
+    },
+    "freshness": {
+      "max_witness_age_s": 900,
+      "monitor_freshness_checked": true,
+      "verification_time_s": 1769990430,
+      "witness_timestamp_s": 1769990400
+    },
+    "policy": {
+      "verified_witness_cosignature_count": 3,
+      "verifier_log_key_pin_count": 1,
+      "verifier_policy_epoch": 7,
+      "verifier_policy_matches_witness_policy": true,
+      "verifier_policy_snapshot_digest_len": 32,
+      "verifier_witness_key_pin_count": 3,
+      "verifier_witness_threshold": 2
+    },
+    "privacy": {
+      "audit_subject_digest_len": 32,
+      "plaintext_selector_count": 0,
+      "ui_status_digest_only": true
+    },
+    "proof": {
+      "bundle_format_version": 1,
+      "checkpoint_size": 43,
+      "consistency_proof_hash_count": 6,
+      "consistency_proof_verified": true,
+      "event_hash_len": 32,
+      "event_sequence": 42,
+      "extra_data_authenticated_or_opaque": true,
+      "inclusion_proof_hash_count": 6,
+      "inclusion_proof_verified": true,
+      "inclusion_root_matches_checkpoint": true,
+      "leaf_hash_len": 32,
+      "log_index": 42,
+      "proof_bundle_persisted": true
+    },
+    "witness_client_decision": {
+      "accepted": true,
+      "can_alert_split_view": true,
+      "can_monitor_privately": true,
+      "can_publish_witnessed_checkpoint": true,
+      "can_retry_witness_conflict": false,
+      "can_submit_add_checkpoint": true,
+      "checkpoint_size": 43,
+      "plaintext_bytes_exposed": false,
+      "policy_epoch": 7,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "requires_local_recovery": false,
+      "requires_operator_alert": false,
+      "requires_policy_rotation": false,
+      "requires_witness_repair": false,
+      "response_status_code": 200,
+      "witness_quorum_threshold": 2
+    }
+  },
+  "surface": "sealed_audit_proof_bundle"
+}

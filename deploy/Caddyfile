@@ -1,0 +1,24 @@
+# Caddy reverse proxy for the Mercury relay — automatic HTTPS for relay.mercury-messaging.com.
+#
+# Caddy provisions and renews a Let's Encrypt certificate for this name on its own, as long as:
+#   1. an A/AAAA record for relay.mercury-messaging.com points at this host, and
+#   2. ports 80 and 443 are reachable from the internet.
+#
+# To deploy under a different name, change the site address below AND change DEFAULT_RELAY in
+# ui/app/src-tauri/src/main.rs (or build the client with MERCURY_RELAY_URL set).
+
+relay.mercury-messaging.com {
+	encode gzip
+
+	# The relay serves plain HTTP on the private compose network; Caddy terminates TLS in front.
+	# reverse_proxy automatically adds X-Forwarded-For / X-Forwarded-Proto upstream.
+	reverse_proxy relay:8787
+}
+
+# RATE-LIMITING (see docs/DEPLOY-THE-RELAY.md): the relay's per-IP flood limiter keys on the DIRECT
+# peer IP by default. Because this proxy fronts it, docker-compose.yml sets MERCURY_TRUSTED_PROXY=1
+# so the relay keys on the RIGHT-MOST X-Forwarded-For hop instead — the address Caddy observed for
+# the client and appended here. A client cannot forge that hop (any client-supplied XFF sits to its
+# left), so per-client flood control works behind this single trusted proxy. For large-scale
+# internet exposure, still front this with a CDN / load-balancer that adds DDoS protection. Not
+# faked here.

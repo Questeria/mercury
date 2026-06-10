@@ -1,0 +1,36 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_delete_remote_object": false,
+    "can_evict_local_cache": false,
+    "forbids_plaintext_deletion": true,
+    "keeps_audit_hash": true,
+    "operation_code": 0,
+    "operation_label": "retain",
+    "plaintext_bytes_exposed": false,
+    "reason_code": 5,
+    "reason_label": "RETENTION_HOLD_ACTIVE",
+    "requires_network_setup": false,
+    "requires_user_action": true
+  },
+  "fixture": "media_retention_hold_rejected",
+  "input": {
+    "adapter_kind_code": 1,
+    "adapter_kind_label": "production_object_store",
+    "allow_development_adapter": false,
+    "cache_eviction_requested": false,
+    "content_digest_len": 32,
+    "content_digest_verified": true,
+    "delete_authorized": true,
+    "object_id_len": 32,
+    "object_namespace_bound": true,
+    "operation_code": 3,
+    "operation_label": "delete_remote_and_evict_local_cache",
+    "plaintext_bytes": 0,
+    "record_kind": "media_ciphertext",
+    "retention_hold_active": true,
+    "service_authenticated": true,
+    "user_delete_requested": true
+  },
+  "surface": "media_retention"
+}

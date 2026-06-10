@@ -1,0 +1,24 @@
+{
+  "name": "client_bootstrap__replay_gap_detected",
+  "description": "client_bootstrap / REPLAY_GAP_DETECTED",
+  "input": {
+    "source": 0,
+    "reason_code": 17
+  },
+  "expected": {
+    "source": "client_bootstrap",
+    "accepted": false,
+    "reason_code": 17,
+    "reason_label": "REPLAY_GAP_DETECTED",
+    "can_open_message_ui": false,
+    "can_start_sync": true,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": true,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": false
+  },
+  "expected_pack": 136
+}

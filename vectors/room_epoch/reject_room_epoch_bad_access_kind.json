@@ -1,0 +1,17 @@
+{
+  "name": "reject_room_epoch_bad_access_kind",
+  "description": "Room epoch policy rejects unknown access kinds.",
+  "input": {
+    "version": 1,
+    "room_mode": 1,
+    "device_kind": 1,
+    "device_state": 1,
+    "current_epoch": 7,
+    "message_epoch": 7,
+    "min_accepted_epoch": 1,
+    "revoked_at_epoch": 0,
+    "access_kind": 3
+  },
+  "expected_reason": 9,
+  "expected_audit_class": 2
+}

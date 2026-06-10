@@ -1,0 +1,42 @@
+{
+  "decision": {
+    "accepted": false,
+    "backend_code": 2,
+    "backend_label": "android_keystore",
+    "can_build_unlock_input": false,
+    "protection_code": 1,
+    "protection_label": "hardware_backed",
+    "reason_code": 3,
+    "reason_label": "USER_AUTH_REQUIRED",
+    "requires_destructive_repair": false,
+    "requires_recovery": false,
+    "requires_user_auth": true,
+    "unlock_input": {
+      "app_lock_satisfied": false,
+      "database_header": "Authenticated",
+      "device_secret": "PresentSealed",
+      "keychain_available": true,
+      "plaintext_cache_records": 0,
+      "recovery_required": false,
+      "store_version": 1
+    }
+  },
+  "fixture": "local_store_keychain_user_auth_required",
+  "input": {
+    "allow_development_backend": false,
+    "backend_available": true,
+    "backend_code": 2,
+    "backend_label": "android_keystore",
+    "database_header": "Authenticated",
+    "device_secret": "PresentSealed",
+    "device_secret_exportable": false,
+    "plaintext_cache_records": 0,
+    "protection_code": 1,
+    "protection_label": "hardware_backed",
+    "recovery_required": false,
+    "store_version": 1,
+    "user_auth_required": true,
+    "user_auth_satisfied": false
+  },
+  "surface": "local_store_keychain_unlock"
+}

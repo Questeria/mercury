@@ -1,0 +1,38 @@
+{
+  "decision": {
+    "accepted": false,
+    "binds_added_member_ref": false,
+    "binds_welcome_send_transaction": false,
+    "can_consume_key_package_once": false,
+    "can_send_welcome_once": false,
+    "keeps_digest_only": true,
+    "persisted_record": false,
+    "plaintext_bytes_exposed": false,
+    "prevents_key_package_reuse": true,
+    "reason_code": 8,
+    "reason_label": "KEY_PACKAGE_ALREADY_CONSUMED",
+    "record_count": 1
+  },
+  "fixture": "mls_key_package_consume_store_duplicate_rejected",
+  "input": {
+    "added_member_ref_len": 32,
+    "consumed_at_s": 1100,
+    "group_id_len": 32,
+    "key_package_admission_accepted": true,
+    "key_package_admission_reason_code": 0,
+    "key_package_admission_reason_label": "ACCEPTED",
+    "key_package_hash_len": 32,
+    "plaintext_metadata_fields": 0,
+    "seed_duplicate": true,
+    "welcome_send_transaction_digest_len": 32
+  },
+  "store": {
+    "global_duplicate_check": {
+      "keyed_by_key_package_hash": true,
+      "other_group_id_len": 32
+    },
+    "has_record": true,
+    "record_count": 1
+  },
+  "surface": "mls_key_package_consume_store"
+}

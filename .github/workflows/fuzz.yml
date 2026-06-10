@@ -1,0 +1,39 @@
+name: Fuzz
+
+# Track 0c (coverage-guided layer): nightly cargo-fuzz / libFuzzer runs against
+# the canonical message parser and the AEAD open seam. Any crash fails the job
+# and uploads the reproducer. Runs nightly (not on PRs) since each campaign is
+# time-boxed minutes; trigger manually via the Actions tab too.
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [envelope_decode, sealed_open, sealed_open_hybrid, session_decode]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install nightly + cargo-fuzz
+        run: |
+          rustup toolchain install nightly --profile minimal
+          rustup default nightly
+          cargo install cargo-fuzz --locked
+
+      - name: Fuzz ${{ matrix.target }} (time-boxed)
+        run: cargo fuzz run ${{ matrix.target }} -- -max_total_time=180 -rss_limit_mb=4096
+
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts/
+          if-no-files-found: ignore

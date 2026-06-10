@@ -1,0 +1,44 @@
+{
+  "decision": {
+    "accepted": false,
+    "binds_confirmed_transcript_hash": false,
+    "binds_tree_hash": false,
+    "can_initialize_group_once": false,
+    "can_open_group": false,
+    "commits_group_state_transactionally": false,
+    "consumes_key_package": false,
+    "deletes_init_key": false,
+    "keeps_digest_only": true,
+    "persisted_record": false,
+    "plaintext_bytes_exposed": true,
+    "reason_code": 12,
+    "reason_label": "PLAINTEXT_METADATA_FORBIDDEN",
+    "record_count": 0
+  },
+  "fixture": "mls_welcome_replay_store_plaintext_rejected",
+  "input": {
+    "confirmed_transcript_hash_len": 32,
+    "consumed_key_package_ref_len": 32,
+    "epoch": 8,
+    "group_id_len": 32,
+    "group_state_commit_digest_len": 32,
+    "group_state_committed": true,
+    "init_key_deleted": true,
+    "joined_at_s": 1100,
+    "plaintext_metadata_fields": 1,
+    "seed_duplicate": false,
+    "tree_hash_len": 32,
+    "welcome_admission_accepted": true,
+    "welcome_admission_can_initialize_epoch": true,
+    "welcome_admission_can_join_group": true,
+    "welcome_admission_can_open_group": true,
+    "welcome_admission_reason_code": 0,
+    "welcome_admission_reason_label": "ACCEPTED",
+    "welcome_hash_len": 32
+  },
+  "store": {
+    "has_record": false,
+    "record_count": 0
+  },
+  "surface": "mls_welcome_replay_store"
+}

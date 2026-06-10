@@ -1,0 +1,15 @@
+{
+  "accepted": false,
+  "can_open_message_ui": false,
+  "can_persist_ciphertext": false,
+  "can_receive": false,
+  "can_send": false,
+  "can_start_sync": false,
+  "reason_code": 11,
+  "reason_label": "AI_LIFECYCLE_REJECT",
+  "requires_client_retry": false,
+  "requires_recovery": false,
+  "requires_sync": false,
+  "requires_user_action": false,
+  "source": "policy_pipeline"
+}

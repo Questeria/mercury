@@ -1,0 +1,34 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_apply_commit_once": false,
+    "can_continue_group": false,
+    "keeps_digest_only": true,
+    "local_member_removed": false,
+    "persisted_record": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 1,
+    "reason_label": "COMMIT_ADMISSION_REJECTED",
+    "record_count": 0
+  },
+  "fixture": "mls_commit_replay_store_admission_rejected",
+  "input": {
+    "applied_at_s": 1100,
+    "commit_admission_accepted": false,
+    "commit_admission_can_apply_commit": false,
+    "commit_admission_can_continue_group": false,
+    "commit_admission_local_member_removed": false,
+    "commit_admission_reason_code": 24,
+    "commit_admission_reason_label": "BAD_COMMIT_HASH",
+    "commit_hash_len": 32,
+    "epoch": 7,
+    "group_id_len": 32,
+    "plaintext_metadata_fields": 0,
+    "seed_duplicate": false
+  },
+  "store": {
+    "has_record": false,
+    "record_count": 0
+  },
+  "surface": "mls_commit_replay_store"
+}

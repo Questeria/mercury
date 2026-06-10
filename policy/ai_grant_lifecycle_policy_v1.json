@@ -1,0 +1,65 @@
+{
+  "schema": "mercury.ai_grant_lifecycle_policy.v1",
+  "supported_version": 1,
+  "grant_states": {
+    "active": 1,
+    "revoked": 2
+  },
+  "access_kinds": {
+    "none": 0,
+    "read": 1,
+    "write": 2
+  },
+  "room_modes": {
+    "standard": 1,
+    "sensitive": 2,
+    "high_security": 3,
+    "ai_blocked": 4
+  },
+  "revoke_reasons": {
+    "none": 0,
+    "user_revoked": 1,
+    "admin_revoked": 2,
+    "policy_revoked": 3,
+    "device_removed": 4,
+    "compromise_suspected": 5
+  },
+  "reason_codes": {
+    "ACCEPT": 0,
+    "BAD_VERSION": 1,
+    "BAD_GRANT_STATE": 2,
+    "BAD_REVOKE_REASON": 3,
+    "BAD_TIME": 4,
+    "GRANT_EXPIRED": 5,
+    "GRANT_REVOKED": 6,
+    "READ_AFTER_REVOKE": 7,
+    "WRITE_AFTER_REVOKE": 8,
+    "HIGHSEC_EPOCH_ROTATION_REQUIRED": 9,
+    "BAD_ACCESS_KIND": 10
+  },
+  "audit_classes": {
+    "ACCEPTED_AI_GRANT_LIFECYCLE": 1,
+    "AI_LIFECYCLE_POLICY_REJECT": 2,
+    "AI_GRANT_EXPIRED_REJECT": 3,
+    "AI_GRANT_REVOKED_REJECT": 4,
+    "AI_POST_REVOKE_ACCESS_REJECT": 5,
+    "AI_HIGHSEC_EPOCH_ROTATION_REQUIRED": 6
+  },
+  "vectors": [
+    "valid_active_read_before_expiry_v1",
+    "valid_active_write_before_expiry_v1",
+    "reject_lifecycle_bad_version_v0",
+    "reject_lifecycle_bad_grant_state",
+    "reject_lifecycle_bad_active_revoke_reason",
+    "reject_lifecycle_bad_revoked_no_reason",
+    "reject_lifecycle_bad_time",
+    "reject_lifecycle_bad_access_kind",
+    "reject_lifecycle_expired_at_boundary",
+    "reject_lifecycle_expired_after_expiry",
+    "reject_lifecycle_revoked_user",
+    "reject_lifecycle_read_after_revoke",
+    "reject_lifecycle_write_after_revoke",
+    "reject_lifecycle_highsec_revoke_epoch_rotation_required",
+    "reject_lifecycle_highsec_read_after_revoke_epoch_rotated"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "client_receive__replay_stale",
+  "description": "client_receive / REPLAY_STALE",
+  "input": {
+    "source": 2,
+    "reason_code": 9
+  },
+  "expected": {
+    "source": "client_receive",
+    "accepted": false,
+    "reason_code": 9,
+    "reason_label": "REPLAY_STALE",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": false
+  },
+  "expected_pack": 0
+}

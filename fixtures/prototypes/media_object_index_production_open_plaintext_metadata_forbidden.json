@@ -1,0 +1,38 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_load_manifests": false,
+    "can_open_index": false,
+    "can_replay_wal": false,
+    "can_use_remote_objects": false,
+    "can_write_manifests": false,
+    "reason_code": 6,
+    "reason_label": "PLAINTEXT_METADATA_FORBIDDEN",
+    "requires_crash_recovery": false,
+    "requires_destructive_repair": true,
+    "requires_migration": false,
+    "requires_network_setup": false
+  },
+  "fixture": "media_object_index_production_open_plaintext_metadata_forbidden",
+  "input": {
+    "header": {
+      "header_magic_matches": true,
+      "header_nonce_len": 24,
+      "header_suite_code": 1,
+      "header_suite_label": "mercury_local_store_v1",
+      "header_tag_len": 16
+    },
+    "index_version": 1,
+    "manifest": {
+      "content_digest_index_present": true,
+      "crash_recovery": "CLEAN",
+      "lifecycle_index_present": true,
+      "media_service_authenticated": true,
+      "object_id_index_present": true,
+      "object_namespace_bound": true,
+      "plaintext_cache_paths": 0,
+      "plaintext_metadata_rows": 1
+    }
+  },
+  "surface": "media_object_index_production_open"
+}

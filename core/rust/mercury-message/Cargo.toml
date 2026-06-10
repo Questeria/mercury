@@ -1,0 +1,14 @@
+[package]
+name = "mercury-message"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+mercury-core = { path = "../mercury-core" }
+mercury-policy = { path = "../mercury-policy" }
+mercury-keys = { path = "../mercury-keys" }
+mercury-sealedbox = { path = "../mercury-sealedbox" }
+
+[dev-dependencies]
+proptest = "1"

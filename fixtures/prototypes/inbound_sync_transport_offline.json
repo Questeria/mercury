@@ -1,0 +1,25 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_poll_relay": false,
+    "can_run_receive_session": false,
+    "can_update_replay_checkpoint": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 3,
+    "reason_label": "TRANSPORT_OFFLINE",
+    "requires_network_retry": true,
+    "requires_user_action": false
+  },
+  "fixture": "inbound_sync_transport_offline",
+  "input": {
+    "bootstrap_can_start_sync": true,
+    "bootstrap_reason_code": 0,
+    "bootstrap_reason_label": "ACCEPTED",
+    "pending_delivery": true,
+    "plaintext_notification_preview_len": 0,
+    "poll_batch_limit": 25,
+    "route_id_len": 32,
+    "source_state": "Offline"
+  },
+  "surface": "inbound_sync_gate"
+}

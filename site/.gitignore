@@ -1,0 +1,3 @@
+# The installer + checksum are placed here at deploy time (built by CI / downloaded from the
+# Actions run) and uploaded to the static host with the page. They are NOT committed to git.
+/download/

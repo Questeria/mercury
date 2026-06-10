@@ -1,0 +1,116 @@
+{
+  "ai": {
+    "accepted": false,
+    "audit_record_count": 1,
+    "can_emit_draft": false,
+    "can_send_message": false
+  },
+  "bootstrap": {
+    "accepted": true,
+    "can_open_message_ui": true,
+    "reason": "Accepted"
+  },
+  "completed": false,
+  "crypto": {
+    "delivered_ciphertext_len": 39,
+    "open_calls": 1,
+    "opened_plaintext_len": 23,
+    "plaintext_bytes_exposed": false,
+    "seal_calls": 1
+  },
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "session_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 2,
+      "kind_label": "bootstrap_checked",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 1,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 3,
+      "kind_label": "local_store_seal_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 2,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 4,
+      "kind_label": "local_store_write_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 3,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 5,
+      "kind_label": "relay_submit_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 4,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 6,
+      "kind_label": "relay_delivery_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 5,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 7,
+      "kind_label": "local_store_open_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 6,
+      "terminal": false
+    },
+    {
+      "accepted": false,
+      "kind_code": 8,
+      "kind_label": "ai_participant_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 7,
+      "reason_label": "ai_participant_rejected",
+      "sequence": 7,
+      "terminal": true
+    }
+  ],
+  "fixture": "backend_session_ai_rejected",
+  "local_store": {
+    "record_count": 1,
+    "write_accepted": true
+  },
+  "reason": "AiParticipantRejected",
+  "relay": {
+    "delivery_accepted": true,
+    "item_count": 1,
+    "sealed_header_delivered_len": 96,
+    "submission_accepted": true
+  },
+  "surface": "prototype_backend_session"
+}

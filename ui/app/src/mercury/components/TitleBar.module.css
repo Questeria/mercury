@@ -1,0 +1,65 @@
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 12px;
+  background: color-mix(in srgb, var(--mc-surface) 92%, transparent);
+  border-bottom: 1px solid var(--mc-border);
+  backdrop-filter: blur(10px);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.logo {
+  display: block;
+  border-radius: 5px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+}
+
+.controls {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+
+.ctl {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--mc-ink3);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.ctl:hover {
+  background: var(--mc-surface-mute);
+  color: var(--mc-ink);
+}
+
+.close:hover {
+  background: #e81123;
+  color: #fff;
+}

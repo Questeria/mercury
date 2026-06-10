@@ -1,0 +1,325 @@
+/* Mercury design tokens + brand motion.
+ *
+ * Faithful translation of the design-handoff `FUSION_LIGHT` / `FUSION_DARK`
+ * palettes and `FUSION_FONT_CSS` into CSS custom properties + utility classes
+ * (the handoff says: translate the inline-style tokens into the codebase's
+ * system, do not port inline-style objects verbatim).
+ *
+ * Theme is selected by `data-theme="light|dark"` on the `.mercury` root.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+.mercury {
+  /* ---- light (default) ---- */
+  --mc-bg: #fafafc;
+  --mc-surface: #ffffff;
+  --mc-surface-warm: #f4f5f8;
+  --mc-surface-mute: #eeeff3;
+  --mc-ink: #0b0e16;
+  --mc-ink2: #3f4554;
+  --mc-ink3: #5b6373;
+  --mc-muted: #828a99;
+  --mc-dim: #b0b6c2;
+  --mc-border: rgba(15, 18, 28, 0.07);
+  --mc-border-strong: rgba(15, 18, 28, 0.14);
+
+  --mc-irid: linear-gradient(110deg, #ffd0e4 0%, #ffc9a8 18%, #ffe9a8 36%, #bdf0ce 54%, #b5d7ff 72%, #d5bbff 90%, #ffd0e4 100%);
+  --mc-irid-v: linear-gradient(180deg, #ffd0e4 0%, #ffc9a8 18%, #ffe9a8 36%, #bdf0ce 54%, #b5d7ff 72%, #d5bbff 90%, #ffd0e4 100%);
+  --mc-irid-text: linear-gradient(95deg, #6b3fe0, #1d88c7, #1e8f5a, #c13b7c, #6b3fe0);
+
+  --mc-shim-a: rgba(255, 180, 220, 0.55);
+  --mc-shim-b: rgba(255, 210, 170, 0.45);
+  --mc-shim-c: rgba(180, 235, 210, 0.45);
+  --mc-shim-d: rgba(195, 220, 255, 0.55);
+  --mc-shim-core: rgba(198, 188, 255, 0.5);
+  --mc-shim-opacity: 0.55;
+
+  --mc-scroll: rgba(0, 0, 0, 0.1);
+  --mc-focus: #7b5cf0;
+
+  --mc-tip-bg: #ffffff;
+  --mc-tip-ink: #0b0e16;
+  --mc-tip-border: rgba(15, 18, 28, 0.18);
+  --mc-tip-hi: rgba(255, 255, 255, 0.7);
+
+  --mc-accent: #7b5cf0;
+  --mc-accent-ink: #ffffff;
+  --mc-ai: #7b5cf0;
+  --mc-ai-soft: rgba(123, 92, 240, 0.08);
+  --mc-ai-bubble: rgba(123, 92, 240, 0.06);
+  --mc-ok: #1f8a5b;
+  --mc-ok-soft: rgba(31, 138, 91, 0.1);
+  --mc-warn: #b26314;
+  --mc-warn-soft: rgba(178, 99, 20, 0.08);
+  --mc-warn-tint: rgba(178, 99, 20, 0.18);
+  --mc-bad: #b8281c;
+  --mc-bad-soft: rgba(184, 40, 28, 0.08);
+
+  /* per-author tint S/L components (light). Composed with the per-bubble --hue
+     AT THE USE SITE -- e.g. hsl(var(--hue) var(--tint-bg-s) var(--tint-bg-l)).
+     A var that embeds var(--hue) HERE would resolve --hue against this root
+     (220) and inherit a fixed color, defeating per-author tinting. */
+  --tint-bg-s: 80%;
+  --tint-bg-l: 90%;
+  --tint-bd-s: 60%;
+  --tint-bd-l: 75%;
+  --tint-nm-s: 55%;
+  --tint-nm-l: 36%;
+
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  background: var(--mc-bg);
+  color: var(--mc-ink);
+  transition: background-color 0.32s ease, color 0.32s ease;
+}
+
+.mercury[data-theme="dark"] {
+  --mc-bg: #0a0c13;
+  --mc-surface: #13171f;
+  --mc-surface-warm: #181c25;
+  --mc-surface-mute: #1e232e;
+  --mc-ink: #ebedf2;
+  --mc-ink2: #bfc4d0;
+  --mc-ink3: #8b92a0;
+  --mc-muted: #666e80;
+  --mc-dim: #404654;
+  --mc-border: rgba(235, 237, 242, 0.08);
+  --mc-border-strong: rgba(235, 237, 242, 0.18);
+
+  --mc-irid: linear-gradient(110deg, #ffafd0 0%, #ffb58c 18%, #ffe08c 36%, #9ce6b5 54%, #9cc8ff 72%, #c49aff 90%, #ffafd0 100%);
+  --mc-irid-v: linear-gradient(180deg, #ffafd0 0%, #ffb58c 18%, #ffe08c 36%, #9ce6b5 54%, #9cc8ff 72%, #c49aff 90%, #ffafd0 100%);
+  --mc-irid-text: linear-gradient(95deg, #c2a2ff, #93d7f5, #5be1a8, #ff99d6, #c2a2ff);
+
+  --mc-shim-a: rgba(160, 90, 180, 0.4);
+  --mc-shim-b: rgba(220, 120, 100, 0.3);
+  --mc-shim-c: rgba(80, 160, 140, 0.32);
+  --mc-shim-d: rgba(80, 130, 200, 0.4);
+  --mc-shim-core: rgba(120, 96, 210, 0.42);
+  --mc-shim-opacity: 0.4;
+
+  --mc-scroll: rgba(255, 255, 255, 0.1);
+  --mc-focus: #a89bff;
+
+  --mc-tip-bg: #1a1e27;
+  --mc-tip-ink: #ebedf2;
+  --mc-tip-border: rgba(235, 237, 242, 0.18);
+  --mc-tip-hi: rgba(255, 255, 255, 0.06);
+
+  --mc-accent: #a89bff;
+  --mc-accent-ink: #0e0905;
+  --mc-ai: #a89bff;
+  --mc-ai-soft: rgba(168, 155, 255, 0.1);
+  --mc-ai-bubble: rgba(168, 155, 255, 0.08);
+  --mc-ok: #5dce96;
+  --mc-ok-soft: rgba(93, 206, 150, 0.12);
+  --mc-warn: #f3b564;
+  --mc-warn-soft: rgba(243, 181, 100, 0.1);
+  --mc-warn-tint: rgba(243, 181, 100, 0.2);
+  --mc-bad: #f37a6b;
+  --mc-bad-soft: rgba(243, 122, 107, 0.1);
+
+  --tint-bg-s: 42%;
+  --tint-bg-l: 19%;
+  --tint-bd-s: 45%;
+  --tint-bd-l: 32%;
+  --tint-nm-s: 62%;
+  --tint-nm-l: 72%;
+}
+
+.mercury .display {
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+.mercury .mono {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ---- keyframes ---- */
+@keyframes mc-irid { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+@keyframes mc-spin { to { transform: rotate(360deg); } }
+@keyframes mc-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mc-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+@keyframes mc-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes mc-bg {
+  0% { transform: translate3d(-5%, -3%, 0) scale(1.05) rotate(0deg); }
+  100% { transform: translate3d(5%, 5%, 0) scale(1.12) rotate(6deg); }
+}
+@keyframes mc-bg-2 {
+  0% { transform: translate3d(4%, 3%, 0) scale(1.08) rotate(0deg); }
+  100% { transform: translate3d(-6%, -4%, 0) scale(1.02) rotate(-7deg); }
+}
+@keyframes mc-bg-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.18); opacity: 0.62; }
+}
+@keyframes mc-card-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mc-tip-in { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* @property animates the conic gradient's start angle so the rainbow drifts
+   while the ring geometry stays put (the prototype warns: do not rotate). */
+@property --mc-iris-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes mc-iris-angle { to { --mc-iris-angle: 360deg; } }
+
+.mercury .rise { animation: mc-rise 0.26s ease-out both; }
+.mercury .pulse-dot { animation: mc-pulse 0.55s ease-out; }
+.mercury .blink { animation: mc-blink 1.05s steps(1) infinite; }
+.mercury .card-in { animation: mc-card-in 0.22s ease-out both; }
+
+/* opal iridescent fill (outgoing/send button backgrounds) — STATIC. The 60fps `background-position`
+   slide repainted every send button + outgoing bubble (inside the blurred Thread/Composer panels)
+   on every frame; that continuous GPU repaint was a main cause of the open/after-update lag. The
+   full iridescent gradient still shows at its natural size — it just no longer shimmers. */
+.mercury .irid-fill {
+  background-image: var(--mc-irid);
+  background-size: 100% 100%;
+}
+
+/* iridescent border via masked conic gradient */
+.mercury .iris-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.25px;
+  background: conic-gradient(from var(--mc-iris-angle, 0deg),
+    #c2a2ff, #93d7f5, #5be1a8, #ffe49b, #ff99d6, #c2a2ff);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  /* STATIC rainbow ring. The per-frame conic-gradient angle spin was a constant GPU paint on every
+     avatar / send button / AI message; the ring still renders, it just no longer rotates. */
+  pointer-events: none;
+}
+
+.mercury .iris-text {
+  background: var(--mc-irid-text);
+  background-size: 100% 100%;
+  /* STATIC. This is the always-visible "Mercury" wordmark + AI labels; the old 60fps gradient slide
+     repainted them (inside the blurred rail) on every frame — continuous GPU work. The gradient text
+     still renders; it no longer animates. */
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* drifting aurora behind every surface — two parallax layers + a soft core.
+   GPU-cheap: only transform/opacity animate (no per-frame filter re-raster), the
+   blur is rasterised once, and `contain` isolates it so it never repaints siblings. */
+.mercury .shimmer-bg {
+  position: absolute;
+  inset: -35%;
+  pointer-events: none;
+  opacity: var(--mc-shim-opacity, 0.42);
+  background:
+    radial-gradient(30% 30% at 20% 16%, var(--mc-shim-a), transparent 64%),
+    radial-gradient(28% 28% at 80% 24%, var(--mc-shim-b), transparent 64%),
+    radial-gradient(34% 34% at 26% 84%, var(--mc-shim-c), transparent 64%),
+    radial-gradient(30% 30% at 82% 78%, var(--mc-shim-d), transparent 64%);
+  filter: blur(52px) saturate(1.04);
+  /* STATIC aurora. Animating it changed the pixels behind the 4 backdrop-filter panels (rail,
+     thread, composer, inspector), forcing each to re-blur the whole moving backdrop EVERY frame —
+     the cause of the open/after-update lag. Static => the blurred backdrop rasterises once and the
+     panels' blur is cached. translateZ(0) keeps it on its own cached layer. */
+  transform: translateZ(0);
+  contain: layout paint;
+}
+.mercury .shimmer-bg::before,
+.mercury .shimmer-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* second parallax layer drifts the other way (transform only) */
+.mercury .shimmer-bg::before {
+  background:
+    radial-gradient(24% 24% at 64% 12%, var(--mc-shim-b), transparent 66%),
+    radial-gradient(26% 26% at 14% 54%, var(--mc-shim-d), transparent 66%),
+    radial-gradient(30% 30% at 88% 60%, var(--mc-shim-c), transparent 66%),
+    radial-gradient(22% 22% at 50% 92%, var(--mc-shim-a), transparent 66%);
+  filter: blur(58px);
+  opacity: 0.8;
+}
+/* soft central core — gentle breathe (opacity/scale only) */
+.mercury .shimmer-bg::after {
+  background: radial-gradient(40% 40% at 50% 46%, var(--mc-shim-core, var(--mc-shim-d)), transparent 70%);
+  filter: blur(60px);
+  opacity: 0.5;
+}
+
+.mercury textarea,
+.mercury input { font-family: inherit; }
+.mercury textarea::placeholder,
+.mercury input::placeholder { color: var(--mc-muted); }
+.mercury ::-webkit-scrollbar { width: 8px; height: 8px; }
+.mercury ::-webkit-scrollbar-thumb { background: var(--mc-scroll); border-radius: 8px; }
+.mercury ::-webkit-scrollbar-track { background: transparent; }
+
+/* keyboard focus ring (focus-visible only) */
+.mercury :focus { outline: none; }
+.mercury button:focus-visible,
+.mercury a:focus-visible,
+.mercury [tabindex]:focus-visible,
+.mercury textarea:focus-visible,
+.mercury input:focus-visible {
+  outline: 2px solid var(--mc-focus);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* themed hover tooltip via [data-tip] */
+.mercury [data-tip]:hover,
+.mercury [data-tip]:focus-visible { z-index: 50; }
+.mercury [data-tip]:hover::after,
+.mercury [data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: var(--mc-tip-bg);
+  color: var(--mc-tip-ink);
+  border: 1px solid var(--mc-tip-border);
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  max-width: 220px;
+  width: max-content;
+  white-space: normal;
+  text-align: center;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 1px 0 var(--mc-tip-hi) inset;
+  animation: mc-tip-in 0.14s ease-out both;
+}
+.mercury [data-tip]:hover::before,
+.mercury [data-tip]:focus-visible::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 4.5px);
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: var(--mc-tip-bg);
+  border-top: 1px solid var(--mc-tip-border);
+  border-left: 1px solid var(--mc-tip-border);
+  pointer-events: none;
+  z-index: 100;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mercury *,
+  .mercury *::before,
+  .mercury *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "11_bad_ciphertext_digest_length__1",
+  "description": "BAD_CIPHERTEXT_DIGEST_LENGTH / pack=704",
+  "input": {
+    "relay_accepted": 1,
+    "relay_delivered": 1,
+    "ack_duplicate": 0,
+    "ack_accepted": 1,
+    "ack_requires_client_retry": 0,
+    "ciphertext_digest_ok": 0,
+    "plaintext_identity_ok": 1,
+    "replay_state": 0,
+    "dt_can_send": 1,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 1,
+    "dt_requires_user_action": 0
+  },
+  "expected": {
+    "relay_reason": 0,
+    "content_reason": 11,
+    "trust_reason": 0,
+    "accepted": false,
+    "can_decrypt": false,
+    "can_persist_ciphertext": false,
+    "can_expose_to_ui": false,
+    "requires_client_retry": false,
+    "requires_user_action": false,
+    "reason_code": 11,
+    "reason_label": "BAD_CIPHERTEXT_DIGEST_LENGTH"
+  },
+  "expected_pack": 704
+}

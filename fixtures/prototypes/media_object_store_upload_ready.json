@@ -1,0 +1,28 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_persist_local_ciphertext": true,
+    "can_upload": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "requires_user_action": false
+  },
+  "fixture": "media_object_store_upload_ready",
+  "input": {
+    "automatic_download_requested": false,
+    "ciphertext_len": 4096,
+    "content_digest_len": 32,
+    "max_ciphertext_len": 16777216,
+    "media_key_commitment_len": 32,
+    "media_record_kind": "media_ciphertext",
+    "media_sealing_accepted": true,
+    "object_id_len": 32,
+    "outbound_send_accepted": true,
+    "outbound_send_reason_code": 0,
+    "outbound_send_reason_label": "ACCEPTED",
+    "plaintext_bytes": 0,
+    "sealed_header_len": 96
+  },
+  "surface": "media_object_store"
+}

@@ -1,0 +1,32 @@
+{
+  "name": "0_accepted__1",
+  "description": "ACCEPTED / pack=60",
+  "input": {
+    "relay_accepted": 1,
+    "relay_delivered": 1,
+    "ack_duplicate": 0,
+    "ack_accepted": 1,
+    "ack_requires_client_retry": 0,
+    "ciphertext_digest_ok": 1,
+    "plaintext_identity_ok": 1,
+    "replay_state": 0,
+    "dt_can_send": 1,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 1,
+    "dt_requires_user_action": 0
+  },
+  "expected": {
+    "relay_reason": 0,
+    "content_reason": 0,
+    "trust_reason": 0,
+    "accepted": true,
+    "can_decrypt": true,
+    "can_persist_ciphertext": true,
+    "can_expose_to_ui": true,
+    "requires_client_retry": false,
+    "requires_user_action": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED"
+  },
+  "expected_pack": 60
+}

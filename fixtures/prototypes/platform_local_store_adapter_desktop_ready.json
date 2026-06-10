@@ -1,0 +1,25 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_open_adapter": true,
+    "forbids_plaintext_storage": true,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "requires_hardware_backing": false,
+    "requires_install_setup": false,
+    "requires_user_auth": false
+  },
+  "fixture": "platform_local_store_adapter_desktop_ready",
+  "input": {
+    "adapter_kind_code": 1,
+    "adapter_kind_label": "production_encrypted_database",
+    "allow_development_adapters": false,
+    "app_lock_satisfied": true,
+    "database_root_present": true,
+    "hardware_backed_key_store": true,
+    "os_keychain_available": true,
+    "runtime_code": 1,
+    "runtime_label": "desktop"
+  },
+  "surface": "platform_local_store_adapter"
+}

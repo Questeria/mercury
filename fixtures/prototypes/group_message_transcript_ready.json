@@ -1,0 +1,41 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_persist_ciphertext": true,
+    "can_submit_to_relay": true,
+    "forbids_plaintext": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "requires_rekey": false,
+    "requires_sync": false,
+    "requires_user_action": false
+  },
+  "fixture": "group_message_transcript_ready",
+  "input": {
+    "application_payload_sealed": true,
+    "confirmed_transcript_hash_len": 32,
+    "group_chat_accepted": true,
+    "group_chat_crypto_suite_label": "hybrid_pq_mls_768",
+    "group_chat_protocol_label": "mls",
+    "group_chat_reason_label": "ACCEPTED",
+    "group_context_digest_len": 32,
+    "group_id_len": 32,
+    "local_epoch": 7,
+    "local_store_group_id_len": 32,
+    "local_store_key_scope": "RoomEpoch",
+    "local_store_record_kind": "message_ciphertext",
+    "local_store_room_epoch": 7,
+    "message_epoch": 7,
+    "outbound_can_persist_ciphertext": true,
+    "outbound_can_send": true,
+    "outbound_send_accepted": true,
+    "outbound_send_reason_label": "ACCEPTED",
+    "reuse_guard_len": 4,
+    "sender_data_sealed": true,
+    "sender_generation": 4,
+    "sender_leaf_index": 2,
+    "used_generation_deleted": true
+  },
+  "surface": "group_message_transcript"
+}

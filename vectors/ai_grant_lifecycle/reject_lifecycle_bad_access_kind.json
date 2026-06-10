@@ -1,0 +1,16 @@
+{
+  "name": "reject_lifecycle_bad_access_kind",
+  "description": "Lifecycle policy rejects unknown lifecycle access kinds.",
+  "input": {
+    "version": 1,
+    "grant_state": 1,
+    "revoke_reason": 0,
+    "now_s": 100,
+    "expires_at_s": 200,
+    "room_mode": 1,
+    "access_kind": 3,
+    "epoch_rotated": 0
+  },
+  "expected_reason": 10,
+  "expected_audit_class": 2
+}

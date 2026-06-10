@@ -1,0 +1,42 @@
+[package]
+name = "mercury-audit"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# Stage-12 sealed-audit transparency engine. Builds an RFC 6962 append-only
+# Merkle hash tree over audit event records (with really-computed-and-verified
+# inclusion + consistency proofs), the tamper-evident substrate mercury-core's
+# sealed-audit event-chain gate requires. Later increments add the hash-chained
+# event log, the Ed25519 signed checkpoint, and the gate-input producer. Only
+# audited SHA-256 is used.
+
+[dependencies]
+mercury-core = { path = "../mercury-core" }
+sha2 = "0.10"
+# Ed25519 signed checkpoint over the audit Merkle root (the audit analogue of a
+# CT signed tree head). Same v2 + zeroize as mercury-kt's witness machinery.
+# `rand_core` enables OS-CSPRNG key generation for the hybrid checkpoint key.
+ed25519-dalek = { version = "2", features = ["rand_core", "zeroize"] }
+# ML-DSA-44 (FIPS 204) for the post-quantum half of the HYBRID checkpoint
+# signature (Ed25519 + ML-DSA-44), the algorithm mercury-core's sealed-audit
+# witness gate requires (is_post_quantum_or_hybrid). RustCrypto, pure Rust,
+# no_std, same crypto supply chain as mercury-keys' ml-kem; chosen for that
+# supply-chain consistency + a pure-Rust build. The hybrid construction means a
+# forgery requires breaking BOTH halves, so the classical Ed25519 floor holds
+# even against any flaw in this (newer) crate. Cryspen's formally-verified
+# libcrux-ml-dsa is the documented alternative if a verified backend is later
+# preferred.
+ml-dsa = { version = "0.1", features = ["getrandom"] }
+# OS CSPRNG for the Ed25519 half of hybrid key generation (rand_core 0.6, the
+# version ed25519-dalek v2 uses; the ML-DSA half self-seeds via getrandom).
+rand_core = { version = "0.6", features = ["getrandom"] }
+
+[dev-dependencies]
+# Test-only: the end-to-end persistence integration test composes this crate's
+# store-write producer with mercury-core's PrototypeSealedAuditEventStore adapter
+# and constructs the log's Ed25519 checkpoint key. Both are already normal
+# dependencies above; listing them here makes them reachable from tests/ — no new
+# external crates.
+mercury-core = { path = "../mercury-core" }
+ed25519-dalek = { version = "2", features = ["zeroize"] }

@@ -1,0 +1,71 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "indexed_cleanup_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": false,
+      "kind_code": 2,
+      "kind_label": "media_object_index_store_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 1,
+      "reason_label": "media_object_index_store_rejected",
+      "sequence": 1,
+      "terminal": true
+    }
+  ],
+  "fixture": "indexed_media_cleanup_session_manifest_rejected",
+  "input": {
+    "cleanup_cached_ciphertext_len": 64,
+    "cleanup_operation_code": 3,
+    "cleanup_operation_label": "delete_remote_and_evict_local_cache",
+    "cleanup_retention_hold_active": false,
+    "cleanup_seed_local_cache": true,
+    "index_content_digest_len": 32,
+    "index_lifecycle_state_code": 3,
+    "index_lifecycle_state_label": "remote_and_local_cached",
+    "index_media_key_commitment_len": 32,
+    "index_object_id_len": 32,
+    "index_plaintext_metadata_bytes": 1
+  },
+  "outcome": {
+    "cleanup": null,
+    "completed": false,
+    "index_store": {
+      "accepted": false,
+      "index": {
+        "accepted": false,
+        "can_cleanup": false,
+        "can_download": false,
+        "can_upload": false,
+        "has_local_cache": false,
+        "has_remote_object": false,
+        "keeps_audit_hash": true,
+        "lifecycle_state_code": 3,
+        "lifecycle_state_label": "remote_and_local_cached",
+        "plaintext_bytes_exposed": false,
+        "reason_code": 1,
+        "reason_label": "PLAINTEXT_METADATA_FORBIDDEN",
+        "requires_user_action": true
+      },
+      "keeps_audit_hash": true,
+      "persisted_record": false,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 4,
+      "reason_label": "INDEX_REJECTED",
+      "record_count": 0
+    },
+    "index_store_records": 0,
+    "plaintext_exposed": false,
+    "reason_code": 1,
+    "reason_label": "media_object_index_store_rejected"
+  },
+  "surface": "prototype_indexed_media_cleanup_session"
+}

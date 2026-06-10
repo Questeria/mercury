@@ -1,0 +1,32 @@
+{
+  "name": "6_message_policy_rejected__1",
+  "description": "MESSAGE_POLICY_REJECTED / pack=385",
+  "input": {
+    "relay_accepted": 1,
+    "relay_delivered": 1,
+    "ack_duplicate": 0,
+    "ack_accepted": 1,
+    "ack_requires_client_retry": 0,
+    "ciphertext_digest_ok": 1,
+    "plaintext_identity_ok": 1,
+    "replay_state": 0,
+    "dt_can_send": 1,
+    "message_policy_accepted": 0,
+    "ciphertext_sealing_accepted": 1,
+    "dt_requires_user_action": 0
+  },
+  "expected": {
+    "relay_reason": 0,
+    "content_reason": 0,
+    "trust_reason": 6,
+    "accepted": false,
+    "can_decrypt": false,
+    "can_persist_ciphertext": false,
+    "can_expose_to_ui": false,
+    "requires_client_retry": false,
+    "requires_user_action": true,
+    "reason_code": 6,
+    "reason_label": "MESSAGE_POLICY_REJECTED"
+  },
+  "expected_pack": 385
+}

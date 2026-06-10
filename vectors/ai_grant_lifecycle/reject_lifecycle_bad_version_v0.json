@@ -1,0 +1,16 @@
+{
+  "name": "reject_lifecycle_bad_version_v0",
+  "description": "Lifecycle policy rejects unsupported grant lifecycle versions.",
+  "input": {
+    "version": 0,
+    "grant_state": 1,
+    "revoke_reason": 0,
+    "now_s": 100,
+    "expires_at_s": 200,
+    "room_mode": 1,
+    "access_kind": 1,
+    "epoch_rotated": 0
+  },
+  "expected_reason": 1,
+  "expected_audit_class": 2
+}

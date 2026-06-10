@@ -1,0 +1,46 @@
+[package]
+name = "mercury-app"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# Milestone 3 of launch integration: the application CONTROLLER the UI drives.
+# It manages one Mercury identity, its 1:1 conversations (per-peer post-quantum
+# ratchet sessions via mercury-client), contact discovery through the relay
+# directory, and a UI-facing message log. This is the real send/receive/session
+# surface that replaces the UI's TypeScript simulator -- and it is deliberately
+# distinct from the decision/policy bridge (mercury-bindings), which stays
+# plaintext-free. No crypto or policy lives here: confidentiality is delegated to
+# mercury-client (the ratchet + sealed-sender envelope), admission to mercury-core.
+
+[dependencies]
+mercury-client = { path = "../mercury-client" }
+# Group chat: the persistent MLS engine (classical MLS over the audited RustCrypto provider; the
+# X-Wing PQ suite stays feature-gated off until upstream patches its libcrux pins — see
+# mercury-mls/Cargo.toml). Group invites/commits/messages ride the EXISTING verified 1:1 sealed
+# channels, so the relay is unchanged and never learns group structure beyond fan-out timing.
+mercury-mls = { path = "../mercury-mls" }
+# Decision boundary: the REAL mercury-core PlatformDecisionView constructors (bootstrap / send /
+# receive). This crate builds those views from its ACTUAL state (account id, can_send, last
+# receive outcome) so the UI renders genuine core verdicts — it recomputes no policy and carries
+# no new crypto.
+mercury-bindings = { path = "../mercury-bindings" }
+mercury-core = { path = "../mercury-core", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Zeroize the serialized snapshot plaintext (it transiently holds the message log + client state)
+# after sealing / before drop.
+zeroize = "1"
+# Delivery receipts reference a message by the SHA-256 of its text, so the sender can mark its copy
+# delivered without new plaintext crossing the wire (the receipt rides the sealed ratchet channel
+# like every other control message). Also hashes attachment bytes for receipt matching.
+sha2 = "0.10"
+# Backup-file KDF: PBKDF2-HMAC-SHA512 stretches the user's passphrase into the 32-byte key that
+# seals an exported backup (the same audited XChaCha20-Poly1305 seal as the at-rest snapshot).
+# RustCrypto crates, consistent with the rest of the workspace — no hand-rolled crypto.
+pbkdf2 = { version = "0.12", default-features = false }
+hmac = "0.12"
+# Attachment bytes cross the IPC boundary as base64 (the webview cannot pass raw bytes).
+base64 = "0.22"
+# Fresh random salt per exported backup file.
+getrandom = "0.2"

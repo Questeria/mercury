@@ -1,0 +1,21 @@
+{
+  "name": "valid_remote_enclave_selected_readonly_standard_v1",
+  "description": "Standard rooms may grant selected context to a remote enclave AI with read-only local tooling and ephemeral audit hashes.",
+  "input": {
+    "version": 1,
+    "principal_kind": 3,
+    "room_mode": 1,
+    "ai_mode": 2,
+    "ttl_s": 600,
+    "approver_count": 1,
+    "read_scope": 1,
+    "write_scope": 0,
+    "tool_scope": 1,
+    "retention_mode": 1,
+    "training_allowed": 0,
+    "prompt_store_allowed": 0
+  },
+  "expected_reason": 0,
+  "expected_audit_class": 1
+}
+

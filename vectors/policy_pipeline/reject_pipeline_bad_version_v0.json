@@ -1,0 +1,14 @@
+{
+  "name": "reject_pipeline_bad_version_v0",
+  "description": "Pipeline rejects unsupported policy versions.",
+  "input": {
+    "version": 0,
+    "actor_kind": 1,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 0
+  },
+  "expected_reason": 1,
+  "expected_audit_class": 2
+}

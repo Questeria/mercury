@@ -1,0 +1,2 @@
+# Never commit a real VRF seed / operator secrets. Only .env.example is tracked.
+.env

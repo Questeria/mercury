@@ -1,0 +1,25 @@
+{
+  "name": "0_delivery_ready__1",
+  "description": "DELIVERY_READY / pack=120",
+  "input": {
+    "plaintext_preview_ok": 1,
+    "bootstrap_can_start_sync": 1,
+    "bootstrap_rua": 0,
+    "source_state": 0,
+    "poll_batch_ok": 1,
+    "pending_delivery": 1,
+    "route_id_ok": 1
+  },
+  "expected": {
+    "accepted": true,
+    "can_poll_relay": true,
+    "can_run_receive_session": true,
+    "can_update_replay_checkpoint": true,
+    "requires_network_retry": false,
+    "requires_user_action": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "DELIVERY_READY"
+  },
+  "expected_pack": 120
+}

@@ -1,0 +1,108 @@
+{
+  "schema": "mercury.ai_grant_policy.v1",
+  "supported_version": 1,
+  "principal_kinds": {
+    "human": 1,
+    "ai_account": 2,
+    "ai_device": 3,
+    "ai_context_bridge": 4
+  },
+  "ai_modes": {
+    "none": 0,
+    "local": 1,
+    "remote_enclave": 2,
+    "remote_provider": 3
+  },
+  "room_modes": {
+    "standard": 1,
+    "sensitive": 2,
+    "high_security": 3,
+    "ai_blocked": 4
+  },
+  "read_scopes": {
+    "none": 0,
+    "selected_messages": 1,
+    "last_n_messages": 2,
+    "current_room_metadata": 3,
+    "full_room_history": 4
+  },
+  "write_scopes": {
+    "none": 0,
+    "draft_only": 1,
+    "send_with_confirmation": 2,
+    "autonomous_send": 3
+  },
+  "tool_scopes": {
+    "none": 0,
+    "read_only_local": 1,
+    "room_search_selected": 2,
+    "send_message": 3,
+    "open_world_external": 4
+  },
+  "retention_modes": {
+    "none": 0,
+    "ephemeral_audit_hashes": 1,
+    "prompt_store": 2,
+    "memory_write": 3
+  },
+  "field_bounds": {
+    "min_ttl_seconds": 1,
+    "max_ttl_seconds": 900,
+    "min_approvers": 1,
+    "high_security_min_approvers": 2
+  },
+  "reason_codes": {
+    "ACCEPT": 0,
+    "BAD_VERSION": 1,
+    "BAD_PRINCIPAL_KIND": 2,
+    "BAD_AI_MODE": 3,
+    "AI_BLOCKED_ROOM": 4,
+    "BAD_TTL": 5,
+    "TTL_TOO_LONG": 6,
+    "INSUFFICIENT_APPROVERS": 7,
+    "BAD_READ_SCOPE": 8,
+    "READ_SCOPE_TOO_BROAD": 9,
+    "BAD_WRITE_SCOPE": 10,
+    "WRITE_SCOPE_TOO_BROAD": 11,
+    "BAD_TOOL_SCOPE": 12,
+    "TOOL_SCOPE_TOO_BROAD": 13,
+    "BAD_RETENTION_MODE": 14,
+    "PROMPT_STORE_FORBIDDEN": 15,
+    "TRAINING_FORBIDDEN": 16,
+    "REMOTE_PROVIDER_FORBIDDEN": 17,
+    "HIGHSEC_LOCAL_ONLY": 18,
+    "HIGHSEC_CONFIRM_SEND_REQUIRED": 19,
+    "HIGHSEC_TOOLS_FORBIDDEN": 20
+  },
+  "audit_classes": {
+    "ACCEPTED_AI_GRANT": 1,
+    "AI_POLICY_REJECT": 2,
+    "AI_PRIVACY_REJECT": 3,
+    "AI_HIGHSEC_REJECT": 4,
+    "AI_RETENTION_REJECT": 5,
+    "AI_TOOL_REJECT": 6
+  },
+  "vectors": [
+    "valid_local_selected_draft_standard_v1",
+    "valid_local_selected_draft_highsec_two_approvers_v1",
+    "valid_remote_enclave_selected_readonly_standard_v1",
+    "valid_sensitive_local_selected_no_tools_v1",
+    "reject_ai_grant_bad_version_v0",
+    "reject_human_principal_for_ai_grant",
+    "reject_ai_blocked_room",
+    "reject_zero_ttl",
+    "reject_ttl_over_900",
+    "reject_no_approvers",
+    "reject_remote_provider_sensitive_room",
+    "reject_remote_provider_highsec_room",
+    "reject_full_room_history_phase1",
+    "reject_autonomous_send_phase1",
+    "reject_open_world_tool_phase1",
+    "reject_prompt_store_phase1",
+    "reject_training_allowed",
+    "reject_highsec_single_approver",
+    "reject_highsec_remote_enclave",
+    "reject_highsec_external_tool"
+  ]
+}
+

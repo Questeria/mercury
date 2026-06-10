@@ -1,0 +1,71 @@
+{
+  "schema": "mercury.bootstrap_decide_policy.v1",
+  "description": "Client-bootstrap decider: mirrors mercury-core evaluate_client_bootstrap (ClientBootstrapInput -> ClientBootstrapDecision), the richest decider (21 reasons), a ~13-gate priority chain staged into pre/kt/secrets/rs stage reasons + a first-non-zero composer + output derivation (<=6 int params per fn). The richer state enums are reduced to small branch-equivalent codes (kt_code, secret/replay/sync state). Pure scalar; no crypto/JSON.",
+  "generated_by": "tools/gen_bootstrap_decide_vectors.py --write (do not hand-edit)",
+  "input_fields": [
+    "account_id_ok",
+    "device_id_ok",
+    "pending_recovery",
+    "plaintext_cache_ok",
+    "local_trust",
+    "kt_code",
+    "kt_requires_user_action",
+    "account_secret",
+    "device_secret",
+    "room_state",
+    "replay_checkpoint",
+    "sync_state"
+  ],
+  "decision_fields": [
+    "accepted",
+    "can_start_sync",
+    "can_decrypt_local_store",
+    "can_open_message_ui",
+    "requires_sync",
+    "requires_recovery",
+    "requires_user_action",
+    "reason_code",
+    "reason_label"
+  ],
+  "stage_fields": [
+    "pre_reason",
+    "kt_reason",
+    "secrets_reason",
+    "rs_reason"
+  ],
+  "pack_low_bits_msb_to_lsb": [
+    "accepted",
+    "can_start_sync",
+    "can_decrypt_local_store",
+    "can_open_message_ui",
+    "requires_sync",
+    "requires_recovery",
+    "requires_user_action"
+  ],
+  "pack_layout": "reason_code*128 + accepted*64 + can_start_sync*32 + can_decrypt_local_store*16 + can_open_message_ui*8 + requires_sync*4 + requires_recovery*2 + requires_user_action",
+  "reason_codes": {
+    "ACCEPTED": 0,
+    "MISSING_ACCOUNT_ID": 1,
+    "MISSING_DEVICE_ID": 2,
+    "RECOVERY_REQUIRED": 3,
+    "PLAINTEXT_CACHE_FORBIDDEN": 4,
+    "LOCAL_DEVICE_TRUST_REJECTED": 5,
+    "KEY_TRANSPARENCY_NOT_READY": 6,
+    "KEY_TRANSPARENCY_REJECTED": 7,
+    "ACCOUNT_SECRET_MISSING": 8,
+    "ACCOUNT_SECRET_CORRUPT": 9,
+    "DEVICE_SECRET_MISSING": 10,
+    "DEVICE_SECRET_CORRUPT": 11,
+    "ROOM_STATE_MISSING": 12,
+    "ROOM_STATE_CORRUPT": 13,
+    "PLAINTEXT_SECRET_FORBIDDEN": 14,
+    "REPLAY_CHECKPOINT_MISSING": 15,
+    "REPLAY_CHECKPOINT_STALE": 16,
+    "REPLAY_GAP_DETECTED": 17,
+    "SYNC_INCOMPLETE": 18,
+    "SYNC_GAP_DETECTED": 19,
+    "SYNC_FAILED": 20
+  },
+  "vector_count": 29,
+  "source_of_truth": "core/rust/mercury-core/src/lib.rs evaluate_client_bootstrap (21528); pinned by core/rust/mercury-core/tests/bootstrap_decide_vectors.rs. Exhaustive agreement: the FU-4 exhaustive differential."
+}

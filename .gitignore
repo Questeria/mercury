@@ -1,0 +1,17 @@
+build/
+dist/
+target/
+node_modules/
+# AI-participant (mercury-app-server) persistent identity — holds secret keys, never commit
+.ai-participant/
+mercury-ai-key.bin
+mercury-ai-snapshot.bin
+mercury-ai-snapshot.tmp
+.wrangler/
+.venv/
+__pycache__/
+*.pyc
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

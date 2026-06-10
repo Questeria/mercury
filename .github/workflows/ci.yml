@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  policy:
+    name: Policy checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check Rust formatting
+        run: cargo fmt --check
+
+      - name: Run Rust workspace tests
+        run: cargo test --workspace
+
+      - name: Run policy property tests
+        run: cargo test -p mercury-policy-proptest
+        env:
+          PROPTEST_CASES: 64
+
+      - name: Run crypto property tests
+        run: cargo test -p mercury-core --test crypto_proptest
+        env:
+          PROPTEST_CASES: 64
+
+      - name: Run Rust decision view serde test
+        run: cargo test -p mercury-core --features serde decision_view_serializes_compact_fields
+
+      - name: Run decider exhaustive differential (staged Helix reductions vs real evaluate_*)
+        run: cargo test -p mercury-core --test decider_exhaustive_diff
+
+      - name: Run Python vector checker
+        run: python3 tools/check_envelope_vectors.py
+
+      - name: Run Python AI grant vector checker
+        run: python3 tools/check_ai_grant_vectors.py
+
+      - name: Run Python AI grant lifecycle vector checker
+        run: python3 tools/check_ai_grant_lifecycle_vectors.py
+
+      - name: Run Python room epoch vector checker
+        run: python3 tools/check_room_epoch_vectors.py
+
+      - name: Run Python policy pipeline vector checker
+        run: python3 tools/check_policy_pipeline_vectors.py
+
+      - name: Run Python relay submit vector checker
+        run: python3 tools/check_relay_submit_vectors.py
+
+      - name: Run Python platform decision vector checker
+        run: python3 tools/check_platform_decision_vectors.py
+
+      - name: Run Python outbound decide vector checker
+        run: python3 tools/check_outbound_decide_vectors.py
+
+      - name: Run Python receive decide vector checker
+        run: python3 tools/check_receive_decide_vectors.py
+
+      - name: Run Python bootstrap decide vector checker
+        run: python3 tools/check_bootstrap_decide_vectors.py
+
+      - name: Run Python inbound sync vector checker
+        run: python3 tools/check_inbound_sync_vectors.py
+
+      - name: Run Python account recovery vector checker
+        run: python3 tools/check_account_recovery_vectors.py
+
+      - name: Check policy contract
+        run: python3 tools/check_policy_contract.py
+
+      - name: Check Helix policy attestation manifest
+        run: python3 tools/gen_policy_attestations.py --check
+
+  helix:
+    name: Helix policy proofs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (with Helix compiler submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # The Helix compiler lives in the PRIVATE repo Questeria/helix. GitHub Actions'
+          # default GITHUB_TOKEN is scoped to this repo only and CANNOT clone another private
+          # repo, so the submodule checkout (and thus this whole job) fails without a wider
+          # credential. Add a fine-grained PAT with Contents:read on BOTH Questeria/mercury and
+          # Questeria/helix as the repo secret HELIX_CHECKOUT_TOKEN. Until that secret exists
+          # this falls back to the default token: the main checkout still works, but the Helix
+          # submodule (and this job) stays red. The Policy-checks job gates the code regardless.
+          token: ${{ secrets.HELIX_CHECKOUT_TOKEN || github.token }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Track 0b: the Helix test must be regenerable from the shared vectors/.
+      # Drift (a vector changed without regenerating the .hx) fails here; a
+      # policy-logic change that breaks a vector is caught by the ELF exit != 42
+      # below. Together: Rust, the Python checker, and Helix provably consume
+      # the same vector source, so divergence fails CI.
+      - name: Check Helix tests match vectors (Rust<->Helix differential)
+        run: python3 tools/gen_helix_tests.py --check
+
+      # platform_decision uses its own exhaustive spec-derived generator (44 vectors +
+      # the test.hx, both correct-by-construction from the single spec mirror). Drift in
+      # either the vectors or the policy-shared test prelude fails here.
+      - name: Check platform_decision vectors+test match spec
+        run: python3 tools/gen_platform_decision_vectors.py --check
+
+      - name: Check outbound_decide vectors+test match spec
+        run: python3 tools/gen_outbound_decide_vectors.py --check
+
+      - name: Check receive_decide vectors+test match spec
+        run: python3 tools/gen_receive_decide_vectors.py --check
+
+      - name: Check bootstrap_decide vectors+test match spec
+        run: python3 tools/gen_bootstrap_decide_vectors.py --check
+
+      - name: Check inbound_sync vectors+test match spec
+        run: python3 tools/gen_inbound_sync_vectors.py --check
+
+      - name: Check account_recovery vectors+test match spec
+        run: python3 tools/gen_account_recovery_vectors.py --check
+
+      # Typecheck + hash each Helix policy, emit proof obligations, compile the
+      # test ELFs, and EXECUTE them natively (Linux runs the emitted ELF directly
+      # -- no WSL needed). Fails CI on any Helix policy/proof regression so the
+      # Helix artifacts gate merges (Track 0a).
+      - name: Run Helix policy proofs
+        run: bash tools/run_helix_checks.sh "$GITHUB_WORKSPACE/third_party/helix"

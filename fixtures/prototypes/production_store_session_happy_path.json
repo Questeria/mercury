@@ -1,0 +1,115 @@
+{
+  "fixture": "production_store_session_happy_path",
+  "input": {
+    "keychain": {
+      "allow_development_backend": false,
+      "backend_available": true,
+      "backend_label": "android_keystore",
+      "database_header": "Authenticated",
+      "device_secret": "PresentSealed",
+      "device_secret_exportable": false,
+      "plaintext_cache_records": 0,
+      "protection_label": "hardware_backed",
+      "recovery_required": false,
+      "user_auth_required": false,
+      "user_auth_satisfied": false
+    },
+    "manifest": {
+      "crash_recovery": "CLEAN",
+      "header_magic_matches": true,
+      "header_nonce_len": 24,
+      "header_suite_code": 1,
+      "header_tag_len": 16,
+      "plaintext_key_slots": 0,
+      "required_key_slots": 1,
+      "root_key_generation": 1,
+      "root_key_scope": "DeviceLocal",
+      "sealed_key_slots": 1
+    },
+    "write": {
+      "payload_kind": "sealed",
+      "payload_len": 14,
+      "record_kind": "message_ciphertext"
+    }
+  },
+  "outcome": {
+    "accepted": true,
+    "keychain_decision": {
+      "accepted": true,
+      "backend_code": 2,
+      "backend_label": "android_keystore",
+      "can_build_unlock_input": true,
+      "protection_code": 1,
+      "protection_label": "hardware_backed",
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "requires_destructive_repair": false,
+      "requires_recovery": false,
+      "requires_user_auth": false,
+      "unlock_input": {
+        "app_lock_satisfied": true,
+        "database_header": "Authenticated",
+        "device_secret": "PresentSealed",
+        "keychain_available": true,
+        "plaintext_cache_records": 0,
+        "recovery_required": false,
+        "store_version": 1
+      }
+    },
+    "open_attempted": true,
+    "plaintext_exposed": false,
+    "production_open_decision": {
+      "accepted": true,
+      "can_load_message_keys": true,
+      "can_load_records": true,
+      "can_open_database": true,
+      "can_replay_wal": false,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "requires_crash_recovery": false,
+      "requires_destructive_repair": false,
+      "requires_migration": false,
+      "requires_recovery": false,
+      "requires_user_auth": false,
+      "unlock_decision": {
+        "accepted": true,
+        "can_load_message_keys": true,
+        "can_open_database": true,
+        "can_unseal_device_secret": true,
+        "reason_code": 0,
+        "reason_label": "ACCEPTED",
+        "requires_destructive_repair": false,
+        "requires_migration": false,
+        "requires_recovery": false,
+        "requires_user_auth": false
+      }
+    },
+    "read_record": {
+      "byte_len": 14,
+      "namespace": "conversation-7",
+      "payload_kind": "sealed",
+      "record_id": "message-42",
+      "record_kind": "message_ciphertext"
+    },
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "unlock_decision": {
+      "accepted": true,
+      "can_load_message_keys": true,
+      "can_open_database": true,
+      "can_unseal_device_secret": true,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "requires_destructive_repair": false,
+      "requires_migration": false,
+      "requires_recovery": false,
+      "requires_user_auth": false
+    },
+    "wal_replayed": false,
+    "write_decision": {
+      "accepted": true,
+      "reason": "Accepted"
+    }
+  },
+  "surface": "prototype_production_store_session"
+}

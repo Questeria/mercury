@@ -1,0 +1,65 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "sync_gate_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 2,
+      "reason_label": "sync_idle",
+      "sequence": 0,
+      "terminal": true
+    }
+  ],
+  "fixture": "inbound_sync_session_idle",
+  "input": {
+    "bootstrap_can_start_sync": true,
+    "bootstrap_reason_code": 0,
+    "bootstrap_reason_label": "ACCEPTED",
+    "receive_ack_token_len": 32,
+    "receive_replay_state": "NewInOrder",
+    "receive_store_record_kind": "message_ciphertext",
+    "relay_source_pending_delivery": false,
+    "relay_source_plaintext_identity_fields": 0,
+    "relay_source_plaintext_notification_preview_len": 0,
+    "relay_source_route_id_len": 0,
+    "relay_source_transport_label": "ready"
+  },
+  "outcome": {
+    "completed": true,
+    "local_store_records": 0,
+    "plaintext_exposed": false,
+    "reason_code": 2,
+    "reason_label": "sync_idle",
+    "receive": null,
+    "receive_ran": false,
+    "relay_items": 0,
+    "sync": {
+      "accepted": true,
+      "can_poll_relay": true,
+      "can_run_receive_session": false,
+      "can_update_replay_checkpoint": true,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 1,
+      "reason_label": "IDLE",
+      "requires_network_retry": false,
+      "requires_user_action": false
+    }
+  },
+  "relay_source": {
+    "accepted": true,
+    "can_poll_relay": true,
+    "can_run_receive_session": false,
+    "pending_delivery": false,
+    "plaintext_bytes_exposed": false,
+    "plaintext_notification_preview_len": 0,
+    "poll_batch_limit": 25,
+    "reason_code": 1,
+    "reason_label": "IDLE",
+    "requires_network_retry": false,
+    "requires_user_action": false,
+    "route_id_len": 0,
+    "source_state": "Ready"
+  },
+  "surface": "prototype_inbound_sync_session"
+}

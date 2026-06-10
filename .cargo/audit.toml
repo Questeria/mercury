@@ -1,0 +1,36 @@
+# cargo-audit configuration for Mercury.
+#
+# The ONLY ignored advisories are the three open libcrux vulnerabilities reachable
+# exclusively through the OPTIONAL, OFF-BY-DEFAULT `xwing` feature of mercury-mls
+# (the libcrux-backed X-Wing post-quantum group-chat provider, MlsPqMember). They are
+# tracked here, not hidden:
+#
+#   * The default Mercury build does NOT compile openmls_libcrux_crypto or any of the
+#     three VULNERABLE libcrux crates (the dependency is `optional = true` and no default
+#     feature enables it), so none of that code ships in the default artifact. (The
+#     default build does pull a few NON-vulnerable libcrux UTILITY crates -- sha3,
+#     secrets, traits, intrinsics, platform -- through the RustCrypto provider's
+#     ML-KEM/SHAKE path; none of those carry an advisory.)
+#   * The X-Wing provider is not yet wired into a live message path.
+#   * There is no fix reachable through openmls_libcrux_crypto 0.3.1, which pins
+#     `libcrux-* = "^0.0.6"` (exactly 0.0.6) and is the latest published version. The
+#     proper fix is an upstream release of openmls_libcrux_crypto built on patched
+#     libcrux (>= the versions named in each advisory).
+#
+# ACTION REQUIRED before enabling `xwing` in any production/live path, and to clear
+# these ignores: upgrade openmls_libcrux_crypto to a version that depends on patched
+# libcrux (libcrux-poly1305 >= 0.0.5, libcrux-chacha20poly1305 >= 0.0.8,
+# libcrux-ed25519 >= 0.0.7), then DELETE the corresponding entries below. Do not add
+# unrelated advisories to this list.
+
+[advisories]
+ignore = [
+    # libcrux-poly1305 0.0.4 — panic in standalone MAC operations (fix >= 0.0.5).
+    "RUSTSEC-2026-0073",
+    # libcrux-chacha20poly1305 0.0.6/0.0.7 — panic on overlong ciphertext buffer
+    # (fix >= 0.0.8).
+    "RUSTSEC-2026-0124",
+    # libcrux-ed25519 0.0.6 — all-zero key generation on catastrophic RNG failure
+    # (fix >= 0.0.7).
+    "RUSTSEC-2026-0075",
+]

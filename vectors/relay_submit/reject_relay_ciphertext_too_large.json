@@ -1,0 +1,19 @@
+{
+  "name": "reject_relay_ciphertext_too_large",
+  "description": "Relay ciphertext size is bounded by the configured maximum.",
+  "input": {
+    "version": 1,
+    "send_gate_reason": 0,
+    "route_id_len": 32,
+    "replay_token_len": 32,
+    "queue_ttl_s": 300,
+    "max_queue_ttl_s": 86400,
+    "ciphertext_len": 1048577,
+    "max_ciphertext_len": 1048576,
+    "sealed_header_len": 96,
+    "plaintext_identity_fields": 0,
+    "padding_bucket": 3
+  },
+  "expected_reason": 9,
+  "expected_audit_class": 6
+}

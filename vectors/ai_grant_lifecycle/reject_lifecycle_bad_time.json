@@ -1,0 +1,16 @@
+{
+  "name": "reject_lifecycle_bad_time",
+  "description": "Lifecycle policy rejects negative current time.",
+  "input": {
+    "version": 1,
+    "grant_state": 1,
+    "revoke_reason": 0,
+    "now_s": -1,
+    "expires_at_s": 200,
+    "room_mode": 1,
+    "access_kind": 0,
+    "epoch_rotated": 0
+  },
+  "expected_reason": 4,
+  "expected_audit_class": 2
+}

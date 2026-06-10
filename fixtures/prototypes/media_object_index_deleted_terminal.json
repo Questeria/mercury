@@ -1,0 +1,35 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_cleanup": false,
+    "can_download": false,
+    "can_upload": false,
+    "has_local_cache": false,
+    "has_remote_object": false,
+    "keeps_audit_hash": true,
+    "lifecycle_state_code": 5,
+    "lifecycle_state_label": "deleted",
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "requires_user_action": false
+  },
+  "fixture": "media_object_index_deleted_terminal",
+  "input": {
+    "ciphertext_len": 4096,
+    "content_digest_len": 32,
+    "content_digest_verified": true,
+    "lifecycle_state_code": 5,
+    "lifecycle_state_label": "deleted",
+    "local_cache_present": false,
+    "max_ciphertext_len": 16777216,
+    "media_key_commitment_len": 32,
+    "object_id_len": 32,
+    "plaintext_metadata_bytes": 0,
+    "record_kind": "media_ciphertext",
+    "remote_object_present": false,
+    "remote_service_record_present": false,
+    "retention_hold_active": false
+  },
+  "surface": "media_object_index"
+}

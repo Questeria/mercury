@@ -1,0 +1,20 @@
+[package]
+name = "mercury-media"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# Stage 9 attachment (media) encryption. A large attachment is encrypted under a
+# fresh random content key with chunked XChaCha20-Poly1305; the recipient-
+# independent sealed blob goes to an (untrusted) blob store while the content key
+# travels inside the end-to-end-encrypted message (mercury-message), so the store
+# never sees the key. Uses only audited RustCrypto crates.
+
+[dependencies]
+chacha20poly1305 = { version = "0.10", features = ["getrandom"] }
+zeroize = { version = "1", features = ["derive"] }
+# SHA-256 of the sealed blob, carried in the E2E message so a recipient can
+# verify a downloaded blob before decrypting (binds the blob to the message).
+sha2 = "0.10"
+
+[dev-dependencies]

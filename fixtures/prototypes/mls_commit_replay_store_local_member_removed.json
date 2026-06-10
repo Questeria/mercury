@@ -1,0 +1,34 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_apply_commit_once": true,
+    "can_continue_group": false,
+    "keeps_digest_only": true,
+    "local_member_removed": true,
+    "persisted_record": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "record_count": 1
+  },
+  "fixture": "mls_commit_replay_store_local_member_removed",
+  "input": {
+    "applied_at_s": 1100,
+    "commit_admission_accepted": true,
+    "commit_admission_can_apply_commit": true,
+    "commit_admission_can_continue_group": false,
+    "commit_admission_local_member_removed": true,
+    "commit_admission_reason_code": 1,
+    "commit_admission_reason_label": "LOCAL_MEMBER_REMOVED",
+    "commit_hash_len": 32,
+    "epoch": 7,
+    "group_id_len": 32,
+    "plaintext_metadata_fields": 0,
+    "seed_duplicate": false
+  },
+  "store": {
+    "has_record": true,
+    "record_count": 1
+  },
+  "surface": "mls_commit_replay_store"
+}

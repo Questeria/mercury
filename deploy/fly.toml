@@ -1,0 +1,51 @@
+# Fly.io deployment for the Mercury relay (the opaque-ciphertext router).
+#
+# Run EVERY command below from the repository root (C:\Projects\Mercury) so the Docker build
+# context is the repo root and the Dockerfile's `COPY core/rust` paths resolve correctly.
+# Full walkthrough: docs/DEPLOY-THE-RELAY.md (Fly.io section).
+#
+#   fly auth login
+#   fly apps create mercury-relay                       # pick another name if taken
+#   fly volume create relay_data -r iad -s 1 -a mercury-relay   # 1 GB durable queue (same region)
+#   fly secrets set MERCURY_KT_VRF_SEED=$(openssl rand -hex 32) -a mercury-relay
+#   fly deploy -c deploy/fly.toml
+#   fly certs add relay.mercury-messaging.com -a mercury-relay   # then add the DNS record it prints
+
+app = "mercury-relay"
+primary_region = "iad"        # change to your nearest Fly region (e.g. lhr, fra, sjc)
+
+[build]
+  # Path is relative to THIS fly.toml's directory (deploy/), so it's just "Dockerfile".
+  # The build CONTEXT is the repo root because you run `flyctl deploy` from there.
+  dockerfile = "Dockerfile"
+
+[env]
+  # Listen on all interfaces inside the container; Fly's proxy fronts it with HTTPS on 443.
+  MERCURY_RELAY_ADDR = "0.0.0.0:8787"
+  # Durable redb queue on the mounted volume (survives restarts/redeploys).
+  MERCURY_RELAY_DB = "/data/relay.redb"
+  # Durable username registry on the same volume: claimed handles survive restarts/redeploys
+  # (the KT log is rebuilt from these bindings at boot — see docs/USERNAMES.md residual #4).
+  MERCURY_USERNAME_DB = "/data/usernames.redb"
+  # Fly's proxy fronts the relay, so key the per-IP flood limiter on the REAL client via the
+  # right-most X-Forwarded-For hop Fly appends (un-forgeable behind Fly's edge) instead of collapsing
+  # every client onto Fly's proxy IP. See client_key() in core/rust/mercury-relay/src/http.rs.
+  MERCURY_TRUSTED_PROXY = "1"
+  # NOTE: MERCURY_KT_VRF_SEED is set as a SECRET (see fly secrets set above), not here.
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # The relay must stay reachable to receive messages — do NOT scale to zero.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[mounts]]
+  source = "relay_data"
+  destination = "/data"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"

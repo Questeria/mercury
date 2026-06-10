@@ -1,0 +1,25 @@
+{
+  "name": "2_bootstrap_blocked__1",
+  "description": "BOOTSTRAP_BLOCKED / pack=256",
+  "input": {
+    "plaintext_preview_ok": 1,
+    "bootstrap_can_start_sync": 0,
+    "bootstrap_rua": 0,
+    "source_state": 0,
+    "poll_batch_ok": 1,
+    "pending_delivery": 1,
+    "route_id_ok": 1
+  },
+  "expected": {
+    "accepted": false,
+    "can_poll_relay": false,
+    "can_run_receive_session": false,
+    "can_update_replay_checkpoint": false,
+    "requires_network_retry": false,
+    "requires_user_action": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 2,
+    "reason_label": "BOOTSTRAP_BLOCKED"
+  },
+  "expected_pack": 256
+}

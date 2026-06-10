@@ -1,0 +1,35 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_cleanup": false,
+    "can_download": false,
+    "can_upload": false,
+    "has_local_cache": false,
+    "has_remote_object": false,
+    "keeps_audit_hash": true,
+    "lifecycle_state_code": 2,
+    "lifecycle_state_label": "remote_stored",
+    "plaintext_bytes_exposed": false,
+    "reason_code": 11,
+    "reason_label": "BAD_LIFECYCLE_STATE",
+    "requires_user_action": true
+  },
+  "fixture": "media_object_index_bad_lifecycle_rejected",
+  "input": {
+    "ciphertext_len": 4096,
+    "content_digest_len": 32,
+    "content_digest_verified": true,
+    "lifecycle_state_code": 2,
+    "lifecycle_state_label": "remote_stored",
+    "local_cache_present": true,
+    "max_ciphertext_len": 16777216,
+    "media_key_commitment_len": 32,
+    "object_id_len": 32,
+    "plaintext_metadata_bytes": 0,
+    "record_kind": "media_ciphertext",
+    "remote_object_present": true,
+    "remote_service_record_present": true,
+    "retention_hold_active": false
+  },
+  "surface": "media_object_index"
+}

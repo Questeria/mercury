@@ -1,0 +1,24 @@
+# The build context is uploaded to Fly's remote builder before the Dockerfile runs. The relay
+# Dockerfile (deploy/Dockerfile) copies ONLY Cargo.toml, Cargo.lock, and core/rust — so exclude
+# everything heavy or irrelevant here to keep the upload small (MBs, not the multi-GB target/) and
+# deploys fast. Do NOT add Cargo.toml, Cargo.lock, core/rust, or deploy/ — the build needs them.
+.git/
+target/
+**/target/
+node_modules/
+**/node_modules/
+ui/
+site/
+docs/
+build/
+dist/
+.wrangler/
+.venv/
+__pycache__/
+**/__pycache__/
+*.log
+*.tmp
+*.pyc
+.ai-participant/
+logo-previews/
+fuzz/

@@ -1,0 +1,94 @@
+{
+  "schema": "mercury.platform_decision_policy.v1",
+  "description": "Platform-binding capability projection: for a decision mercury-core ALREADY made (source + reason_code, plus one derived bit for four pairs), the 13-field PlatformDecisionView the platform may rely on. Mirrors PlatformDecisionView::from_bootstrap/from_outbound_send/from_client_receive. Pure scalar projection: no JSON parse, no ciphertext, no cryptography.",
+  "generated_by": "tools/gen_platform_decision_vectors.py --write (do not hand-edit)",
+  "sources": {
+    "client_bootstrap": 0,
+    "outbound_send": 1,
+    "client_receive": 2
+  },
+  "view_fields": [
+    "source",
+    "accepted",
+    "reason_code",
+    "reason_label",
+    "can_open_message_ui",
+    "can_start_sync",
+    "can_send",
+    "can_receive",
+    "can_persist_ciphertext",
+    "requires_sync",
+    "requires_recovery",
+    "requires_client_retry",
+    "requires_user_action"
+  ],
+  "pack_bit_order_msb_to_lsb": [
+    "accepted",
+    "can_open_message_ui",
+    "can_start_sync",
+    "can_send",
+    "can_receive",
+    "can_persist_ciphertext",
+    "requires_sync",
+    "requires_recovery",
+    "requires_client_retry",
+    "requires_user_action"
+  ],
+  "derived_fields": {
+    "client_bootstrap.KEY_TRANSPARENCY_NOT_READY": "requires_user_action",
+    "outbound_send.ACCEPTED": "requires_user_action",
+    "client_receive.ACCEPTED": "requires_user_action",
+    "client_receive.DELIVERY_ACK_REJECTED": "requires_client_retry"
+  },
+  "reason_codes": {
+    "client_bootstrap": {
+      "ACCEPTED": 0,
+      "MISSING_ACCOUNT_ID": 1,
+      "MISSING_DEVICE_ID": 2,
+      "RECOVERY_REQUIRED": 3,
+      "PLAINTEXT_CACHE_FORBIDDEN": 4,
+      "LOCAL_DEVICE_TRUST_REJECTED": 5,
+      "KEY_TRANSPARENCY_NOT_READY": 6,
+      "KEY_TRANSPARENCY_REJECTED": 7,
+      "ACCOUNT_SECRET_MISSING": 8,
+      "ACCOUNT_SECRET_CORRUPT": 9,
+      "DEVICE_SECRET_MISSING": 10,
+      "DEVICE_SECRET_CORRUPT": 11,
+      "ROOM_STATE_MISSING": 12,
+      "ROOM_STATE_CORRUPT": 13,
+      "PLAINTEXT_SECRET_FORBIDDEN": 14,
+      "REPLAY_CHECKPOINT_MISSING": 15,
+      "REPLAY_CHECKPOINT_STALE": 16,
+      "REPLAY_GAP_DETECTED": 17,
+      "SYNC_INCOMPLETE": 18,
+      "SYNC_GAP_DETECTED": 19,
+      "SYNC_FAILED": 20
+    },
+    "outbound_send": {
+      "ACCEPTED": 0,
+      "DEVICE_TRUST_REJECTED": 1,
+      "ROOM_MEMBERSHIP_TRANSITION_REJECTED": 2,
+      "ROOM_MEMBERSHIP_EPOCH_NOT_ROTATED": 3,
+      "MESSAGE_POLICY_REJECTED": 4,
+      "LOCAL_STORE_SEALING_REJECTED": 5
+    },
+    "client_receive": {
+      "ACCEPTED": 0,
+      "RELAY_DELIVERY_REJECTED": 1,
+      "RELAY_DELIVERY_NOT_DELIVERED": 2,
+      "DELIVERY_ACK_REJECTED": 3,
+      "DUPLICATE_DELIVERY_ACK": 4,
+      "SENDER_DEVICE_TRUST_REJECTED": 5,
+      "MESSAGE_POLICY_REJECTED": 6,
+      "LOCAL_STORE_SEALING_REJECTED": 7,
+      "REPLAY_DUPLICATE": 8,
+      "REPLAY_STALE": 9,
+      "ORDERING_GAP": 10,
+      "BAD_CIPHERTEXT_DIGEST_LENGTH": 11,
+      "PLAINTEXT_IDENTITY_FORBIDDEN": 12
+    }
+  },
+  "vector_count": 44,
+  "vectors_generated_by": "tools/gen_platform_decision_vectors.py (exhaustive over source x reason x derived-bit, expected computed by tools/check_platform_decision_vectors.py::view; --check gates drift)",
+  "source_of_truth": "core/rust/mercury-core/src/lib.rs PlatformDecisionView::from_* (30309-30362) + reason enums; pinned by core/rust/mercury-core/tests/platform_decision_vectors.rs"
+}

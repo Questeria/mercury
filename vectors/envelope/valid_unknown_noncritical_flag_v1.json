@@ -1,0 +1,24 @@
+{
+  "name": "valid_unknown_noncritical_flag_v1",
+  "description": "Unknown noncritical flag bits are preserved by the host but grant no behavior and do not reject the envelope.",
+  "input": {
+    "version": 1,
+    "suite_id": 513,
+    "conversation_id_len": 16,
+    "sender_account_id_len": 32,
+    "sender_device_id_len": 32,
+    "epoch": 7,
+    "sequence": 42,
+    "message_kind": 1,
+    "payload_len": 1,
+    "critical_flags": 0,
+    "noncritical_flags": 2048,
+    "expected_epoch": 7,
+    "expected_sequence": 42,
+    "min_suite_id": 257,
+    "max_payload_len": 65536
+  },
+  "expected_reason": 0,
+  "expected_audit_class": 1
+}
+

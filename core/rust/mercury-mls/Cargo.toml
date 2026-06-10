@@ -1,0 +1,53 @@
+[package]
+name = "mercury-mls"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# Stage 8 group-messaging engine. Wraps an MLS provider (OpenMLS, RFC 9420) and
+# produces the inputs for mercury-core's MLS policy gates -- the engine does the
+# MLS crypto; the gates (evaluate_mls_provider_security, evaluate_group_chat,
+# evaluate_mls_key_package_admission, ...) decide policy. Mirrors how mercury-kt
+# feeds evaluate_key_transparency.
+
+[dependencies]
+mercury-core = { path = "../mercury-core" }
+openmls = "0.8.1"
+openmls_basic_credential = "0.5.0"
+openmls_rust_crypto = "0.5.1"
+# Formally-verified (hax/F*) libcrux-backed OpenMLS provider. Unlike the RustCrypto
+# provider (which unimplemented!()s X-Wing), this one genuinely executes the
+# post-quantum X-Wing (X25519 + ML-KEM-768) hybrid KEM ciphersuite
+# MLS_256_XWING_CHACHA20POLY1305_SHA256_Ed25519, so it backs the real PQ group-chat
+# path. Pure Rust, builds on Windows with no C toolchain.
+#
+# OPTIONAL + OFF BY DEFAULT (the `xwing` feature). openmls_libcrux_crypto 0.3.1 pins
+# `libcrux-* = "^0.0.6"` (exactly 0.0.6), which transitively pulls libcrux crates with
+# OPEN high-severity RUSTSEC advisories (2026-0073 poly1305 MAC panic, 2026-0124
+# chacha20poly1305 overlong-ciphertext panic, 2026-0075 ed25519 all-zero-key on RNG
+# failure). There is no fix reachable through 0.3.1's pinned constraints, and 0.3.1 is
+# the latest published version. So the default build does NOT compile this provider —
+# the classical RustCrypto MLS path (unaffected) remains the default. Enable `xwing`
+# only where that risk is accepted; remove the gate + the audit.toml ignores once
+# openmls_libcrux_crypto ships a release built on patched libcrux.
+openmls_libcrux_crypto = { version = "0.3.1", optional = true }
+# TLS-codec (de)serialization of presented KeyPackages on the admission path.
+tls_codec = "0.4"
+# SHA-256 for the 32-byte Welcome send-transaction digest in the consume record.
+sha2 = "0.10"
+# Persistent-engine state (src/engine.rs): export_state serializes the long-lived
+# signer via serde_json (SignatureKeyPair derives serde). Tiny; already in the
+# workspace tree via OpenMLS's own storage serialization.
+serde_json = "1"
+# Scrubs the engine's transient plaintext copies of MLS secrets (zeroize-on-drop)
+# made while assembling export_state. Already in the tree via the dalek stack.
+zeroize = "1"
+
+[features]
+# Default excludes the libcrux X-Wing provider (see the dependency note above).
+default = []
+# Opt in to the libcrux-backed X-Wing post-quantum group-chat provider (MlsPqMember).
+# Carries the open libcrux RUSTSEC advisories until upstream ships patched libcrux.
+xwing = ["dep:openmls_libcrux_crypto"]
+
+[dev-dependencies]

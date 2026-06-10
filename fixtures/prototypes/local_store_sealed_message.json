@@ -1,0 +1,24 @@
+{
+  "fixture": "local_store_sealed_message",
+  "record_count": 1,
+  "records": [
+    {
+      "byte_len": 32,
+      "namespace": "conversation-7",
+      "payload_kind": "Sealed",
+      "plaintext_bytes_exposed": false,
+      "policy_accepted": true,
+      "record_id": "message-42",
+      "record_kind": "MessageCiphertext",
+      "write_accepted": true,
+      "write_reason": "Accepted"
+    }
+  ],
+  "surface": "prototype_local_store",
+  "write": {
+    "accepted": true,
+    "key_scope": "RoomEpoch",
+    "plaintext_class": "EncryptedOnly",
+    "reason": "Accepted"
+  }
+}

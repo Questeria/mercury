@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "core/rust/mercury-ai",
+    "core/rust/mercury-app",
+    "core/rust/mercury-app-server",
+    "core/rust/mercury-audit",
+    "core/rust/mercury-backup",
+    "core/rust/mercury-bindings",
+    "core/rust/mercury-client",
+    "core/rust/mercury-core",
+    "core/rust/mercury-ffi",
+    "core/rust/mercury-keys",
+    "core/rust/mercury-kt",
+    "core/rust/mercury-media",
+    "core/rust/mercury-message",
+    "core/rust/mercury-mls",
+    "core/rust/mercury-policy",
+    "core/rust/mercury-policy-proptest",
+    "core/rust/mercury-relay",
+    "core/rust/mercury-sealedbox",
+    "core/rust/mercury-session",
+    "core/rust/mercury-store",
+    "core/rust/mercury-ui-bridge",
+]
+# The cargo-fuzz crate is its own workspace (needs nightly + libFuzzer); the Tauri desktop crate
+# pulls a platform webview toolchain. Keep both out of the main workspace so `cargo build/test
+# --workspace` (and Linux CI) is unaffected — they build standalone on a developer machine.
+exclude = ["fuzz", "ui/app/src-tauri"]
+resolver = "3"

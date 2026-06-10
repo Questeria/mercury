@@ -1,0 +1,15 @@
+[package]
+name = "mercury-sealedbox"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+mercury-keys = { path = "../mercury-keys" }
+chacha20poly1305 = { version = "0.10", features = ["getrandom"] }
+hkdf = "0.12"
+sha2 = "0.10"
+zeroize = "1"
+# Constant-time equality for the key-commitment check (no data-dependent branch
+# when comparing the framed commitment against the recomputed one).
+subtle = "2"

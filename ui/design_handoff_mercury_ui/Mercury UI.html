@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mercury UI — Message thread, three directions</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Real <link> to Google Fonts so the bundler inlines the actual woff2 files
+     (the @import inside JSX template strings is invisible to the static bundler).
+     This is what makes the fonts work fully offline in the standalone export. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" />
+<style>
+  html, body { margin: 0; padding: 0; background: #F4F1EC; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; color: #1a1a1a; }
+  #root { width: 100%; min-height: 100vh; }
+  /* design-canvas overrides */
+  .dc-section-title { letter-spacing: -0.01em; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail" data-bg-color="#0A0C13">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="irid" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#C2A2FF"/>
+        <stop offset="35%" stop-color="#93D7F5"/>
+        <stop offset="65%" stop-color="#5BE1A8"/>
+        <stop offset="100%" stop-color="#FF99D6"/>
+      </linearGradient>
+    </defs>
+    <g fill="none" stroke="url(#irid)" stroke-width="14" stroke-linecap="round" transform="translate(600 400) scale(13)">
+      <path d="M-7 -18C-7 -6 7 -6 7 6S-7 18 -7 30"/>
+      <path d="M7 -18C7 -6 -7 -6 -7 6S7 18 7 30" transform="translate(0 -12)"/>
+      <path d="M-5 -16H5" stroke-width="9"/>
+      <path d="M-5 -4H5" stroke-width="9"/>
+      <path d="M-5 8H5" stroke-width="9"/>
+    </g>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="macos-window.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="mercury-core.jsx"></script>
+<script type="text/babel" src="mercury-variant-fusion.jsx"></script>
+<script type="text/babel" src="mercury-variant-fusion-panels.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect } = React;
+
+// Slim macOS window shell — just traffic lights + thin titlebar.
+// MacWindow from the starter renders an unconditional 220px glass sidebar +
+// duplicate toolbar; each Mercury variant already owns its own chrome (rail,
+// buffer list, header), so we use a thinner shell here.
+function MercuryWindow({ width = 1020, height = 640, dark = false, children }) {
+  const titlebarH = 28;
+  return (
+    <div style={{
+      width, height, borderRadius: 12, overflow: 'hidden',
+      background: dark ? '#0A0B0A' : '#fff', position: 'relative',
+      boxShadow: '0 0 0 1px rgba(0,0,0,0.22), 0 24px 56px rgba(0,0,0,0.32)',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        height: titlebarH, flexShrink: 0, position: 'relative',
+        background: dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+        borderBottom: `0.5px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+        display: 'flex', alignItems: 'center',
+      }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 14 }}>
+          {['#ff5f57', '#febc2e', '#28c840'].map(c => (
+            <div key={c} style={{
+              width: 12, height: 12, borderRadius: '50%', background: c,
+              border: '0.5px solid rgba(0,0,0,0.18)',
+            }} />
+          ))}
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>{children}</div>
+    </div>
+  );
+}
+
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "bootstrap": "accepted",
+    "trust": "trusted",
+    "ai": "granted",
+    "receiveMode": "accepted",
+    "senderTrust": "trusted",
+    "forceSendOutcome": "auto",
+    "themeMercury": "auto",
+    "themeStandard": "light",
+    "themeOperator": "dark",
+    "themeCorrespondence": "light"
+  }/*EDITMODE-END*/;
+
+// Resolve a theme tweak ('light' | 'dark' | 'auto') against the user's system
+// preference. Subscribes to prefers-color-scheme changes so 'auto' tracks live.
+function useResolvedDark(themeChoice) {
+  const getSys = () => !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [sysDark, setSysDark] = React.useState(getSys);
+  React.useEffect(() => {
+    if (!window.matchMedia) return;
+    const m = window.matchMedia('(prefers-color-scheme: dark)');
+    const fn = (e) => setSysDark(e.matches);
+    m.addEventListener ? m.addEventListener('change', fn) : m.addListener(fn);
+    return () => { m.removeEventListener ? m.removeEventListener('change', fn) : m.removeListener(fn); };
+  }, []);
+  if (themeChoice === 'dark')  return true;
+  if (themeChoice === 'light') return false;
+  return sysDark;
+}
+
+// One ThreadHost per variant — owns its own message state + decision simulator,
+// driven by the shared tweak inputs.
+function ThreadHost({ variant, mode, dark, t, setTweak, themeKey, themeChoice }) {
+  const thread = useMercuryThread({
+    bootstrap:        t.bootstrap,
+    trust:            t.trust,
+    ai:               t.ai,
+    receiveMode:      t.receiveMode,
+    senderTrust:      t.senderTrust,
+    forceSendOutcome: t.forceSendOutcome,
+  });
+  const props = {
+    mode, dark, trust: t.trust, ai: t.ai, thread,
+    onChangeTrust: (v) => setTweak('trust', v),
+    onChangeAi:    (v) => setTweak('ai',    v),
+    themeChoice,
+    onSetTheme:    themeKey ? (value) => setTweak(themeKey, value) : undefined,
+  };
+  if (variant === 'fusion')   return <FusionVariant   {...props} />;
+  return <FusionVariant {...props} />;
+}
+
+// Persistent state per (variant, mode) so the iOS/Mac frames stay alive while
+// React re-renders the canvas.
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const dark = useResolvedDark(t.themeMercury);
+
+  return (
+    <React.Fragment>
+      <DesignCanvas
+        title="Mercury UI — Message thread"
+        subtitle="Live prototype. Type, send, receive — every action is gated by the same PlatformDecisionView simulator the binding will expose. Toggle decision state via Tweaks (top-right)."
+      >
+        <DCSection id="mercury" title="Mercury"
+          subtitle="A · Standard's considered surfaces meet B · Operator's diagnostic transparency. Reason codes are always visible but small and in mono — like a subtitle on every decision. Liquid-mercury accents (chrome outgoing bubbles, iridescent AI mark, smooth state pulses) carry the identity. Desktop adds a live binding inspector."
+        >
+          <DCArtboard id="mercury-mobile" label="Mobile · iOS" width={420} height={892}>
+            <IOSDevice width={402} height={874} dark={dark}>
+              <div style={{ width: '100%', height: '100%', paddingTop: 62, paddingBottom: 34, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+                  <ThreadHost variant="fusion" mode="mobile" dark={dark} t={t} setTweak={setTweak} themeKey="themeMercury" themeChoice={t.themeMercury} />
+                </div>
+              </div>
+            </IOSDevice>
+          </DCArtboard>
+          <DCArtboard id="mercury-desktop" label="Desktop · macOS" width={1180} height={788}>
+            <MercuryWindow width={1160} height={748} dark={dark}>
+              <ThreadHost variant="fusion" mode="desktop" dark={dark} t={t} setTweak={setTweak} themeKey="themeMercury" themeChoice={t.themeMercury} />
+            </MercuryWindow>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Decision state" />
+        <TweakSelect label="Bootstrap"        value={t.bootstrap}
+          options={[
+            { value: 'accepted',          label: 'accepted' },
+            { value: 'sync_incomplete',   label: 'sync_incomplete' },
+            { value: 'recovery_required', label: 'recovery_required' },
+          ]}
+          onChange={v => setTweak('bootstrap', v)} />
+        <TweakSelect label="Receive mode"    value={t.receiveMode}
+          options={[
+            { value: 'accepted',      label: 'accepted' },
+            { value: 'ordering_gap',  label: 'ordering_gap → retry' },
+          ]}
+          onChange={v => setTweak('receiveMode', v)} />
+        <TweakSelect label="Sender trust"    value={t.senderTrust}
+          options={[
+            { value: 'trusted',  label: 'trusted' },
+            { value: 'rejected', label: 'rejected → withhold' },
+          ]}
+          onChange={v => setTweak('senderTrust', v)} />
+        <TweakSelect label="Force send"      value={t.forceSendOutcome}
+          options={[
+            { value: 'auto',     label: 'auto (from trust + ai)' },
+            { value: 'accepted', label: 'accepted' },
+            { value: 'tofu',     label: 'TOFU_PENDING' },
+            { value: 'stale',    label: 'KEY_STALE' },
+            { value: 'rejected', label: 'RECIPIENT_TRUST_REJECTED' },
+          ]}
+          onChange={v => setTweak('forceSendOutcome', v)} />
+
+        <TweakSection label="Room state" />
+        <TweakSelect label="Trust"
+          value={t.trust}
+          options={[
+            { value: 'trusted',           label: 'trusted'           },
+            { value: 'sendable_not_full', label: 'sendable_not_full' },
+            { value: 'unverified',        label: 'unverified · TOFU' },
+            { value: 'stale',             label: 'stale'             },
+            { value: 'rejected',          label: 'rejected'          },
+          ]}
+          onChange={v => setTweak('trust', v)} />
+        <TweakSelect label="AI grant"
+          value={t.ai}
+          options={[
+            { value: 'granted', label: 'granted'  },
+            { value: 'absent',  label: 'absent'   },
+            { value: 'revoked', label: 'revoked'  },
+            { value: 'expired', label: 'expired'  },
+          ]}
+          onChange={v => setTweak('ai', v)} />
+
+        <TweakSection label="Theme" />
+        <TweakRadio label="Mercury" value={t.themeMercury}
+          options={['light', 'dark', 'auto']}
+          onChange={v => setTweak('themeMercury', v)} />
+      </TweaksPanel>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+{
+  "decision": {
+    "accepted": false,
+    "anchor_kind_code": 3,
+    "anchor_kind_label": "witnessed_transparency_log",
+    "can_detect_split_view": true,
+    "can_monitor_privately": false,
+    "can_publish_checkpoint": false,
+    "can_request_witness_cosignature": false,
+    "checkpoint_size": 43,
+    "plaintext_bytes_exposed": true,
+    "reason_code": 11,
+    "reason_label": "MONITOR_PRIVACY_REJECTED",
+    "requires_key_rotation": false,
+    "requires_local_recovery": false,
+    "requires_user_warning": false,
+    "requires_witness_repair": false,
+    "signature_algorithm_code": 4,
+    "signature_algorithm_label": "hybrid_ed25519_ml_dsa_44",
+    "store_event_sequence": 42,
+    "witness_threshold": 2
+  },
+  "fixture": "sealed_audit_witness_checkpoint_privacy_rejected",
+  "input": {
+    "anchor_kind_code": 3,
+    "anchor_kind_label": "witnessed_transparency_log",
+    "checkpoint": {
+      "checkpoint_origin_len": 32,
+      "checkpoint_root_hash_len": 32,
+      "checkpoint_signature_len": 2484,
+      "checkpoint_size": 43,
+      "checkpoint_timestamp_s": 1769990400,
+      "consistency_proof_hash_count": 6,
+      "consistency_proof_verified": true,
+      "log_id_digest_len": 32,
+      "previous_checkpoint_size": 42,
+      "previous_signing_key_retained_for_verification": true,
+      "signing_key_id_digest_len": 32,
+      "signing_key_not_expired": true,
+      "signing_key_rotation_window_valid": true
+    },
+    "monitor": {
+      "monitor_query_plaintext_selectors": 1,
+      "monitor_query_uses_private_retrieval": false,
+      "monitor_receives_only_digests": false
+    },
+    "recovery": {
+      "local_latest_checkpoint_available": true,
+      "recovery_checkpoint_authenticated": false,
+      "recovery_requires_user_verification": false
+    },
+    "signature_algorithm_code": 4,
+    "signature_algorithm_label": "hybrid_ed25519_ml_dsa_44",
+    "store_decision": {
+      "accepted": true,
+      "append_only": true,
+      "can_detect_replay": true,
+      "can_publish_receipt": true,
+      "event_sequence": 42,
+      "keeps_digest_only": true,
+      "keeps_plaintext_metadata": false,
+      "persisted_record": true,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "record_count": 1
+    },
+    "witness": {
+      "cosignatures_bind_checkpoint": true,
+      "cosignatures_timestamped": true,
+      "split_view_evidence_present": false,
+      "witness_cosignature_bytes": 5016,
+      "witness_count": 3,
+      "witness_key_pins_present": true,
+      "witness_operator_count": 3,
+      "witness_threshold": 2
+    }
+  },
+  "surface": "sealed_audit_witness_checkpoint"
+}

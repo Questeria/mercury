@@ -1,0 +1,25 @@
+{
+  "name": "client_receive__delivery_ack_rejected__derived1",
+  "description": "client_receive / DELIVERY_ACK_REJECTED / derived=1",
+  "input": {
+    "source": 2,
+    "reason_code": 3,
+    "derived": 1
+  },
+  "expected": {
+    "source": "client_receive",
+    "accepted": false,
+    "reason_code": 3,
+    "reason_label": "DELIVERY_ACK_REJECTED",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": true,
+    "requires_user_action": false
+  },
+  "expected_pack": 2
+}

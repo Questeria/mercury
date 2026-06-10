@@ -1,0 +1,35 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_use_as_provider_evidence": true,
+    "keeps_digest_only": true,
+    "persisted_record": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "record_count": 1
+  },
+  "fixture": "mls_provider_evidence_store_ready",
+  "input": {
+    "downgrade_evidence_digest_len": 32,
+    "evidence_id_len": 32,
+    "expires_at_s": 1300,
+    "kat_evidence_digest_len": 32,
+    "plaintext_evidence_fields": 0,
+    "provider_id_digest_len": 32,
+    "provider_security_accepted": true,
+    "provider_security_reason_code": 0,
+    "provider_security_reason_label": "ACCEPTED",
+    "provider_security_suite_code": 2,
+    "provider_security_suite_label": "hybrid_pq_mls_768",
+    "seed_duplicate": false,
+    "suite_evidence_digest_len": 32,
+    "validated_at_s": 1000,
+    "zeroization_evidence_digest_len": 32
+  },
+  "store": {
+    "has_record": true,
+    "record_count": 1
+  },
+  "surface": "mls_provider_evidence_store"
+}

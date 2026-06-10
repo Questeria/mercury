@@ -1,0 +1,19 @@
+{
+  "name": "valid_relay_submit_max_ttl_v1",
+  "description": "The configured queue TTL may reach the global cap when the client explicitly allows it.",
+  "input": {
+    "version": 1,
+    "send_gate_reason": 0,
+    "route_id_len": 64,
+    "replay_token_len": 32,
+    "queue_ttl_s": 604800,
+    "max_queue_ttl_s": 604800,
+    "ciphertext_len": 4096,
+    "max_ciphertext_len": 4194304,
+    "sealed_header_len": 128,
+    "plaintext_identity_fields": 0,
+    "padding_bucket": 8
+  },
+  "expected_reason": 0,
+  "expected_audit_class": 1
+}

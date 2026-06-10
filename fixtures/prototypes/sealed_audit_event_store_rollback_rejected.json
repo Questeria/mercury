@@ -1,0 +1,49 @@
+{
+  "decision": {
+    "accepted": false,
+    "append_only": true,
+    "can_detect_replay": true,
+    "can_publish_receipt": false,
+    "event_sequence": 41,
+    "keeps_digest_only": true,
+    "keeps_plaintext_metadata": false,
+    "persisted_record": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 5,
+    "reason_label": "ROLLBACK_SEQUENCE",
+    "record_count": 1
+  },
+  "fixture": "sealed_audit_event_store_rollback_rejected",
+  "input": {
+    "anchor_kind_code": 3,
+    "anchor_kind_label": "witnessed_transparency_log",
+    "append_only_guard": true,
+    "chain_decision_accepted": true,
+    "chain_decision_reason_code": 0,
+    "chain_decision_reason_label": "ACCEPTED",
+    "checkpoint_binds_chain": true,
+    "checkpoint_id_len": 32,
+    "checkpoint_signature_len": 64,
+    "event_hash_len": 32,
+    "event_kind_code": 2,
+    "event_kind_label": "mls_commit",
+    "event_sequence": 41,
+    "merkle_root_hash_len": 32,
+    "plaintext_metadata_fields": 0,
+    "previous_event_hash_len": 32,
+    "receipt_binds_checkpoint": true,
+    "record_digest_len": 32,
+    "sealed_payload_len": 512,
+    "seed_duplicate": true,
+    "transparency_receipt_len": 96,
+    "witness_receipt_len": 96
+  },
+  "store": {
+    "checkpoint_recorded": false,
+    "has_event_hash": false,
+    "has_sequence": false,
+    "highest_event_sequence": 42,
+    "record_count": 1
+  },
+  "surface": "sealed_audit_event_store"
+}

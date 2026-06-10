@@ -1,0 +1,194 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "sync_gate_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 2,
+      "kind_label": "receive_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 1,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 3,
+      "kind_label": "relay_submit_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 2,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 4,
+      "kind_label": "relay_delivery_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 3,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 5,
+      "kind_label": "delivery_ack_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 4,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 6,
+      "kind_label": "client_receive_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 5,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 7,
+      "kind_label": "local_store_write_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 6,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 8,
+      "kind_label": "receive_finished",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 7,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 9,
+      "kind_label": "sync_finished",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 8,
+      "terminal": true
+    }
+  ],
+  "fixture": "inbound_sync_session_happy_path",
+  "input": {
+    "bootstrap_can_start_sync": true,
+    "bootstrap_reason_code": 0,
+    "bootstrap_reason_label": "ACCEPTED",
+    "receive_ack_token_len": 32,
+    "receive_replay_state": "NewInOrder",
+    "receive_store_record_kind": "message_ciphertext",
+    "relay_source_pending_delivery": true,
+    "relay_source_plaintext_identity_fields": 0,
+    "relay_source_plaintext_notification_preview_len": 0,
+    "relay_source_route_id_len": 32,
+    "relay_source_transport_label": "ready"
+  },
+  "outcome": {
+    "completed": true,
+    "local_store_records": 1,
+    "plaintext_exposed": false,
+    "reason_code": 0,
+    "reason_label": "completed",
+    "receive": {
+      "client_receive": {
+        "accepted": true,
+        "can_decrypt": true,
+        "can_expose_to_ui": true,
+        "can_persist_ciphertext": true,
+        "reason_code": 0,
+        "reason_label": "ACCEPTED",
+        "requires_client_retry": false,
+        "requires_user_action": false
+      },
+      "completed": true,
+      "delivered_ciphertext_len": 128,
+      "delivered_sealed_header_len": 96,
+      "delivery_ack": {
+        "accepted": true,
+        "delete_queue_record": true,
+        "duplicate": false,
+        "reason": "Accepted",
+        "requires_client_retry": false,
+        "retain_hash_audit": true
+      },
+      "local_store_records": 1,
+      "plaintext_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "relay_delivery": {
+        "accepted": true,
+        "delete_item": true,
+        "next_state": "Delivered",
+        "reason": "Accepted"
+      },
+      "relay_items": 1,
+      "relay_queue": {
+        "accepted": true,
+        "delete_item": false,
+        "next_state": "Pending",
+        "persist_item": true,
+        "reason": "Accepted"
+      },
+      "relay_submission": {
+        "accepted": true,
+        "audit_class": 1,
+        "reason_code": 0
+      },
+      "store_write": {
+        "accepted": true,
+        "reason": "Accepted"
+      }
+    },
+    "receive_ran": true,
+    "relay_items": 1,
+    "sync": {
+      "accepted": true,
+      "can_poll_relay": true,
+      "can_run_receive_session": true,
+      "can_update_replay_checkpoint": true,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "DELIVERY_READY",
+      "requires_network_retry": false,
+      "requires_user_action": false
+    }
+  },
+  "relay_source": {
+    "accepted": true,
+    "can_poll_relay": true,
+    "can_run_receive_session": true,
+    "pending_delivery": true,
+    "plaintext_bytes_exposed": false,
+    "plaintext_notification_preview_len": 0,
+    "poll_batch_limit": 25,
+    "reason_code": 0,
+    "reason_label": "DELIVERY_READY",
+    "requires_network_retry": false,
+    "requires_user_action": false,
+    "route_id_len": 32,
+    "source_state": "Ready"
+  },
+  "surface": "prototype_inbound_sync_session"
+}

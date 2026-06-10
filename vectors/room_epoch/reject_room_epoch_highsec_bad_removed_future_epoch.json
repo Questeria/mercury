@@ -1,0 +1,17 @@
+{
+  "name": "reject_room_epoch_highsec_bad_removed_future_epoch",
+  "description": "High-security rooms do not mask malformed future revoked-at epochs as rotation-required events.",
+  "input": {
+    "version": 1,
+    "room_mode": 3,
+    "device_kind": 2,
+    "device_state": 2,
+    "current_epoch": 7,
+    "message_epoch": 7,
+    "min_accepted_epoch": 1,
+    "revoked_at_epoch": 8,
+    "access_kind": 1
+  },
+  "expected_reason": 8,
+  "expected_audit_class": 2
+}

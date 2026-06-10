@@ -1,0 +1,132 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "receive_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 2,
+      "kind_label": "relay_submit_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 1,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 3,
+      "kind_label": "relay_delivery_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 2,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 4,
+      "kind_label": "delivery_ack_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 3,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 5,
+      "kind_label": "client_receive_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 4,
+      "terminal": false
+    },
+    {
+      "accepted": false,
+      "kind_code": 6,
+      "kind_label": "local_store_write_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 5,
+      "reason_label": "local_store_write_rejected",
+      "sequence": 5,
+      "terminal": true
+    }
+  ],
+  "fixture": "receive_session_store_write_rejected",
+  "input": {
+    "ack_seen": false,
+    "ack_token_len": 32,
+    "acknowledged_at_s": 140,
+    "ciphertext_digest_len": 32,
+    "ciphertext_len": 128,
+    "delivery_now_s": 130,
+    "delivery_tag_len": 32,
+    "max_ack_delay_s": 300,
+    "plaintext_identity_fields": 0,
+    "receive_replay_state": "NewInOrder",
+    "replay_token_len": 32,
+    "route_id_len": 32,
+    "sealed_header_len": 96,
+    "store_record_kind": "message_plaintext"
+  },
+  "outcome": {
+    "client_receive": {
+      "accepted": true,
+      "can_decrypt": true,
+      "can_expose_to_ui": true,
+      "can_persist_ciphertext": true,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "requires_client_retry": false,
+      "requires_user_action": false
+    },
+    "completed": false,
+    "delivered_ciphertext_len": 128,
+    "delivered_sealed_header_len": 96,
+    "delivery_ack": {
+      "accepted": true,
+      "delete_queue_record": true,
+      "duplicate": false,
+      "reason": "Accepted",
+      "requires_client_retry": false,
+      "retain_hash_audit": true
+    },
+    "local_store_records": 0,
+    "plaintext_exposed": false,
+    "reason_code": 5,
+    "reason_label": "local_store_write_rejected",
+    "relay_delivery": {
+      "accepted": true,
+      "delete_item": true,
+      "next_state": "Delivered",
+      "reason": "Accepted"
+    },
+    "relay_items": 1,
+    "relay_queue": {
+      "accepted": true,
+      "delete_item": false,
+      "next_state": "Pending",
+      "persist_item": true,
+      "reason": "Accepted"
+    },
+    "relay_submission": {
+      "accepted": true,
+      "audit_class": 1,
+      "reason_code": 0
+    },
+    "store_write": {
+      "accepted": false,
+      "reason": "PlaintextRecordForbidden"
+    }
+  },
+  "surface": "prototype_receive_session"
+}

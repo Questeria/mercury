@@ -1,0 +1,21 @@
+{
+  "name": "5_local_store_sealing_rejected__1",
+  "description": "LOCAL_STORE_SEALING_REJECTED / pack=81",
+  "input": {
+    "dt_can_send": 1,
+    "dt_requires_user_action": 0,
+    "room_state": 0,
+    "room_requires_user_action": 0,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 0
+  },
+  "expected": {
+    "accepted": false,
+    "can_send": false,
+    "can_persist_ciphertext": false,
+    "requires_user_action": true,
+    "reason_code": 5,
+    "reason_label": "LOCAL_STORE_SEALING_REJECTED"
+  },
+  "expected_pack": 81
+}

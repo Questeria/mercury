@@ -1,0 +1,173 @@
+/* ---- system divider ---- */
+.system {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  color: var(--mc-muted);
+}
+.rule {
+  flex: 1;
+  height: 1px;
+  background: var(--mc-border);
+}
+.systemText {
+  font-size: 10px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ---- incoming ---- */
+.incomingRow {
+  display: flex;
+  gap: 8px;
+  align-self: flex-start;
+}
+.avatarSpacer {
+  width: 28px;
+  flex-shrink: 0;
+}
+.bubbleCol {
+  min-width: 0;
+  flex: 1;
+}
+.nameRow {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+.authorName {
+  color: hsl(var(--hue, 220) var(--tint-nm-s) var(--tint-nm-l));
+  font-weight: 600;
+}
+.aiTag {
+  font-size: 9.5px;
+  color: var(--mc-ai);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.bubble {
+  position: relative;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--mc-ink);
+  overflow: hidden;
+}
+.tintBubble {
+  background: hsl(var(--hue, 220) var(--tint-bg-s) var(--tint-bg-l));
+  border: 1px solid hsl(var(--hue, 220) var(--tint-bd-s) var(--tint-bd-l));
+}
+.aiBubble {
+  background: var(--mc-ai-bubble);
+  border: none;
+}
+.time {
+  font-size: 10.5px;
+  color: var(--mc-muted);
+  margin-top: 3px;
+}
+
+/* ---- outgoing ---- */
+.outgoingRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  margin-left: auto;
+}
+.outBubble {
+  position: relative;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border-bottom-right-radius: 4px;
+  /* "You" tint (hue 220) so your own messages are a distinct color too,
+     under the iridescent outline ring. */
+  background: hsl(var(--hue, 220) var(--tint-bg-s) var(--tint-bg-l));
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--mc-ink);
+  font-weight: 500;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+.outFooter {
+  font-size: 10.5px;
+  color: var(--mc-muted);
+  text-align: right;
+  display: flex;
+  gap: 8px;
+}
+.delivered {
+  color: var(--mc-ok);
+}
+.warnLabel {
+  color: var(--mc-warn);
+}
+
+/* ---- send blocked ---- */
+.sendBlocked {
+  align-self: flex-end;
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border-bottom-right-radius: 6px;
+  background: var(--mc-bad-soft);
+  border: 1px solid color-mix(in srgb, var(--mc-bad) 40%, transparent);
+  color: var(--mc-bad);
+  font-size: 12.5px;
+}
+.blockHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.blockQuote {
+  font-style: italic;
+  color: var(--mc-ink2);
+  line-height: 1.45;
+}
+.diag {
+  font-size: 10.5px;
+  margin-top: 6px;
+  opacity: 0.85;
+}
+
+/* ---- inbound withheld ---- */
+.inboundBlocked {
+  align-self: flex-start;
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--mc-surface);
+  border: 1px dashed var(--mc-border-strong);
+  color: var(--mc-muted);
+  font-size: 12.5px;
+}
+.reqTag {
+  font-size: 10px;
+  color: var(--mc-muted);
+  margin-left: auto;
+}
+.diagMute {
+  font-size: 10.5px;
+  margin-top: 6px;
+  color: var(--mc-muted);
+}
+
+/* ---- AI streaming caret ---- */
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  margin-left: 2px;
+  background: currentColor;
+  vertical-align: -2px;
+}

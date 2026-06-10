@@ -1,0 +1,27 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_persist_remote_ciphertext": true,
+    "can_upload_object": true,
+    "forbids_plaintext_upload": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "requires_network_setup": false,
+    "requires_user_action": false
+  },
+  "fixture": "media_service_adapter_ready",
+  "input": {
+    "adapter_kind_code": 1,
+    "adapter_kind_label": "production_object_store",
+    "allow_development_adapter": false,
+    "content_digest_verified": true,
+    "media_object_store_accepted": true,
+    "media_object_store_reason_code": 0,
+    "media_object_store_reason_label": "ACCEPTED",
+    "object_namespace_bound": true,
+    "service_authenticated": true,
+    "upload_authorized": true
+  },
+  "surface": "media_service_adapter"
+}

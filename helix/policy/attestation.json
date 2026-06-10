@@ -1,0 +1,426 @@
+{
+  "generated_by": "tools/gen_policy_attestations.py",
+  "helix_boundary": "Helix owns deterministic policy, validators, state-machine checks, and proof artifacts. Rust and reviewed libraries own production cryptography, ratchets, key storage, and platform bindings.",
+  "policies": [
+    {
+      "component_policies": [],
+      "decision_sources": [
+        "policy_pipeline"
+      ],
+      "display_name": "Envelope",
+      "helix_policy": "helix/policy/envelope.hx",
+      "helix_policy_sha256": "e3e6a00847f0f7befdd92e47b7e03b529d542bdd59fb60a206ac0d30033f9881",
+      "helix_test": "helix/tests/envelope_test.hx",
+      "helix_test_sha256": "259db8d01d4cec0f8d4064cfebb6a9bc81e704c6afd037f778dfb2b5b7c8f2f5",
+      "name": "envelope",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/envelope_policy_v1.json",
+      "policy_json_sha256": "6e35c69714e5d2212d2e91696bbb95ca071887b5b1aef257d520e5fa60a36ba5",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_envelope_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "message envelope and downgrade gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-policy/tests/envelope_vectors.rs"
+      ],
+      "vector_file_count": 12,
+      "vectors": "vectors/envelope",
+      "vectors_sha256": "f0cd317b57bd2f2f9d2489b30deacff2939df37df061d0df69c6450104a067ed"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [
+        "policy_pipeline"
+      ],
+      "display_name": "AI grant",
+      "helix_policy": "helix/policy/ai_grant.hx",
+      "helix_policy_sha256": "4ce57f56d4f3564ab9af8b1fcf938ddbe5e9c9b45fe558f126f1f71d810e966d",
+      "helix_test": "helix/tests/ai_grant_test.hx",
+      "helix_test_sha256": "892994ce38515791663dd8166b4ae217b8fd7787e3324452830e9830ca7ec1fc",
+      "name": "ai_grant",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/ai_grant_policy_v1.json",
+      "policy_json_sha256": "fa31230b50ee0cc3b73727cc4983c19b7dd88380038063d1c84d3eba66147daf",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_ai_grant_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "AI principal scope gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-policy/tests/ai_grant_vectors.rs"
+      ],
+      "vector_file_count": 20,
+      "vectors": "vectors/ai_grant",
+      "vectors_sha256": "45c630a02b5853c547e501c5d30aa2db6de78c6b79bc793bfb71cbde61d548ee"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [
+        "policy_pipeline"
+      ],
+      "display_name": "AI grant lifecycle",
+      "helix_policy": "helix/policy/ai_grant_lifecycle.hx",
+      "helix_policy_sha256": "c10cd3afbe3f66f0f7a871ecce4e66f93cbece51ca605e6b86555397508a05c9",
+      "helix_test": "helix/tests/ai_grant_lifecycle_test.hx",
+      "helix_test_sha256": "a21fd3dcc420030909f84d85c542de8694025d33ce708f2c59e82030d7363238",
+      "name": "ai_grant_lifecycle",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/ai_grant_lifecycle_policy_v1.json",
+      "policy_json_sha256": "75f8cd24682726d6d5ea6ecc7e884d91dd33e96be8e8b0552327d5feb54911ac",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_ai_grant_lifecycle_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "AI grant expiry and revoke gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-policy/tests/ai_grant_lifecycle_vectors.rs"
+      ],
+      "vector_file_count": 15,
+      "vectors": "vectors/ai_grant_lifecycle",
+      "vectors_sha256": "76b9577897ba39725f92362aee44e0b8be56425d1306917a123b252a571592cd"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [
+        "policy_pipeline"
+      ],
+      "display_name": "Room epoch",
+      "helix_policy": "helix/policy/room_epoch.hx",
+      "helix_policy_sha256": "4a9eb8922b07c97c6c233bc83e748ea1a76b234206c1964d2c3b71db4cbaee33",
+      "helix_test": "helix/tests/room_epoch_test.hx",
+      "helix_test_sha256": "1f83667cb8944c073ca37c3df57ae563452c0e2f905f29ea446629bd5d383721",
+      "name": "room_epoch",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/room_epoch_policy_v1.json",
+      "policy_json_sha256": "8cd1c7939b28d78cac2aa60c8ac2abeb1ad2bcdb9237a1a790313925c78bc708",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_room_epoch_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "room epoch and membership state gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-policy/tests/room_epoch_vectors.rs"
+      ],
+      "vector_file_count": 19,
+      "vectors": "vectors/room_epoch",
+      "vectors_sha256": "b7cbe97b91290580c07ab725cb6a29b4fb380fbbf2cc34da95560f95376c500a"
+    },
+    {
+      "component_policies": [
+        "envelope",
+        "room_epoch",
+        "ai_grant",
+        "ai_grant_lifecycle"
+      ],
+      "decision_sources": [
+        "policy_pipeline",
+        "client_policy"
+      ],
+      "display_name": "Policy pipeline",
+      "helix_policy": "helix/policy/policy_pipeline.hx",
+      "helix_policy_sha256": "8eff76505cde8dbb4eec66b3581ce7cab33b3d8eef7820e902080c312ffbc778",
+      "helix_test": "helix/tests/policy_pipeline_test.hx",
+      "helix_test_sha256": "03fc5730db27f01bd5aed06f431dfa029ede33cae4191d1b06a5234397f2d459",
+      "name": "policy_pipeline",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/policy_pipeline_v1.json",
+      "policy_json_sha256": "f86294526566f75bcf231b475b0b1e95ad87c56d4ca5f4bb98c9148473dbb2ae",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_policy_pipeline_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "component policy composition",
+      "rust_mirror_tests": [
+        "core/rust/mercury-policy/tests/policy_pipeline_vectors.rs",
+        "core/rust/mercury-core/tests/core_policy_vectors.rs"
+      ],
+      "vector_file_count": 15,
+      "vectors": "vectors/policy_pipeline",
+      "vectors_sha256": "4bbfaaaa401bba95d9fbbc737cf645971d10a1c5dcccfcdd90a48291ba943cd8"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [],
+      "display_name": "Relay submit",
+      "helix_policy": "helix/policy/relay_submit.hx",
+      "helix_policy_sha256": "d7aca5db1f425afa0c13d39695987278ba03589b103112b3f5fae3d9feba73a0",
+      "helix_test": "helix/tests/relay_submit_test.hx",
+      "helix_test_sha256": "a566f641a4f23772a36edd0d7dcc4ea308b676f07b8449bddaa337577bcf875c",
+      "name": "relay_submit",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/relay_submit_policy_v1.json",
+      "policy_json_sha256": "237e9beb2b9d0d560f050a3385f025238c5b28cc55e2c6301fed243e42a23625",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_relay_submit_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "opaque relay submission gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-policy/tests/relay_submit_vectors.rs",
+        "core/rust/mercury-core/tests/relay_submission.rs"
+      ],
+      "vector_file_count": 15,
+      "vectors": "vectors/relay_submit",
+      "vectors_sha256": "d48bdac76a2317d468a557d045c5bb37d6b147e99eebce94114f829413ccd020"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [],
+      "display_name": "Platform decision",
+      "helix_policy": "helix/policy/platform_decision.hx",
+      "helix_policy_sha256": "290c81e3eb1be02aa0fcc417632672800cf5c1fe39f338c8a8b1d882fb9f910d",
+      "helix_test": "helix/tests/platform_decision_test.hx",
+      "helix_test_sha256": "12d6a2aa094c7f749320cadd6d67809f61146726ea7134e49fc574c95c6066ca",
+      "name": "platform_decision",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/platform_decision_v1.json",
+      "policy_json_sha256": "01f9860b3b8086605f9e7af56f76ebadfbee90afc21b982de8f4958a5e68ea4d",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_platform_decision_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "capability view projection",
+      "rust_mirror_tests": [
+        "core/rust/mercury-core/tests/platform_decision_vectors.rs"
+      ],
+      "vector_file_count": 44,
+      "vectors": "vectors/platform_decision",
+      "vectors_sha256": "b636ccc9f91197726371a9037afabc7a06b822758890cb74e5a62aac058156b4"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [
+        "outbound_send"
+      ],
+      "display_name": "Outbound send",
+      "helix_policy": "helix/policy/outbound_decide.hx",
+      "helix_policy_sha256": "493974aee97980ba7a2ea3ee774577037c32bc506a91d261620dd022ed0fb499",
+      "helix_test": "helix/tests/outbound_decide_test.hx",
+      "helix_test_sha256": "d43b599726c36718ae1750af53bee29525f52dcf1ad5f403a6e3e486827f880a",
+      "name": "outbound_decide",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/outbound_decide_v1.json",
+      "policy_json_sha256": "6c8bf4a36905b8ccc43b3555fd76212def8ae8b1741613c8169e8ed8358c35cf",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_outbound_decide_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "client outbound send gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-core/tests/outbound_decide_vectors.rs",
+        "core/rust/mercury-core/tests/decider_exhaustive_diff.rs"
+      ],
+      "vector_file_count": 16,
+      "vectors": "vectors/outbound_decide",
+      "vectors_sha256": "fcd1a18d1a6611afa074b477eb1cd3ab3ed10779eba76d9c9d9edaa22c373f7e"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [
+        "client_receive"
+      ],
+      "display_name": "Client receive",
+      "helix_policy": "helix/policy/receive_decide.hx",
+      "helix_policy_sha256": "1f01478a8c867124b6425e323f6a515c250c5568bb7ddfabf4829ef8fc46dcbd",
+      "helix_test": "helix/tests/receive_decide_test.hx",
+      "helix_test_sha256": "8d46167c103f29432029d0ea8064980c0760f5fa8479e4d2624abcd93971124c",
+      "name": "receive_decide",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/receive_decide_v1.json",
+      "policy_json_sha256": "364c5c3c54b3a3a137d20d88c8bb106ebd07c2b9ccca33a8074af09566348605",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_receive_decide_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "client receive gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-core/tests/receive_decide_vectors.rs",
+        "core/rust/mercury-core/tests/decider_exhaustive_diff.rs"
+      ],
+      "vector_file_count": 19,
+      "vectors": "vectors/receive_decide",
+      "vectors_sha256": "71db12fed0a706a1b176a2b12515d3a28ff5557f018779d2d7edc3da7b2bfa79"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [
+        "client_bootstrap"
+      ],
+      "display_name": "Client bootstrap",
+      "helix_policy": "helix/policy/bootstrap_decide.hx",
+      "helix_policy_sha256": "1706b3b1722cb79f25ab63a5d44866c0d76c514c165af6df4d2dde2a52a50db2",
+      "helix_test": "helix/tests/bootstrap_decide_test.hx",
+      "helix_test_sha256": "1c67b9956ca252cfd17a724b9b7bef7c61db7e7a725ff03b3478b92fecc4a524",
+      "name": "bootstrap_decide",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/bootstrap_decide_v1.json",
+      "policy_json_sha256": "7c0e89192ec27af76db4aad5c9400566b36240c6d53a854f35cfdb47f936112b",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_bootstrap_decide_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "client bootstrap and startup gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-core/tests/bootstrap_decide_vectors.rs",
+        "core/rust/mercury-core/tests/decider_exhaustive_diff.rs"
+      ],
+      "vector_file_count": 29,
+      "vectors": "vectors/bootstrap_decide",
+      "vectors_sha256": "21cb3948e2ed5cf69b29032f2648b53cdcca4bcbc8d4209b2b6c08b48c3e2803"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [],
+      "display_name": "Inbound sync",
+      "helix_policy": "helix/policy/inbound_sync.hx",
+      "helix_policy_sha256": "6eddc0d8bee4ef321ea91e265fb6ef2b3b948f6ceba39729e382ca47768e8d6e",
+      "helix_test": "helix/tests/inbound_sync_test.hx",
+      "helix_test_sha256": "040062ce1f262fc818c2f1aed150ae0e4b65c0bd2eeb7341062b951c4cb3c2a3",
+      "name": "inbound_sync",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/inbound_sync_v1.json",
+      "policy_json_sha256": "15fc1dc452f5ae786d965231371110593f056e865a3f8b2a7c28b3f954e9bd85",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_inbound_sync_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "client inbound sync gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-core/tests/inbound_sync_vectors.rs",
+        "core/rust/mercury-core/tests/decider_exhaustive_diff.rs"
+      ],
+      "vector_file_count": 15,
+      "vectors": "vectors/inbound_sync",
+      "vectors_sha256": "bd615ee42ea6f9eaabd39d9ab404993e795a60d80a5db64e326c7335b4dc7cbb"
+    },
+    {
+      "component_policies": [],
+      "decision_sources": [],
+      "display_name": "Account recovery",
+      "helix_policy": "helix/policy/account_recovery.hx",
+      "helix_policy_sha256": "91bc5e26b3e41b5660583eb1fe224c751b0bb177577c6373d951206786f0527d",
+      "helix_test": "helix/tests/account_recovery_test.hx",
+      "helix_test_sha256": "0f5f2e16f2617b2082401737ce87ae7e06214593cd119e7edf00dc88a7ff7c99",
+      "name": "account_recovery",
+      "optional_gates": [
+        "from_raw_k1_elf_exit_42"
+      ],
+      "policy_json": "policy/account_recovery_v1.json",
+      "policy_json_sha256": "317be86c859145658523a55cb3ae03419697a5c64fa754f348f3815271fd0ee0",
+      "production_runtime": "rust_mirror",
+      "python_vector_check": "tools/check_account_recovery_vectors.py",
+      "required_gates": [
+        "python_vector_check",
+        "rust_vector_or_exhaustive_test",
+        "helix_hash",
+        "helix_proof_obligations",
+        "helix_elf_exit_42"
+      ],
+      "role": "account recovery gate",
+      "rust_mirror_tests": [
+        "core/rust/mercury-core/tests/account_recovery_vectors.rs",
+        "core/rust/mercury-core/tests/decider_exhaustive_diff.rs"
+      ],
+      "vector_file_count": 24,
+      "vectors": "vectors/account_recovery",
+      "vectors_sha256": "e3fc0d3486aea8792654d933c1a2998f77cc9defe4468191fd1e8cff9d13567c"
+    }
+  ],
+  "schema": "mercury.helix.policy.attestation.v1",
+  "toolchains": {
+    "ci_primary": {
+      "kind": "pinned_python_helixc",
+      "path": "third_party/helix",
+      "runner": "tools/run_helix_checks.sh"
+    },
+    "optional_from_raw": {
+      "kind": "kovostov_native_self_hosted_k1",
+      "kovostov_native_access": "read_only_copy_to_tmp",
+      "runner": "tools/run_fromraw_helix_check.sh",
+      "windows_runner": "tools/run_native_helix_checks.ps1"
+    },
+    "windows_primary": {
+      "kind": "pinned_python_helixc",
+      "path": "third_party/helix",
+      "runner": "tools/run_helix_checks.ps1"
+    }
+  }
+}

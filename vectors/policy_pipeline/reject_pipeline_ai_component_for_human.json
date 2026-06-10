@@ -1,0 +1,14 @@
+{
+  "name": "reject_pipeline_ai_component_for_human",
+  "description": "Human decisions must not carry AI grant or lifecycle rejection components.",
+  "input": {
+    "version": 1,
+    "actor_kind": 1,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 5,
+    "ai_lifecycle_reason": 0
+  },
+  "expected_reason": 7,
+  "expected_audit_class": 5
+}

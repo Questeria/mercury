@@ -1,0 +1,14 @@
+{
+  "name": "valid_pipeline_human_message_v1",
+  "description": "Human actor with accepted envelope and room policies is accepted.",
+  "input": {
+    "version": 1,
+    "actor_kind": 1,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 0
+  },
+  "expected_reason": 0,
+  "expected_audit_class": 1
+}

@@ -1,0 +1,21 @@
+{
+  "name": "reject_open_world_tool_phase1",
+  "description": "Open-world external tools are rejected in Phase 1.",
+  "input": {
+    "version": 1,
+    "principal_kind": 2,
+    "room_mode": 1,
+    "ai_mode": 1,
+    "ttl_s": 900,
+    "approver_count": 1,
+    "read_scope": 1,
+    "write_scope": 1,
+    "tool_scope": 4,
+    "retention_mode": 0,
+    "training_allowed": 0,
+    "prompt_store_allowed": 0
+  },
+  "expected_reason": 13,
+  "expected_audit_class": 6
+}
+

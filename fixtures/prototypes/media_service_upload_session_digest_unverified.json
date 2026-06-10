@@ -1,0 +1,98 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "service_upload_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": true,
+      "kind_code": 2,
+      "kind_label": "media_upload_session_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 1,
+      "terminal": false
+    },
+    {
+      "accepted": false,
+      "kind_code": 3,
+      "kind_label": "media_service_adapter_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 2,
+      "reason_label": "media_service_adapter_rejected",
+      "sequence": 2,
+      "terminal": true
+    }
+  ],
+  "fixture": "media_service_upload_session_digest_unverified",
+  "input": {
+    "adapter_kind_code": 1,
+    "adapter_kind_label": "production_object_store",
+    "allow_development_adapter": false,
+    "content_digest_verified": false,
+    "media_plaintext_len": 30,
+    "media_plaintext_upload_bytes": 0,
+    "media_store_record_kind": "media_ciphertext",
+    "object_namespace_bound": true,
+    "service_authenticated": true,
+    "upload_authorized": true
+  },
+  "outcome": {
+    "completed": false,
+    "local_store_records": 1,
+    "media_service": {
+      "accepted": false,
+      "can_persist_remote_ciphertext": false,
+      "can_upload_object": false,
+      "forbids_plaintext_upload": true,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 7,
+      "reason_label": "CONTENT_DIGEST_UNVERIFIED",
+      "requires_network_setup": false,
+      "requires_user_action": false
+    },
+    "media_upload": {
+      "completed": true,
+      "crypto_seal_calls": 1,
+      "local_store_records": 1,
+      "media": {
+        "accepted": true,
+        "can_persist_local_ciphertext": true,
+        "can_upload": true,
+        "plaintext_bytes_exposed": false,
+        "reason_code": 0,
+        "reason_label": "ACCEPTED",
+        "requires_user_action": false
+      },
+      "plaintext_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "seal": {
+        "accepted": true,
+        "reason": "Accepted",
+        "record_kind": "media_ciphertext"
+      },
+      "sealed_ciphertext_len": 46,
+      "store_write": {
+        "accepted": true,
+        "reason": "Accepted",
+        "record_kind": "media_ciphertext"
+      },
+      "stored_ciphertext_len": 46
+    },
+    "plaintext_exposed": false,
+    "reason_code": 2,
+    "reason_label": "media_service_adapter_rejected",
+    "sealed_ciphertext_len": 46,
+    "service_upload_calls": 0,
+    "stored_ciphertext_len": 46
+  },
+  "surface": "prototype_media_service_upload_session"
+}

@@ -1,0 +1,24 @@
+{
+  "name": "client_receive__bad_ciphertext_digest_length",
+  "description": "client_receive / BAD_CIPHERTEXT_DIGEST_LENGTH",
+  "input": {
+    "source": 2,
+    "reason_code": 11
+  },
+  "expected": {
+    "source": "client_receive",
+    "accepted": false,
+    "reason_code": 11,
+    "reason_label": "BAD_CIPHERTEXT_DIGEST_LENGTH",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": false
+  },
+  "expected_pack": 0
+}

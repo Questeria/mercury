@@ -1,0 +1,33 @@
+{
+  "audit": {
+    "accepted": true,
+    "action": "DraftReply",
+    "input_digest_len": 32,
+    "output_digest_len": 32,
+    "plaintext_bytes_exposed": false,
+    "reason": "Accepted",
+    "record_count": 1
+  },
+  "decision": {
+    "accepted": true,
+    "can_emit_draft": true,
+    "can_receive_selected_context": true,
+    "can_send_message": false,
+    "can_store_prompt": false,
+    "can_train": false,
+    "can_use_tool": false,
+    "reason": "Accepted",
+    "requires_user_confirmation": false
+  },
+  "fixture": "ai_participant_draft_accepted",
+  "request": {
+    "action": "DraftReply",
+    "grant_visible": true,
+    "input_digest_len": 32,
+    "output_digest_len": 32,
+    "participant_visible": true,
+    "plaintext_identity_fields": 0,
+    "selected_message_count": 3
+  },
+  "surface": "prototype_ai_participant"
+}

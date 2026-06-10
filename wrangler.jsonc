@@ -1,0 +1,15 @@
+{
+  // Cloudflare deploy config for the Mercury download/landing site.
+  //
+  // IMPORTANT: the apex mercury-messaging.com is a Cloudflare *Pages* project named "mercury"
+  // (direct-upload, production branch `main`, domains: mercury-messaging.com + www). It is NOT the
+  // `yellow-mouse-08cf` Worker. Deploy the site to production with:
+  //
+  //   npx wrangler pages deploy site --project-name=mercury --branch=main
+  //
+  // (reads CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID from env). `site/download/` (installer) and
+  // `site/updates/latest.json` are git-ignored but exist locally and ARE uploaded — deploying from a
+  // machine that has the signed installer publishes the complete site.
+  "name": "mercury",
+  "pages_build_output_dir": "site"
+}

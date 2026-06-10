@@ -1,0 +1,42 @@
+{
+  "decision": {
+    "accepted": false,
+    "backend_code": 99,
+    "backend_label": "development_memory",
+    "can_build_unlock_input": false,
+    "protection_code": 99,
+    "protection_label": "development_only",
+    "reason_code": 2,
+    "reason_label": "DEVELOPMENT_BACKEND_FORBIDDEN",
+    "requires_destructive_repair": true,
+    "requires_recovery": false,
+    "requires_user_auth": false,
+    "unlock_input": {
+      "app_lock_satisfied": true,
+      "database_header": "Authenticated",
+      "device_secret": "PresentSealed",
+      "keychain_available": true,
+      "plaintext_cache_records": 0,
+      "recovery_required": false,
+      "store_version": 1
+    }
+  },
+  "fixture": "local_store_keychain_development_backend_forbidden",
+  "input": {
+    "allow_development_backend": false,
+    "backend_available": true,
+    "backend_code": 99,
+    "backend_label": "development_memory",
+    "database_header": "Authenticated",
+    "device_secret": "PresentSealed",
+    "device_secret_exportable": false,
+    "plaintext_cache_records": 0,
+    "protection_code": 99,
+    "protection_label": "development_only",
+    "recovery_required": false,
+    "store_version": 1,
+    "user_auth_required": false,
+    "user_auth_satisfied": false
+  },
+  "surface": "local_store_keychain_unlock"
+}

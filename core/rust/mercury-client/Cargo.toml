@@ -1,0 +1,46 @@
+[package]
+name = "mercury-client"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# Milestone 1 of launch integration: the client RUNTIME that ties identity +
+# keys + 1:1 forward-secret sessions into a working end-to-end-encrypted
+# messenger client. This crate is the FIRST real consumer of mercury-session
+# (the post-quantum Double Ratchet). 1a wires the inner ratchet layer over a
+# transport-agnostic API; later increments add the HTTP relay transport, a CLI,
+# the outer sealed-sender envelope, and encrypted-at-rest persistence.
+
+[[bin]]
+name = "mercury-cli"
+path = "src/bin/mercury-cli.rs"
+
+[dependencies]
+mercury-keys = { path = "../mercury-keys" }
+mercury-session = { path = "../mercury-session" }
+# The outer sealed-sender envelope (seal_message/open_message) that hides the SENDER
+# from the relay, and the policy-gate types it takes.
+mercury-message = { path = "../mercury-message" }
+mercury-core = { path = "../mercury-core" }
+# Client-side key-transparency proof verification: a username lookup is only trusted after its AKD
+# inclusion proof verifies against the pinned VRF key. The client never trusts the relay's word.
+mercury-kt = { path = "../mercury-kt" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Blocking HTTP client for the relay transport. The `tls` feature enables HTTPS via
+# rustls + webpki-roots (trusts public CAs incl. Let's Encrypt), so the client can reach a
+# real TLS-terminated relay (e.g. relay.mercury-messaging.com), not just loopback HTTP.
+# Bodies are serialized/parsed with serde_json explicitly (no json feature needed).
+ureq = { version = "2", default-features = false, features = ["tls"] }
+# Fresh per-submit replay tokens (the relay rejects a reused token).
+getrandom = "0.2"
+# Encrypt the client-state pickle at rest (so a conversation survives a restart).
+chacha20poly1305 = { version = "0.10", features = ["getrandom"] }
+zeroize = "1"
+
+[dev-dependencies]
+# Integration test: stand up the REAL relay on an ephemeral port and run two
+# clients through the HTTP transport end-to-end.
+mercury-relay = { path = "../mercury-relay" }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "time"] }
+axum = "0.8"

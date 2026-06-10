@@ -1,0 +1,25 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_open_adapter": false,
+    "forbids_plaintext_storage": true,
+    "reason_code": 2,
+    "reason_label": "PLAINTEXT_ADAPTER_FORBIDDEN",
+    "requires_hardware_backing": false,
+    "requires_install_setup": false,
+    "requires_user_auth": false
+  },
+  "fixture": "platform_local_store_adapter_plaintext_forbidden",
+  "input": {
+    "adapter_kind_code": 4,
+    "adapter_kind_label": "plaintext_file_store",
+    "allow_development_adapters": false,
+    "app_lock_satisfied": true,
+    "database_root_present": true,
+    "hardware_backed_key_store": true,
+    "os_keychain_available": true,
+    "runtime_code": 1,
+    "runtime_label": "desktop"
+  },
+  "surface": "platform_local_store_adapter"
+}

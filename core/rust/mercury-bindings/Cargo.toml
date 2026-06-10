@@ -1,0 +1,9 @@
+[package]
+name = "mercury-bindings"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+mercury-core = { path = "../mercury-core", features = ["serde"] }
+serde_json = "1"

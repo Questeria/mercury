@@ -1,0 +1,21 @@
+{
+  "name": "valid_local_selected_draft_highsec_two_approvers_v1",
+  "description": "High-security rooms allow only local AI with selected context, restricted tools, and two approvers.",
+  "input": {
+    "version": 1,
+    "principal_kind": 2,
+    "room_mode": 3,
+    "ai_mode": 1,
+    "ttl_s": 300,
+    "approver_count": 2,
+    "read_scope": 1,
+    "write_scope": 1,
+    "tool_scope": 1,
+    "retention_mode": 0,
+    "training_allowed": 0,
+    "prompt_store_allowed": 0
+  },
+  "expected_reason": 0,
+  "expected_audit_class": 1
+}
+

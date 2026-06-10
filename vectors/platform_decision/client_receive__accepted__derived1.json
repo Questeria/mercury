@@ -1,0 +1,25 @@
+{
+  "name": "client_receive__accepted__derived1",
+  "description": "client_receive / ACCEPTED / derived=1",
+  "input": {
+    "source": 2,
+    "reason_code": 0,
+    "derived": 1
+  },
+  "expected": {
+    "source": "client_receive",
+    "accepted": true,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "can_open_message_ui": true,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": true,
+    "can_persist_ciphertext": true,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": true
+  },
+  "expected_pack": 817
+}

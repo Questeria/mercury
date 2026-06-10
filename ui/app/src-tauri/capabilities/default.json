@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Core capabilities for the Mercury main window. The app drives one custom in-process command (`command`); custom commands are not capability-gated, so only the core webview/window/event permissions are granted here.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-is-maximized",
+    "updater:default",
+    "notification:default",
+    "autostart:default",
+    "deep-link:default"
+  ]
+}

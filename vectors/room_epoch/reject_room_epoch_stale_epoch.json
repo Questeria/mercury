@@ -1,0 +1,17 @@
+{
+  "name": "reject_room_epoch_stale_epoch",
+  "description": "Messages from older epochs are rejected as stale.",
+  "input": {
+    "version": 1,
+    "room_mode": 1,
+    "device_kind": 1,
+    "device_state": 1,
+    "current_epoch": 7,
+    "message_epoch": 6,
+    "min_accepted_epoch": 1,
+    "revoked_at_epoch": 0,
+    "access_kind": 2
+  },
+  "expected_reason": 4,
+  "expected_audit_class": 3
+}

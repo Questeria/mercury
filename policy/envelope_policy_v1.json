@@ -1,0 +1,56 @@
+{
+  "schema": "mercury.envelope_policy.v1",
+  "supported_version": 1,
+  "suites": {
+    "classical_dev": 257,
+    "hybrid_pq_dev": 513
+  },
+  "message_kinds": {
+    "application": 1,
+    "control": 2,
+    "ai_context": 3
+  },
+  "field_bounds": {
+    "conversation_id_len": {"min": 8, "max": 128},
+    "sender_account_id_len": {"min": 8, "max": 128},
+    "sender_device_id_len": {"min": 8, "max": 128},
+    "default_max_payload_len": 65536,
+    "known_critical_flags_mask": 3
+  },
+  "reason_codes": {
+    "ACCEPT": 0,
+    "BAD_VERSION": 1,
+    "UNSUPPORTED_SUITE": 2,
+    "DOWNGRADED_SUITE": 3,
+    "BAD_CONVERSATION_ID_LEN": 4,
+    "BAD_SENDER_ACCOUNT_ID_LEN": 5,
+    "BAD_SENDER_DEVICE_ID_LEN": 6,
+    "BAD_EPOCH": 7,
+    "BAD_SEQUENCE": 8,
+    "BAD_MESSAGE_KIND": 9,
+    "PAYLOAD_TOO_LARGE": 10,
+    "UNKNOWN_CRITICAL_FLAG": 11,
+    "RESERVED_AI_KIND": 12
+  },
+  "audit_classes": {
+    "ACCEPTED_MESSAGE": 1,
+    "POLICY_REJECT": 2,
+    "DOWNGRADE_ATTEMPT": 3,
+    "SIZE_REJECT": 4
+  },
+  "vectors": [
+    "valid_minimal_application_v1",
+    "valid_empty_payload_control_v1",
+    "valid_unknown_noncritical_flag_v1",
+    "reject_bad_version_v0",
+    "reject_downgrade_classical_below_floor",
+    "reject_unknown_suite",
+    "reject_oversize_payload",
+    "reject_unknown_critical_flag",
+    "reject_bad_epoch",
+    "reject_bad_sequence",
+    "reject_empty_sender_device_id",
+    "reject_reserved_ai_context_kind_phase1"
+  ]
+}
+

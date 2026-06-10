@@ -1,0 +1,38 @@
+{
+  "schema": "mercury.outbound_decide_policy.v1",
+  "description": "Outbound-send decider: mirrors mercury-core evaluate_outbound_send (OutboundSendInput -> OutboundSendDecision), the combinator that turns four sub-decisions into the outbound reason. Pure scalar; no crypto/JSON/ciphertext.",
+  "generated_by": "tools/gen_outbound_decide_vectors.py --write (do not hand-edit)",
+  "input_fields": [
+    "dt_can_send",
+    "dt_requires_user_action",
+    "room_state",
+    "room_requires_user_action",
+    "message_policy_accepted",
+    "ciphertext_sealing_accepted"
+  ],
+  "decision_fields": [
+    "accepted",
+    "can_send",
+    "can_persist_ciphertext",
+    "requires_user_action",
+    "reason_code",
+    "reason_label"
+  ],
+  "pack_low_bits_msb_to_lsb": [
+    "accepted",
+    "can_send",
+    "can_persist_ciphertext",
+    "requires_user_action"
+  ],
+  "pack_layout": "reason_code * 16 + accepted*8 + can_send*4 + can_persist_ciphertext*2 + requires_user_action",
+  "reason_codes": {
+    "ACCEPTED": 0,
+    "DEVICE_TRUST_REJECTED": 1,
+    "ROOM_MEMBERSHIP_TRANSITION_REJECTED": 2,
+    "ROOM_MEMBERSHIP_EPOCH_NOT_ROTATED": 3,
+    "MESSAGE_POLICY_REJECTED": 4,
+    "LOCAL_STORE_SEALING_REJECTED": 5
+  },
+  "vector_count": 16,
+  "source_of_truth": "core/rust/mercury-core/src/lib.rs evaluate_outbound_send (10841); pinned by core/rust/mercury-core/tests/outbound_decide_vectors.rs (constructs the real sub-decisions + calls evaluate_outbound_send). Exhaustive agreement: the FU-4 exhaustive differential."
+}

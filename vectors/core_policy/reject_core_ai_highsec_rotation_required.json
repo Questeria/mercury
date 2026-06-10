@@ -1,0 +1,69 @@
+{
+  "name": "reject_core_ai_highsec_rotation_required",
+  "input": {
+    "actor_kind": 2,
+    "envelope": {
+      "version": 1,
+      "suite_id": 513,
+      "conversation_id_len": 32,
+      "sender_account_id_len": 32,
+      "sender_device_id_len": 32,
+      "epoch": 7,
+      "sequence": 42,
+      "message_kind": 1,
+      "payload_len": 128,
+      "critical_flags": 0,
+      "noncritical_flags": 0,
+      "expected_epoch": 7,
+      "expected_sequence": 42,
+      "min_suite_id": 257,
+      "max_payload_len": 1024
+    },
+    "room_epoch": {
+      "version": 1,
+      "room_mode": 3,
+      "device_kind": 2,
+      "device_state": 1,
+      "current_epoch": 7,
+      "message_epoch": 7,
+      "min_accepted_epoch": 1,
+      "revoked_at_epoch": 0,
+      "access_kind": 1
+    },
+    "ai": {
+      "grant": {
+        "version": 1,
+        "principal_kind": 2,
+        "room_mode": 3,
+        "ai_mode": 1,
+        "ttl_s": 300,
+        "approver_count": 2,
+        "read_scope": 1,
+        "write_scope": 1,
+        "tool_scope": 1,
+        "retention_mode": 0,
+        "training_allowed": 0,
+        "prompt_store_allowed": 0
+      },
+      "lifecycle": {
+        "version": 1,
+        "grant_state": 2,
+        "revoke_reason": 1,
+        "now_s": 100,
+        "expires_at_s": 200,
+        "room_mode": 3,
+        "access_kind": 1,
+        "epoch_rotated": 0
+      }
+    }
+  },
+  "expected": {
+    "accepted": false,
+    "reason_code": 13,
+    "audit_class": 8,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 9
+  }
+}

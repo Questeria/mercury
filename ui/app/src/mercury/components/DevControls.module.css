@@ -1,0 +1,114 @@
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 200;
+  background: var(--mc-surface);
+  color: var(--mc-ink2);
+  border: 1px solid var(--mc-border-strong);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 200;
+  width: 280px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  background: var(--mc-surface);
+  border: 1px solid var(--mc-border-strong);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
+}
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--mc-border);
+}
+.headTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--mc-ink);
+}
+.headSub {
+  font-size: 10px;
+  color: var(--mc-muted);
+}
+.close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--mc-muted);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.body {
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.fieldLabel {
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mc-muted);
+  font-weight: 600;
+}
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.segment {
+  background: var(--mc-surface-warm);
+  border: 1px solid var(--mc-border);
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 10.5px;
+  color: var(--mc-ink2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.segment[data-on] {
+  background: var(--mc-accent);
+  border-color: var(--mc-accent);
+  color: var(--mc-accent-ink);
+  font-weight: 600;
+}
+.divider {
+  height: 1px;
+  background: var(--mc-border);
+  margin: 2px 0;
+}
+.note {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--mc-muted);
+  margin-top: -4px;
+}

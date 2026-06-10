@@ -1,0 +1,16 @@
+{
+  "name": "valid_active_write_before_expiry_v1",
+  "description": "Active AI grant may be used for write access before expiry.",
+  "input": {
+    "version": 1,
+    "grant_state": 1,
+    "revoke_reason": 0,
+    "now_s": 100,
+    "expires_at_s": 200,
+    "room_mode": 1,
+    "access_kind": 2,
+    "epoch_rotated": 0
+  },
+  "expected_reason": 0,
+  "expected_audit_class": 1
+}

@@ -1,0 +1,24 @@
+{
+  "name": "reject_bad_sequence",
+  "description": "Rejects envelopes whose sequence does not match the caller-provided expected sequence.",
+  "input": {
+    "version": 1,
+    "suite_id": 513,
+    "conversation_id_len": 16,
+    "sender_account_id_len": 32,
+    "sender_device_id_len": 32,
+    "epoch": 7,
+    "sequence": 41,
+    "message_kind": 1,
+    "payload_len": 1,
+    "critical_flags": 0,
+    "noncritical_flags": 0,
+    "expected_epoch": 7,
+    "expected_sequence": 42,
+    "min_suite_id": 257,
+    "max_payload_len": 65536
+  },
+  "expected_reason": 8,
+  "expected_audit_class": 2
+}
+

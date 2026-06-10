@@ -1,0 +1,32 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_download_object": false,
+    "can_persist_local_ciphertext": false,
+    "forbids_plaintext_preview": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 8,
+    "reason_label": "CONTENT_DIGEST_UNVERIFIED",
+    "requires_network_setup": false,
+    "requires_user_action": false
+  },
+  "fixture": "media_service_download_digest_unverified",
+  "input": {
+    "adapter_kind_code": 1,
+    "adapter_kind_label": "production_object_store",
+    "allow_development_adapter": false,
+    "automatic_download_requested": false,
+    "ciphertext_len": 4096,
+    "content_digest_len": 32,
+    "content_digest_verified": false,
+    "download_authorized": true,
+    "max_ciphertext_len": 16777216,
+    "media_key_commitment_len": 32,
+    "object_id_len": 32,
+    "object_namespace_bound": true,
+    "plaintext_preview_bytes": 0,
+    "sealed_header_len": 96,
+    "service_authenticated": true
+  },
+  "surface": "media_service_download"
+}

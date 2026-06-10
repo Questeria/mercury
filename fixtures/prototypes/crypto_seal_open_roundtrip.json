@@ -1,0 +1,21 @@
+{
+  "authentication_tag_len": 16,
+  "fixture": "crypto_seal_open_roundtrip",
+  "nonce_len": 24,
+  "open": {
+    "accepted": true,
+    "opened_plaintext_len": 25,
+    "plaintext_bytes_exposed": false,
+    "plaintext_matches_expected": true
+  },
+  "open_calls": 1,
+  "plaintext_len": 25,
+  "record_kind": "MessageCiphertext",
+  "seal_calls": 1,
+  "sealed_bytes_len": 41,
+  "surface": "prototype_local_store_crypto",
+  "write_request": {
+    "accepted": true,
+    "reason": "Accepted"
+  }
+}

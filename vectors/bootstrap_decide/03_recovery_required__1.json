@@ -1,0 +1,34 @@
+{
+  "name": "03_recovery_required__1",
+  "description": "RECOVERY_REQUIRED / pack=387",
+  "input": {
+    "account_id_ok": 1,
+    "device_id_ok": 1,
+    "pending_recovery": 1,
+    "plaintext_cache_ok": 1,
+    "local_trust": 1,
+    "kt_code": 0,
+    "kt_requires_user_action": 0,
+    "account_secret": 0,
+    "device_secret": 0,
+    "room_state": 0,
+    "replay_checkpoint": 0,
+    "sync_state": 0
+  },
+  "expected": {
+    "pre_reason": 3,
+    "kt_reason": 0,
+    "secrets_reason": 0,
+    "rs_reason": 0,
+    "accepted": false,
+    "can_start_sync": false,
+    "can_decrypt_local_store": false,
+    "can_open_message_ui": false,
+    "requires_sync": false,
+    "requires_recovery": true,
+    "requires_user_action": true,
+    "reason_code": 3,
+    "reason_label": "RECOVERY_REQUIRED"
+  },
+  "expected_pack": 387
+}

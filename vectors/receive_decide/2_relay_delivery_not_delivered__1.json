@@ -1,0 +1,32 @@
+{
+  "name": "2_relay_delivery_not_delivered__1",
+  "description": "RELAY_DELIVERY_NOT_DELIVERED / pack=130",
+  "input": {
+    "relay_accepted": 1,
+    "relay_delivered": 0,
+    "ack_duplicate": 0,
+    "ack_accepted": 1,
+    "ack_requires_client_retry": 0,
+    "ciphertext_digest_ok": 1,
+    "plaintext_identity_ok": 1,
+    "replay_state": 0,
+    "dt_can_send": 1,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 1,
+    "dt_requires_user_action": 0
+  },
+  "expected": {
+    "relay_reason": 2,
+    "content_reason": 0,
+    "trust_reason": 0,
+    "accepted": false,
+    "can_decrypt": false,
+    "can_persist_ciphertext": false,
+    "can_expose_to_ui": false,
+    "requires_client_retry": true,
+    "requires_user_action": false,
+    "reason_code": 2,
+    "reason_label": "RELAY_DELIVERY_NOT_DELIVERED"
+  },
+  "expected_pack": 130
+}

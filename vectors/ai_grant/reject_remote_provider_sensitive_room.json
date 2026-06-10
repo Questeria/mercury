@@ -1,0 +1,21 @@
+{
+  "name": "reject_remote_provider_sensitive_room",
+  "description": "Remote provider AI is represented but rejected in sensitive rooms.",
+  "input": {
+    "version": 1,
+    "principal_kind": 2,
+    "room_mode": 2,
+    "ai_mode": 3,
+    "ttl_s": 900,
+    "approver_count": 1,
+    "read_scope": 1,
+    "write_scope": 1,
+    "tool_scope": 0,
+    "retention_mode": 0,
+    "training_allowed": 0,
+    "prompt_store_allowed": 0
+  },
+  "expected_reason": 17,
+  "expected_audit_class": 3
+}
+

@@ -1,0 +1,16 @@
+{
+  "name": "reject_lifecycle_bad_grant_state",
+  "description": "Lifecycle policy rejects unknown grant states.",
+  "input": {
+    "version": 1,
+    "grant_state": 3,
+    "revoke_reason": 0,
+    "now_s": 100,
+    "expires_at_s": 200,
+    "room_mode": 1,
+    "access_kind": 0,
+    "epoch_rotated": 0
+  },
+  "expected_reason": 2,
+  "expected_audit_class": 2
+}

@@ -1,0 +1,40 @@
+{
+  "decision": {
+    "accepted": false,
+    "index": {
+      "accepted": false,
+      "can_cleanup": false,
+      "can_download": false,
+      "can_upload": false,
+      "has_local_cache": false,
+      "has_remote_object": false,
+      "keeps_audit_hash": true,
+      "lifecycle_state_code": 3,
+      "lifecycle_state_label": "remote_and_local_cached",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 1,
+      "reason_label": "PLAINTEXT_METADATA_FORBIDDEN",
+      "requires_user_action": true
+    },
+    "keeps_audit_hash": true,
+    "persisted_record": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 4,
+    "reason_label": "INDEX_REJECTED",
+    "record_count": 0
+  },
+  "fixture": "media_object_index_store_index_rejected",
+  "input": {
+    "content_digest_len": 32,
+    "index_lifecycle_state_code": 3,
+    "index_lifecycle_state_label": "remote_and_local_cached",
+    "index_local_cache_present": true,
+    "index_plaintext_metadata_bytes": 1,
+    "index_remote_object_present": true,
+    "index_remote_service_record_present": true,
+    "media_key_commitment_len": 32,
+    "object_id_len": 32
+  },
+  "record": null,
+  "surface": "media_object_index_store"
+}

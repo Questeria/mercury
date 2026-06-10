@@ -1,0 +1,21 @@
+{
+  "name": "reject_highsec_single_approver",
+  "description": "High-security rooms require at least two approvers for AI access.",
+  "input": {
+    "version": 1,
+    "principal_kind": 2,
+    "room_mode": 3,
+    "ai_mode": 1,
+    "ttl_s": 900,
+    "approver_count": 1,
+    "read_scope": 1,
+    "write_scope": 1,
+    "tool_scope": 1,
+    "retention_mode": 0,
+    "training_allowed": 0,
+    "prompt_store_allowed": 0
+  },
+  "expected_reason": 7,
+  "expected_audit_class": 2
+}
+

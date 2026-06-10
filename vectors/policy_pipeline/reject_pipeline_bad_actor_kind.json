@@ -1,0 +1,14 @@
+{
+  "name": "reject_pipeline_bad_actor_kind",
+  "description": "Pipeline rejects unknown actor kinds.",
+  "input": {
+    "version": 1,
+    "actor_kind": 4,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 0
+  },
+  "expected_reason": 2,
+  "expected_audit_class": 2
+}

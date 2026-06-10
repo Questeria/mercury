@@ -1,0 +1,14 @@
+{
+  "name": "reject_pipeline_bad_room_epoch_reason",
+  "description": "Pipeline rejects room epoch reason codes outside the room epoch policy range.",
+  "input": {
+    "version": 1,
+    "actor_kind": 1,
+    "envelope_reason": 0,
+    "room_epoch_reason": 14,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 0
+  },
+  "expected_reason": 4,
+  "expected_audit_class": 2
+}

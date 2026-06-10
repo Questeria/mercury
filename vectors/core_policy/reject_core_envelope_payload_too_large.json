@@ -1,0 +1,43 @@
+{
+  "name": "reject_core_envelope_payload_too_large",
+  "input": {
+    "actor_kind": 1,
+    "envelope": {
+      "version": 1,
+      "suite_id": 513,
+      "conversation_id_len": 32,
+      "sender_account_id_len": 32,
+      "sender_device_id_len": 32,
+      "epoch": 7,
+      "sequence": 42,
+      "message_kind": 1,
+      "payload_len": 2048,
+      "critical_flags": 0,
+      "noncritical_flags": 0,
+      "expected_epoch": 7,
+      "expected_sequence": 42,
+      "min_suite_id": 257,
+      "max_payload_len": 1024
+    },
+    "room_epoch": {
+      "version": 1,
+      "room_mode": 1,
+      "device_kind": 1,
+      "device_state": 1,
+      "current_epoch": 7,
+      "message_epoch": 7,
+      "min_accepted_epoch": 1,
+      "revoked_at_epoch": 0,
+      "access_kind": 2
+    }
+  },
+  "expected": {
+    "accepted": false,
+    "reason_code": 8,
+    "audit_class": 3,
+    "envelope_reason": 10,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 0
+  }
+}

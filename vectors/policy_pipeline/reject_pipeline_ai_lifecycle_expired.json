@@ -1,0 +1,14 @@
+{
+  "name": "reject_pipeline_ai_lifecycle_expired",
+  "description": "AI lifecycle expiry blocks AI actors after grant policy passes.",
+  "input": {
+    "version": 1,
+    "actor_kind": 2,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 5
+  },
+  "expected_reason": 11,
+  "expected_audit_class": 6
+}

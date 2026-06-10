@@ -1,0 +1,21 @@
+{
+  "name": "reject_highsec_external_tool",
+  "description": "High-security rooms reject tools wider than read-only local access.",
+  "input": {
+    "version": 1,
+    "principal_kind": 2,
+    "room_mode": 3,
+    "ai_mode": 1,
+    "ttl_s": 900,
+    "approver_count": 2,
+    "read_scope": 1,
+    "write_scope": 1,
+    "tool_scope": 2,
+    "retention_mode": 0,
+    "training_allowed": 0,
+    "prompt_store_allowed": 0
+  },
+  "expected_reason": 20,
+  "expected_audit_class": 4
+}
+

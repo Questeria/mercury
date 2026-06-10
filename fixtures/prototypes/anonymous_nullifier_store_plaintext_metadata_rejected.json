@@ -1,0 +1,33 @@
+{
+  "decision": {
+    "accepted": false,
+    "keeps_context_digest_only": true,
+    "persisted_record": false,
+    "plaintext_bytes_exposed": false,
+    "presentation_count_after": 1,
+    "reason_code": 7,
+    "reason_label": "PLAINTEXT_METADATA_FORBIDDEN",
+    "record_count": 0
+  },
+  "fixture": "anonymous_nullifier_store_plaintext_metadata_rejected",
+  "input": {
+    "credential_context_digest_len": 32,
+    "credential_kind_code": 2,
+    "credential_kind_label": "arc_window",
+    "nullifier_decision_accepted": true,
+    "nullifier_decision_reason_label": "ACCEPTED",
+    "nullifier_len": 32,
+    "plaintext_metadata_fields": 1,
+    "presentation_count_before": 1,
+    "presentation_limit": 8,
+    "redemption_context_digest_len": 32,
+    "seed_replay": false,
+    "window_end_s": 1300,
+    "window_start_s": 1000
+  },
+  "store": {
+    "has_record": false,
+    "record_count": 0
+  },
+  "surface": "anonymous_nullifier_store"
+}

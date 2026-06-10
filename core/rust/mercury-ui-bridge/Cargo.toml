@@ -1,0 +1,25 @@
+[package]
+name = "mercury-ui-bridge"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# A thin dev/integration HTTP shim that serves the REAL mercury-core
+# PlatformDecisionView fixtures (via mercury-bindings) as JSON, so the web
+# client (ui/app) can render decisions computed by the actual Rust core
+# instead of its in-app TypeScript simulator. It recomputes nothing.
+
+[[bin]]
+name = "mercury-ui-bridge"
+path = "src/main.rs"
+
+[dependencies]
+mercury-core = { path = "../mercury-core", features = ["serde"] }
+mercury-bindings = { path = "../mercury-bindings" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+axum = "0.8"
+serde_json = "1"
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

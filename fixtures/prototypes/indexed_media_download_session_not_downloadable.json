@@ -1,0 +1,70 @@
+{
+  "events": [
+    {
+      "accepted": true,
+      "kind_code": 1,
+      "kind_label": "indexed_download_started",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "completed",
+      "sequence": 0,
+      "terminal": false
+    },
+    {
+      "accepted": false,
+      "kind_code": 2,
+      "kind_label": "media_object_index_store_evaluated",
+      "plaintext_bytes_exposed": false,
+      "reason_code": 2,
+      "reason_label": "media_object_not_downloadable",
+      "sequence": 1,
+      "terminal": true
+    }
+  ],
+  "fixture": "indexed_media_download_session_not_downloadable",
+  "input": {
+    "download_automatic_requested": false,
+    "download_ciphertext_len": 46,
+    "download_plaintext_preview_bytes": 0,
+    "index_content_digest_len": 32,
+    "index_lifecycle_state_code": 0,
+    "index_lifecycle_state_label": "absent",
+    "index_media_key_commitment_len": 32,
+    "index_object_id_len": 32,
+    "index_plaintext_metadata_bytes": 0,
+    "store_record_kind": "media_ciphertext"
+  },
+  "outcome": {
+    "completed": false,
+    "download": null,
+    "index_store": {
+      "accepted": true,
+      "index": {
+        "accepted": true,
+        "can_cleanup": false,
+        "can_download": false,
+        "can_upload": true,
+        "has_local_cache": false,
+        "has_remote_object": false,
+        "keeps_audit_hash": true,
+        "lifecycle_state_code": 0,
+        "lifecycle_state_label": "absent",
+        "plaintext_bytes_exposed": false,
+        "reason_code": 0,
+        "reason_label": "ACCEPTED",
+        "requires_user_action": false
+      },
+      "keeps_audit_hash": true,
+      "persisted_record": true,
+      "plaintext_bytes_exposed": false,
+      "reason_code": 0,
+      "reason_label": "ACCEPTED",
+      "record_count": 1
+    },
+    "index_store_records": 1,
+    "plaintext_exposed": false,
+    "reason_code": 2,
+    "reason_label": "media_object_not_downloadable"
+  },
+  "surface": "prototype_indexed_media_download_session"
+}

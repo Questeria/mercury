@@ -1,0 +1,24 @@
+{
+  "name": "client_receive__ordering_gap",
+  "description": "client_receive / ORDERING_GAP",
+  "input": {
+    "source": 2,
+    "reason_code": 10
+  },
+  "expected": {
+    "source": "client_receive",
+    "accepted": false,
+    "reason_code": 10,
+    "reason_label": "ORDERING_GAP",
+    "can_open_message_ui": false,
+    "can_start_sync": false,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": false,
+    "requires_recovery": false,
+    "requires_client_retry": true,
+    "requires_user_action": false
+  },
+  "expected_pack": 2
+}

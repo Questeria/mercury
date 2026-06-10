@@ -1,0 +1,25 @@
+{
+  "name": "6_bad_poll_batch_limit__1",
+  "description": "BAD_POLL_BATCH_LIMIT / pack=768",
+  "input": {
+    "plaintext_preview_ok": 1,
+    "bootstrap_can_start_sync": 1,
+    "bootstrap_rua": 0,
+    "source_state": 0,
+    "poll_batch_ok": 0,
+    "pending_delivery": 1,
+    "route_id_ok": 1
+  },
+  "expected": {
+    "accepted": false,
+    "can_poll_relay": false,
+    "can_run_receive_session": false,
+    "can_update_replay_checkpoint": false,
+    "requires_network_retry": false,
+    "requires_user_action": false,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 6,
+    "reason_label": "BAD_POLL_BATCH_LIMIT"
+  },
+  "expected_pack": 768
+}

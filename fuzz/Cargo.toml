@@ -1,0 +1,82 @@
+# cargo-fuzz harness for Mercury (Track 0c, coverage-guided layer).
+#
+# This is its OWN workspace (the empty [workspace] table below) so it stays out
+# of the main Mercury workspace -- it needs a nightly toolchain + libFuzzer and
+# must not affect `cargo build/test --workspace`. Run on Linux:
+#   rustup toolchain install nightly && cargo install cargo-fuzz
+#   cargo +nightly fuzz run envelope_decode
+#   cargo +nightly fuzz run sealed_open
+#
+# The targets wrap the exact seams the deterministic robustness tests cover
+# (mercury_message::from_bytes; mercury_sealedbox::open + open_hybrid;
+# mercury_session SessionCiphertext decode; and the post-quantum wire parsers
+# HybridFirstFlight / HybridMessage / RatchetMessage from_bytes); they must never
+# crash -- any crash is a bug and (in CI) blocks release.
+
+[package]
+name = "mercury-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+mercury-message = { path = "../core/rust/mercury-message" }
+mercury-sealedbox = { path = "../core/rust/mercury-sealedbox" }
+mercury-keys = { path = "../core/rust/mercury-keys" }
+mercury-session = { path = "../core/rust/mercury-session" }
+
+[[bin]]
+name = "envelope_decode"
+path = "fuzz_targets/envelope_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sealed_open"
+path = "fuzz_targets/sealed_open.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sealed_open_hybrid"
+path = "fuzz_targets/sealed_open_hybrid.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "session_decode"
+path = "fuzz_targets/session_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pq_first_flight_decode"
+path = "fuzz_targets/pq_first_flight_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pq_message_decode"
+path = "fuzz_targets/pq_message_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pq_ratchet_decode"
+path = "fuzz_targets/pq_ratchet_decode.rs"
+test = false
+doc = false
+bench = false
+
+# Own workspace root: isolate from the parent Mercury workspace.
+[workspace]

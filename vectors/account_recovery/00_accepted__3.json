@@ -1,0 +1,38 @@
+{
+  "name": "00_accepted__3",
+  "description": "ACCEPTED / method=5 / pack=454",
+  "input": {
+    "recovery_requested": 1,
+    "method_code": 5,
+    "high_security_account": 0,
+    "entropy_ok": 1,
+    "digest_ok": 1,
+    "threshold_ok": 1,
+    "device_approval_present": 1,
+    "server_authenticated": 1,
+    "server_rate_limited": 1,
+    "backup_encrypted": 1,
+    "plaintext_backup_ok": 1,
+    "rotates_device_secret": 0,
+    "audit_ok": 1
+  },
+  "expected": {
+    "stage_a_reason": 0,
+    "stage_b_reason": 0,
+    "stage_c_reason": 0,
+    "stage_d_reason": 0,
+    "accepted": true,
+    "can_start_recovery": true,
+    "can_restore_device_secret": true,
+    "requires_user_action": false,
+    "requires_server_setup": false,
+    "requires_key_rotation": false,
+    "forbids_low_entropy_recovery": true,
+    "forbids_plaintext_backup": true,
+    "plaintext_bytes_exposed": false,
+    "method_code": 5,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED"
+  },
+  "expected_pack": 454
+}

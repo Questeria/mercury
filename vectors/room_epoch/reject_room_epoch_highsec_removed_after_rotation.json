@@ -1,0 +1,17 @@
+{
+  "name": "reject_room_epoch_highsec_removed_after_rotation",
+  "description": "After high-security epoch rotation, the removed AI device is still rejected as removed.",
+  "input": {
+    "version": 1,
+    "room_mode": 3,
+    "device_kind": 2,
+    "device_state": 2,
+    "current_epoch": 8,
+    "message_epoch": 8,
+    "min_accepted_epoch": 1,
+    "revoked_at_epoch": 7,
+    "access_kind": 1
+  },
+  "expected_reason": 10,
+  "expected_audit_class": 4
+}

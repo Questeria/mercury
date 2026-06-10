@@ -1,0 +1,32 @@
+{
+  "name": "12_plaintext_identity_forbidden__1",
+  "description": "PLAINTEXT_IDENTITY_FORBIDDEN / pack=768",
+  "input": {
+    "relay_accepted": 1,
+    "relay_delivered": 1,
+    "ack_duplicate": 0,
+    "ack_accepted": 1,
+    "ack_requires_client_retry": 0,
+    "ciphertext_digest_ok": 1,
+    "plaintext_identity_ok": 0,
+    "replay_state": 0,
+    "dt_can_send": 1,
+    "message_policy_accepted": 1,
+    "ciphertext_sealing_accepted": 1,
+    "dt_requires_user_action": 0
+  },
+  "expected": {
+    "relay_reason": 0,
+    "content_reason": 12,
+    "trust_reason": 0,
+    "accepted": false,
+    "can_decrypt": false,
+    "can_persist_ciphertext": false,
+    "can_expose_to_ui": false,
+    "requires_client_retry": false,
+    "requires_user_action": false,
+    "reason_code": 12,
+    "reason_label": "PLAINTEXT_IDENTITY_FORBIDDEN"
+  },
+  "expected_pack": 768
+}

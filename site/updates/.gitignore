@@ -1,0 +1,4 @@
+# Generated per-release + placed at deploy time; not committed.
+latest.json
+*.exe
+*.sig

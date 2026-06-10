@@ -1,0 +1,33 @@
+{
+  "decision": {
+    "accepted": true,
+    "keeps_context_digest_only": true,
+    "persisted_record": true,
+    "plaintext_bytes_exposed": false,
+    "presentation_count_after": 2,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "record_count": 1
+  },
+  "fixture": "anonymous_nullifier_store_ready",
+  "input": {
+    "credential_context_digest_len": 32,
+    "credential_kind_code": 2,
+    "credential_kind_label": "arc_window",
+    "nullifier_decision_accepted": true,
+    "nullifier_decision_reason_label": "ACCEPTED",
+    "nullifier_len": 32,
+    "plaintext_metadata_fields": 0,
+    "presentation_count_before": 1,
+    "presentation_limit": 8,
+    "redemption_context_digest_len": 32,
+    "seed_replay": false,
+    "window_end_s": 1300,
+    "window_start_s": 1000
+  },
+  "store": {
+    "has_record": true,
+    "record_count": 1
+  },
+  "surface": "anonymous_nullifier_store"
+}

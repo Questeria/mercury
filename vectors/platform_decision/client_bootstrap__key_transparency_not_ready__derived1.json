@@ -1,0 +1,25 @@
+{
+  "name": "client_bootstrap__key_transparency_not_ready__derived1",
+  "description": "client_bootstrap / KEY_TRANSPARENCY_NOT_READY / derived=1",
+  "input": {
+    "source": 0,
+    "reason_code": 6,
+    "derived": 1
+  },
+  "expected": {
+    "source": "client_bootstrap",
+    "accepted": false,
+    "reason_code": 6,
+    "reason_label": "KEY_TRANSPARENCY_NOT_READY",
+    "can_open_message_ui": false,
+    "can_start_sync": true,
+    "can_send": false,
+    "can_receive": false,
+    "can_persist_ciphertext": false,
+    "requires_sync": true,
+    "requires_recovery": false,
+    "requires_client_retry": false,
+    "requires_user_action": true
+  },
+  "expected_pack": 137
+}

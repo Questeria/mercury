@@ -1,0 +1,21 @@
+{
+  "name": "4_message_policy_rejected__3",
+  "description": "MESSAGE_POLICY_REJECTED / pack=65",
+  "input": {
+    "dt_can_send": 1,
+    "dt_requires_user_action": 0,
+    "room_state": 0,
+    "room_requires_user_action": 0,
+    "message_policy_accepted": 0,
+    "ciphertext_sealing_accepted": 0
+  },
+  "expected": {
+    "accepted": false,
+    "can_send": false,
+    "can_persist_ciphertext": false,
+    "requires_user_action": true,
+    "reason_code": 4,
+    "reason_label": "MESSAGE_POLICY_REJECTED"
+  },
+  "expected_pack": 65
+}

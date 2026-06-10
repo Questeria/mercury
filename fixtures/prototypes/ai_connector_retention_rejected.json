@@ -1,0 +1,59 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_call_model": false,
+    "can_emit_draft": false,
+    "can_send_message": false,
+    "can_use_tool": false,
+    "forbids_prompt_retention": true,
+    "forbids_training": true,
+    "participant": {
+      "accepted": true,
+      "can_emit_draft": true,
+      "can_receive_selected_context": true,
+      "can_send_message": false,
+      "can_store_prompt": false,
+      "can_train": false,
+      "can_use_tool": false,
+      "reason": "Accepted",
+      "requires_user_confirmation": false
+    },
+    "plaintext_bytes_exposed": false,
+    "reason_code": 13,
+    "reason_label": "PROMPT_RETENTION_FORBIDDEN",
+    "requires_model_setup": false,
+    "requires_user_review": false,
+    "requires_user_setup": false,
+    "runtime_kind_code": 1,
+    "runtime_kind_label": "local_device"
+  },
+  "fixture": "ai_connector_retention_rejected",
+  "input": {
+    "allow_development_runtime": false,
+    "allow_remote_runtime": false,
+    "connector_authenticated": true,
+    "context_digest_len": 32,
+    "direct_send_enabled": false,
+    "draft_output_digest_len": 32,
+    "high_security_room": false,
+    "model_integrity_verified": true,
+    "model_user_selected": true,
+    "participant_request": {
+      "action": "DraftReply",
+      "grant_visible": true,
+      "input_digest_len": 32,
+      "output_digest_len": 32,
+      "participant_visible": true,
+      "plaintext_identity_fields": 0,
+      "selected_message_count": 3
+    },
+    "plaintext_bridge_fields": 0,
+    "prompt_retention_enabled": true,
+    "runtime_kind_code": 1,
+    "runtime_kind_label": "local_device",
+    "runtime_user_selected": true,
+    "tool_execution_enabled": false,
+    "training_enabled": false
+  },
+  "surface": "ai_connector"
+}

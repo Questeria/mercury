@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Mercury",
+  "version": "0.1.29",
+  "identifier": "com.mercury.messaging",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Mercury",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 480,
+        "minHeight": 600,
+        "decorations": false,
+        "maximized": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "Mercury",
+    "category": "SocialNetworking",
+    "shortDescription": "AI-native end-to-end encrypted messenger",
+    "longDescription": "Mercury is an end-to-end encrypted messenger. Your identity keys live in the OS keychain and never leave your device; the relay only routes opaque ciphertext and the UI never holds keys or plaintext at rest.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "installerHooks": "windows/installer-hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["mercury"]
+      }
+    },
+    "updater": {
+      "endpoints": ["https://mercury-messaging.com/updates/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1Njk3Mzc3RUZDMkRFRQpSV1R1TGZ4K041ZFdCZjgvUDdZYVpLZVYvTVN0RE5PK1MvTTJ5dzdWeVk2YzlMYWIvcEk4RXg4YQo="
+    }
+  }
+}

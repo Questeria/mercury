@@ -1,0 +1,5 @@
+# Rust build artifacts (this crate is excluded from the workspace; it builds standalone).
+/target
+
+# Tauri-generated capability/ACL schemas — regenerated from capabilities/ on every build.
+/gen/schemas

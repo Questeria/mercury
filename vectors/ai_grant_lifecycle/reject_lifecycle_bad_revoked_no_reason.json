@@ -1,0 +1,16 @@
+{
+  "name": "reject_lifecycle_bad_revoked_no_reason",
+  "description": "Revoked grants must carry an explicit revoke reason.",
+  "input": {
+    "version": 1,
+    "grant_state": 2,
+    "revoke_reason": 0,
+    "now_s": 100,
+    "expires_at_s": 200,
+    "room_mode": 1,
+    "access_kind": 0,
+    "epoch_rotated": 0
+  },
+  "expected_reason": 3,
+  "expected_audit_class": 2
+}

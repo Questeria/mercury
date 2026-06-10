@@ -1,0 +1,32 @@
+[package]
+name = "mercury-kt"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# Stage 6 key-transparency engine. Wraps Facebook's AKD (auditable key
+# directory) to publish device keys and verify cryptographic inclusion proofs,
+# producing the KeyTransparencyProofInput that mercury-core's
+# evaluate_key_transparency gate consumes. The engine verifies proofs; the gate
+# decides policy.
+
+[dependencies]
+mercury-core = { path = "../mercury-core" }
+# serde_serialization lets the directory's proofs cross the wire (the relay
+# serves them; clients deserialize + verify against pinned keys).
+akd = { version = "0.12", features = ["whatsapp_v1", "serde_serialization"] }
+# Ed25519: verifies witness/auditor/log signatures, and (with `zeroize`) holds
+# the directory's log signing key so it wipes on drop.
+ed25519-dalek = { version = "2", features = ["zeroize"] }
+# Per-directory VRF key: implement AKD's async VRFKeyStorage trait over a
+# generated/persisted 32-byte key (replaces the shared HardCodedAkdVRF demo key).
+async-trait = "0.1"
+rand_core = { version = "0.6", features = ["getrandom"] }
+zeroize = { version = "1", features = ["derive"] }
+# Domain-separated KDF deriving the directory's log signing key from its seed.
+sha2 = "0.10"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+# Crash-resistance test: deserialize hostile JSON proofs (the malicious-relay path).
+serde_json = "1"

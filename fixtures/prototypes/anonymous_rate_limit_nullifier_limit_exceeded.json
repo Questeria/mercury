@@ -1,0 +1,38 @@
+{
+  "decision": {
+    "accepted": false,
+    "can_rate_limit_without_identity": false,
+    "can_record_nullifier": false,
+    "can_redeem_this_window": false,
+    "forbids_plaintext_rate_limit_metadata": true,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 12,
+    "reason_label": "PRESENTATION_LIMIT_EXCEEDED",
+    "requires_rekey": false,
+    "requires_sync": false,
+    "requires_user_action": true
+  },
+  "fixture": "anonymous_rate_limit_nullifier_limit_exceeded",
+  "input": {
+    "bound_to_group_epoch": true,
+    "bound_to_route": true,
+    "credential_context_len": 32,
+    "credential_kind_code": 2,
+    "credential_kind_label": "arc_window",
+    "max_presentation_limit": 8,
+    "membership_proof_accepted": true,
+    "membership_proof_reason_label": "ACCEPTED",
+    "now_s": 1100,
+    "nullifier_already_spent": false,
+    "nullifier_len": 32,
+    "nullifier_store_available": true,
+    "nullifier_store_opaque": true,
+    "plaintext_rate_limit_fields": 0,
+    "presentation_count": 8,
+    "presentation_limit": 8,
+    "redemption_context_len": 32,
+    "window_end_s": 1300,
+    "window_start_s": 1000
+  },
+  "surface": "anonymous_rate_limit_nullifier"
+}

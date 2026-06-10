@@ -1,0 +1,29 @@
+{
+  "delivery": {
+    "accepted": true,
+    "ciphertext_delivered_len": 128,
+    "reason": "Accepted",
+    "sealed_header_delivered_len": 96,
+    "state": "Delivered"
+  },
+  "enqueue": {
+    "accepted": true,
+    "ciphertext_len": 128,
+    "reason": "Accepted",
+    "sealed_header_len": 96,
+    "state": "Pending"
+  },
+  "fixture": "relay_delivery_once",
+  "post_delivery": {
+    "ciphertext_len": 0,
+    "ciphertext_retained": false,
+    "sealed_header_len": 0,
+    "state": "Delivered"
+  },
+  "server_item_count": 1,
+  "submission": {
+    "accepted": true,
+    "reason_code": 0
+  },
+  "surface": "prototype_relay_server"
+}

@@ -1,0 +1,33 @@
+[package]
+name = "mercury-desktop"
+version = "0.1.29"
+edition = "2024"
+description = "Mercury desktop client — the real AppController driven over Tauri in-process IPC."
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+# Excluded from the main workspace (see the root Cargo.toml): Tauri pulls a webview toolchain that
+# the headless `cargo test --workspace` / Linux CI must not be forced to build. This crate builds
+# on a developer machine with the platform webview (WebView2 on Windows) via `npx tauri dev/build`.
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["image-png", "tray-icon"] }
+# The REAL end-to-end stack — identical to what the dev HTTP shim drives.
+mercury-app = { path = "../../../core/rust/mercury-app" }
+mercury-client = { path = "../../../core/rust/mercury-client" }
+mercury-store = { path = "../../../core/rust/mercury-store" }
+serde_json = "1"
+getrandom = "0.2"
+# Backup files + saved attachments cross the IPC boundary as base64.
+base64 = "0.22"
+# In-app auto-update (no reinstall). Inert until the operator configures the updater + signing key
+# (see docs/AUTO-UPDATE.md).
+tauri-plugin-updater = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-autostart = "2"
+# Click-to-add invite links: registers the `mercury://` scheme + delivers `mercury://add/<id>` opens.
+tauri-plugin-deep-link = "2"
+# So a mercury:// invite clicked while Mercury is already running is forwarded to the running
+# instance (not a 2nd copy); the "deep-link" feature wires it into the deep-link open-url listeners.
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }

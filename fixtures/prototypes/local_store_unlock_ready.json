@@ -1,0 +1,25 @@
+{
+  "decision": {
+    "accepted": true,
+    "can_load_message_keys": true,
+    "can_open_database": true,
+    "can_unseal_device_secret": true,
+    "reason_code": 0,
+    "reason_label": "ACCEPTED",
+    "requires_destructive_repair": false,
+    "requires_migration": false,
+    "requires_recovery": false,
+    "requires_user_auth": false
+  },
+  "fixture": "local_store_unlock_ready",
+  "input": {
+    "app_lock_satisfied": true,
+    "database_header": "Authenticated",
+    "device_secret": "PresentSealed",
+    "keychain_available": true,
+    "plaintext_cache_records": 0,
+    "recovery_required": false,
+    "store_version": 1
+  },
+  "surface": "local_store_unlock"
+}

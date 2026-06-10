@@ -1,0 +1,38 @@
+{
+  "name": "07_server_authentication_missing__1",
+  "description": "SERVER_AUTHENTICATION_MISSING / method=1 / pack=3606",
+  "input": {
+    "recovery_requested": 1,
+    "method_code": 1,
+    "high_security_account": 0,
+    "entropy_ok": 1,
+    "digest_ok": 1,
+    "threshold_ok": 1,
+    "device_approval_present": 1,
+    "server_authenticated": 0,
+    "server_rate_limited": 1,
+    "backup_encrypted": 1,
+    "plaintext_backup_ok": 1,
+    "rotates_device_secret": 0,
+    "audit_ok": 1
+  },
+  "expected": {
+    "stage_a_reason": 0,
+    "stage_b_reason": 0,
+    "stage_c_reason": 7,
+    "stage_d_reason": 0,
+    "accepted": false,
+    "can_start_recovery": false,
+    "can_restore_device_secret": false,
+    "requires_user_action": false,
+    "requires_server_setup": true,
+    "requires_key_rotation": false,
+    "forbids_low_entropy_recovery": true,
+    "forbids_plaintext_backup": true,
+    "plaintext_bytes_exposed": false,
+    "method_code": 1,
+    "reason_code": 7,
+    "reason_label": "SERVER_AUTHENTICATION_MISSING"
+  },
+  "expected_pack": 3606
+}

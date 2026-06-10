@@ -1,0 +1,14 @@
+{
+  "name": "reject_pipeline_bad_ai_lifecycle_reason",
+  "description": "Pipeline rejects AI lifecycle reason codes outside the lifecycle policy range.",
+  "input": {
+    "version": 1,
+    "actor_kind": 2,
+    "envelope_reason": 0,
+    "room_epoch_reason": 0,
+    "ai_grant_reason": 0,
+    "ai_lifecycle_reason": 11
+  },
+  "expected_reason": 6,
+  "expected_audit_class": 2
+}

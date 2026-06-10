@@ -1,0 +1,34 @@
+{
+  "name": "19_sync_gap_detected__1",
+  "description": "SYNC_GAP_DETECTED / pack=2468",
+  "input": {
+    "account_id_ok": 1,
+    "device_id_ok": 1,
+    "pending_recovery": 0,
+    "plaintext_cache_ok": 1,
+    "local_trust": 1,
+    "kt_code": 0,
+    "kt_requires_user_action": 0,
+    "account_secret": 0,
+    "device_secret": 0,
+    "room_state": 0,
+    "replay_checkpoint": 0,
+    "sync_state": 3
+  },
+  "expected": {
+    "pre_reason": 0,
+    "kt_reason": 0,
+    "secrets_reason": 0,
+    "rs_reason": 19,
+    "accepted": false,
+    "can_start_sync": true,
+    "can_decrypt_local_store": false,
+    "can_open_message_ui": false,
+    "requires_sync": true,
+    "requires_recovery": false,
+    "requires_user_action": false,
+    "reason_code": 19,
+    "reason_label": "SYNC_GAP_DETECTED"
+  },
+  "expected_pack": 2468
+}

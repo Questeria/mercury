@@ -1,0 +1,69 @@
+{
+  "schema": "mercury.room_epoch_policy.v1",
+  "supported_version": 1,
+  "room_modes": {
+    "standard": 1,
+    "sensitive": 2,
+    "high_security": 3,
+    "ai_blocked": 4
+  },
+  "device_kinds": {
+    "human": 1,
+    "ai": 2
+  },
+  "device_states": {
+    "active": 1,
+    "removed": 2,
+    "compromised": 3
+  },
+  "access_kinds": {
+    "state_only": 0,
+    "read": 1,
+    "write": 2
+  },
+  "reason_codes": {
+    "ACCEPT": 0,
+    "BAD_VERSION": 1,
+    "BAD_ROOM_MODE": 2,
+    "BAD_EPOCH": 3,
+    "STALE_EPOCH": 4,
+    "FUTURE_EPOCH": 5,
+    "BAD_DEVICE_KIND": 6,
+    "BAD_DEVICE_STATE": 7,
+    "BAD_REVOKED_AT_EPOCH": 8,
+    "BAD_ACCESS_KIND": 9,
+    "DEVICE_REMOVED": 10,
+    "DEVICE_COMPROMISED": 11,
+    "HIGHSEC_EPOCH_ROTATION_REQUIRED": 12,
+    "AI_DEVICE_BLOCKED_ROOM": 13
+  },
+  "audit_classes": {
+    "ACCEPTED_ROOM_EPOCH": 1,
+    "ROOM_EPOCH_POLICY_REJECT": 2,
+    "ROOM_EPOCH_REPLAY_REJECT": 3,
+    "ROOM_DEVICE_MEMBERSHIP_REJECT": 4,
+    "ROOM_HIGHSEC_ROTATION_REJECT": 5,
+    "ROOM_AI_POLICY_REJECT": 6
+  },
+  "vectors": [
+    "valid_active_human_current_epoch_v1",
+    "valid_active_ai_standard_current_epoch_v1",
+    "reject_room_epoch_bad_version_v0",
+    "reject_room_epoch_bad_room_mode",
+    "reject_room_epoch_bad_epoch_zero",
+    "reject_room_epoch_stale_epoch",
+    "reject_room_epoch_future_epoch",
+    "reject_room_epoch_bad_device_kind",
+    "reject_room_epoch_bad_device_state",
+    "reject_room_epoch_bad_active_revoked_epoch",
+    "reject_room_epoch_bad_removed_no_epoch",
+    "reject_room_epoch_bad_removed_future_epoch",
+    "reject_room_epoch_highsec_bad_removed_future_epoch",
+    "reject_room_epoch_bad_access_kind",
+    "reject_room_epoch_removed_device",
+    "reject_room_epoch_compromised_device",
+    "reject_room_epoch_highsec_rotation_required",
+    "reject_room_epoch_highsec_removed_after_rotation",
+    "reject_room_epoch_ai_blocked_room"
+  ]
+}

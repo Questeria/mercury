@@ -1,0 +1,49 @@
+[package]
+name = "mercury-relay"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[lib]
+name = "mercury_relay"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mercury-relay-server"
+path = "src/bin/mercury-relay-server.rs"
+
+[dependencies]
+mercury-core = { path = "../mercury-core" }
+# The key-transparency directory lives on the relay (untrusted): it serves AKD
+# proofs clients verify cryptographically against pinned keys.
+mercury-kt = { path = "../mercury-kt" }
+# Directory publish authorization: verify a proof-of-possession (Ed25519) so a
+# card can only be published to the slot derived from its signer's identity key.
+# The relay verifies PUBLIC key material only — it gains NO ability to decrypt
+# messages (no ratchet/session keys), and still treats every card as opaque bytes.
+mercury-keys = { path = "../mercury-keys" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net", "signal"] }
+axum = "0.8"
+tower = "0.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Durable, opt-in queue persistence so queued items + replay tombstones survive a relay
+# restart. (The relay's queue holds already-E2E-encrypted opaque ciphertext + content-free
+# metadata, so it needs a plain durable KV — NOT the client's keychain-encrypted mercury-store.)
+redb = "2"
+# OS CSPRNG for minting unguessable single-use pairing codes (see `pairing::generate_pairing_code`).
+getrandom = "0.2"
+
+[dev-dependencies]
+# Restart-survival tests open a redb file at a temp path, drop, and reopen it.
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+# Spine integration test: a real sealed message object transiting the relay.
+mercury-message = { path = "../mercury-message" }
+# S8xS4 spine: a real MLS group application message transiting the relay.
+mercury-mls = { path = "../mercury-mls" }
+# S9xS1xS4 spine: a real attachment reference (key + blob digest) sealed into an
+# E2E message transiting the relay.
+mercury-media = { path = "../mercury-media" }

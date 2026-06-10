@@ -1,0 +1,78 @@
+{
+  "decision": {
+    "accepted": false,
+    "anchor_kind_code": 3,
+    "anchor_kind_label": "witnessed_transparency_log",
+    "append_only": false,
+    "can_append_event": false,
+    "can_detect_rollback": false,
+    "can_publish_transparency_receipt": false,
+    "can_verify_inclusion": false,
+    "envelope_suite_code": 1,
+    "envelope_suite_label": "xchacha20_poly1305_blake3",
+    "event_kind_code": 2,
+    "event_kind_label": "mls_commit",
+    "event_sequence": 42,
+    "plaintext_bytes_exposed": false,
+    "reason_code": 17,
+    "reason_label": "ROLLBACK_PROTECTION_MISSING",
+    "requires_key_rotation": false,
+    "requires_redaction": false,
+    "requires_storage_repair": true,
+    "requires_transparency_setup": false,
+    "tamper_evident": false
+  },
+  "fixture": "sealed_audit_event_chain_rollback_rejected",
+  "input": {
+    "anchor_kind_code": 3,
+    "anchor_kind_label": "witnessed_transparency_log",
+    "binding": {
+      "aad_binds_event_context": true,
+      "actor_binding_digest_len": 32,
+      "critical_event_bound": true,
+      "device_binding_digest_len": 32,
+      "epoch_binding_digest_len": 32,
+      "event_sealed": true,
+      "plaintext_field_count": 0,
+      "plaintext_payload_bytes": 0,
+      "room_epoch_digest_len": 32
+    },
+    "chain_shape": {
+      "event_hash_len": 32,
+      "event_sequence": 42,
+      "merkle_leaf_hash_len": 32,
+      "merkle_root_hash_len": 32,
+      "monotonic_counter_increases": true,
+      "monotonic_counter_present": true,
+      "previous_chain_size": 42,
+      "previous_event_hash_len": 32,
+      "record_digest_len": 32
+    },
+    "envelope_suite_code": 1,
+    "envelope_suite_label": "xchacha20_poly1305_blake3",
+    "event_kind_code": 2,
+    "event_kind_label": "mls_commit",
+    "storage": {
+      "forward_secret_rotated": true,
+      "local_store_sealed": true,
+      "previous_key_material_deleted": true,
+      "rollback_resistant_store": false,
+      "storage_append_only": true,
+      "storage_transactional": true
+    },
+    "transparency": {
+      "checkpoint_signature_len": 64,
+      "checkpoint_size": 43,
+      "checkpoint_timestamp_s": 1769990400,
+      "consistency_proof_verified": true,
+      "inclusion_proof_verified": true,
+      "previous_checkpoint_size": 42,
+      "signed_checkpoint_present": true,
+      "transparency_receipt_present": true,
+      "witness_count": 3,
+      "witness_operator_count": 2,
+      "witness_threshold": 2
+    }
+  },
+  "surface": "sealed_audit_event_chain"
+}

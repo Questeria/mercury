@@ -1,0 +1,46 @@
+{
+  "decision": {
+    "accepted": false,
+    "binds_commit": false,
+    "binds_delivery_route": false,
+    "binds_welcome_send_transaction": false,
+    "can_enqueue_welcome_once": false,
+    "can_send_welcome_after_commit": false,
+    "consumes_key_package": false,
+    "keeps_digest_only": true,
+    "persisted_record": false,
+    "plaintext_bytes_exposed": false,
+    "prevents_duplicate_outbox": true,
+    "reason_code": 14,
+    "reason_label": "WELCOME_SEND_TRANSACTION_ALREADY_QUEUED",
+    "record_count": 1
+  },
+  "fixture": "mls_welcome_send_outbox_duplicate_transaction_rejected",
+  "input": {
+    "added_member_ref_len": 32,
+    "commit_admission_accepted": true,
+    "commit_admission_reason_code": 0,
+    "commit_admission_reason_label": "ACCEPTED",
+    "commit_hash_len": 32,
+    "created_at_s": 1100,
+    "delivery_route_id_len": 32,
+    "expires_at_s": 1400,
+    "group_id_len": 32,
+    "key_package_consumption_accepted": true,
+    "key_package_consumption_reason_code": 0,
+    "key_package_consumption_reason_label": "ACCEPTED",
+    "key_package_hash_len": 32,
+    "plaintext_metadata_fields": 0,
+    "replay_token_len": 32,
+    "seed_duplicate": true,
+    "welcome_ciphertext_hash_len": 32,
+    "welcome_send_transaction_digest_len": 32
+  },
+  "outbox": {
+    "has_record": true,
+    "record_count": 1,
+    "unique_key_package_hash": true,
+    "unique_transaction_digest": true
+  },
+  "surface": "mls_welcome_send_outbox"
+}
