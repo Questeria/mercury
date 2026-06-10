@@ -1,16 +1,18 @@
-# In-app auto-update (no reinstall)
+# In-app auto-update (one-click, no manual re-download)
 
 > **Current status (2026-06-10): LIVE — signed in-app auto-update is active.**
 > On launch the desktop app polls `https://mercury-messaging.com/updates/latest.json`, which is now
 > hosted and advertises the current signed release; the updater verifies each update's signature
-> against the public key embedded in the app and installs it on next launch — **no manual reinstall**.
-> (You can still re-download the installer from `mercury-messaging.com` and reinstall if you prefer.)
+> against the public key embedded in the app and, when a newer build is available, **prompts you to
+> install** it — one click applies the signed update in-app (no hunting for the `.exe`), then restart.
+> It **never** installs silently. (You can also re-download the installer from `mercury-messaging.com`.)
 > Both operator prerequisites are in place: CI **signs** releases (Azure Trusted Signing for
 > Authenticode + the Tauri updater signature) and `latest.json` is **hosted** at the endpoint.
 
 The desktop app ships with Tauri's updater **active**: your public key is embedded, the plugin is on,
-and on launch it polls `https://mercury-messaging.com/updates/latest.json` and — if a newer version is
-published — downloads + installs it (applied next launch), **no manual reinstall**. Both operator
+and on launch (and periodically) it **checks** `https://mercury-messaging.com/updates/latest.json` and —
+if a newer **signed** version is published — shows an **Install** prompt; one click downloads + applies
+it in-app (no manual `.exe` download), then restart. It **never** installs silently. Both operator
 prerequisites are now satisfied: CI **signs** releases (Azure Trusted Signing for Authenticode + the
 Tauri updater signature) and `latest.json` is **hosted** at that endpoint (currently advertising the
 live release). The manifest's signature is verified against the embedded key before any update applies.
@@ -30,7 +32,7 @@ and variables → Actions):
 
 **Publish flow:** bump `version` in `tauri.conf.json` → `git tag vX.Y.Z && git push origin vX.Y.Z` →
 download the run's artifact → put `Mercury-Setup-Windows-x64.exe` (+ `.sha256`) in `site/download/` and
-`latest.json` in `site/updates/` → re-deploy the site. Installed apps self-update on next launch.
+`latest.json` in `site/updates/` → re-deploy the site. Installed apps detect the new version on next launch and prompt the user to install it (one click).
 
 > Authenticode caveat: if you also enable Windows code signing (Azure Trusted Signing), integrate it
 > into the tauri build so the exe is Authenticode-signed *before* the update `.sig` is computed — a
@@ -96,9 +98,11 @@ the website's Download button serves, so there's a single installer):
 }
 ```
 
-Done — installed apps now self-update on launch when you publish a newer `version` in `latest.json`.
+Done — installed apps now detect a newer `version` in `latest.json` on launch and prompt the user to
+install it (one click; never silent).
 
-## How it behaves now (unconfigured)
-`checkForUpdates()` (in `ui/app/src/mercury/updater.ts`) runs on startup only inside the desktop app,
-catches any "not configured / offline / no update" error, and stays silent. No user impact until you
-complete the steps above.
+## How it degrades (offline / no update)
+`checkForUpdates()` (in `ui/app/src/mercury/updater.ts`) runs on startup inside the desktop app and
+catches any "offline / unreachable manifest / already up to date" case, staying silent — so a network
+hiccup or an up-to-date app simply shows nothing. Installing is always an explicit user click; the
+binary is never replaced silently.

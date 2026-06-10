@@ -10,7 +10,7 @@ The product ambition is deliberately high: Telegram-level convenience, Signal/ML
 >
 > **Download site:** a static landing page (`site/`) for `mercury-messaging.com`, hosted on Cloudflare, plus CI that builds the signed Windows installer + SHA-256 as a downloadable artifact you serve from the same host — see **[docs/WEBSITE-AND-RELEASES.md](docs/WEBSITE-AND-RELEASES.md)** for the deploy + apex-domain steps.
 >
-> **Updates:** the in-app auto-updater is **live** — on launch the app checks a **signed** update manifest (`latest.json`) hosted at its endpoint and installs newer signed releases automatically (applied next launch); you can also re-download the installer from the site manually — see **[docs/AUTO-UPDATE.md](docs/AUTO-UPDATE.md)**.
+> **Updates:** the in-app auto-updater is **live** — on launch (and periodically) the app **checks** a **signed** update manifest (`latest.json`) and, when a newer signed build is available, shows an **Install** prompt; one click downloads and applies it in-app, then restarts (it never installs silently). You can also re-download the installer from the site manually — see **[docs/AUTO-UPDATE.md](docs/AUTO-UPDATE.md)**.
 
 ## Current Status
 

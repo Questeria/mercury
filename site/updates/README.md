@@ -1,8 +1,9 @@
 # Update channel (auto-update manifest)
 
 > **Status: LIVE.** A signed `latest.json` is hosted here and the in-app auto-updater is active — it
-> polls this endpoint on launch and installs newer **signed** releases (no reinstall). Manual
-> re-download from the site's Download button remains available too. Runbook below — see
+> **checks** this endpoint on launch and, when a newer **signed** release is available, prompts the user
+> to install it (one click, in-app — no manual reinstall). Manual re-download from the site's Download
+> button remains available too. Runbook below — see
 > [`../../docs/AUTO-UPDATE.md`](../../docs/AUTO-UPDATE.md).
 
 The desktop app's auto-updater polls **`https://mercury-messaging.com/updates/latest.json`** on
@@ -18,8 +19,8 @@ Download button uses — so there's a single installer.
 3. Download the run's `mercury-windows-installer` artifact and place:
    - `Mercury-Setup-Windows-x64.exe` (+ `.sha256`) → `site/download/`
    - `latest.json` → `site/updates/`
-4. Re-deploy the site. Installed apps see the new `version` on next launch and **update themselves — no
-   reinstall.**
+4. Re-deploy the site. Installed apps see the new `version` on next launch and **prompt the user to
+   install it (one click; no manual reinstall).**
 
 `latest.json` (and any binaries dropped here) are git-ignored — they're generated per-release and
 placed at deploy time.
