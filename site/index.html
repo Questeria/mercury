@@ -3,132 +3,159 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mercury — encrypted messaging that keeps your keys</title>
-  <meta name="description" content="Mercury is an end-to-end encrypted messenger where your keys never leave your device. No phone number required; the server only ever routes opaque ciphertext." />
-  <meta property="og:title" content="Mercury — encrypted messaging that keeps your keys" />
+  <title>Mercury — encrypted messaging you can verify</title>
+  <meta name="description" content="Mercury is an end-to-end encrypted messenger. Your keys never leave your device; the relay routes only opaque ciphertext. No phone number required." />
+  <meta property="og:title" content="Mercury — encrypted messaging you can verify" />
   <meta property="og:description" content="End-to-end encrypted messaging where your keys never leave your device. No phone number; the server only routes opaque ciphertext." />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/png" href="/assets/mercury-logo.png" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <header class="site">
-    <a class="brand" href="/">
-      <img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />
-      <span>Mercury</span>
-    </a>
-    <nav>
-      <a href="#why">How it works</a>
-      <a href="#status">Status</a>
-      <a href="/privacy.html">Privacy</a>
-    </nav>
-  </header>
 
-  <main>
-    <section class="hero">
-      <h1>Messaging where your keys<br /><span class="accent">never leave your device.</span></h1>
-      <p class="lede">
-        Mercury is an end-to-end encrypted messenger. Your identity keys live in your computer's
-        keychain, not on a server. The relay that moves your messages only ever sees opaque
-        ciphertext &mdash; it cannot read what you send.
-      </p>
-      <div class="cta">
-        <a class="btn primary" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">
-          Download for Windows &middot; v0.1.30
-        </a>
-        <a class="btn ghost" href="/download/Mercury-Setup-Windows-x64.exe.sha256?v=0.1.30">
-          SHA-256 checksum
-        </a>
+<nav class="top">
+  <div class="bar">
+    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.30</span></a>
+    <div class="links">
+      <a href="/#why">why</a>
+      <a href="/security.html">security</a>
+      <a href="/#status">status</a>
+      <a href="/faq.html">faq</a>
+      <a href="/privacy.html">privacy</a>
+      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ───────────── HERO · carbon black ───────────── -->
+<header class="hero scanlines">
+  <img class="ghost" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />
+  <div class="wrap inner">
+    <div class="promptline"><span class="p">you@mercury</span><span class="dim">:~$</span> <span id="typed-cmd" data-cmd="./mercury --about"></span><span id="cmd-cursor" class="typecursor" style="height:.9em;width:.45em"></span></div>
+    <div class="bootout" id="bootout">
+      <div><span class="ok">[ ok ]</span> keys ............ sealed in os keychain — never exported</div>
+      <div><span class="ok">[ ok ]</span> relay ........... opaque ciphertext only — no decrypt path</div>
+      <div><span class="ok">[ ok ]</span> phone number .... not required. not wanted.</div>
+    </div>
+    <h1>Don't trust.<br /><span class="invert">Verify.</span><span class="typecursor"></span></h1>
+    <p class="lede">Mercury is an end-to-end encrypted messenger. <b>Your keys are generated on your
+    machine and never leave it.</b> The relay shovels encrypted bytes it cannot read. Every artifact
+    ships with a SHA-256 so you can check us — which beats believing us.</p>
+    <div class="cta">
+      <a class="btn pri" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download --windows</a>
+      <a class="btn sec" href="/download/Mercury-Linux-amd64.deb?v=0.1.30">download --linux-deb</a>
+    </div>
+    <p class="sha">v0.1.30 &middot; windows: authenticode-signed &middot; <a href="/download/Mercury-Setup-Windows-x64.exe.sha256?v=0.1.30">windows.sha256</a> &middot; linux: unsigned, verify &middot; <a href="/download/Mercury-Linux-amd64.deb.sha256?v=0.1.30">linux.sha256</a></p>
+  </div>
+  <div class="scrolldown">▼ scroll</div>
+</header>
+
+<!-- ───────────── marquee · white ───────────── -->
+<div class="marquee"><div class="inner">
+  NO PHONE NUMBER <span class="grn">★</span> NO KEY ESCROW <span class="grn">★</span> NO PLAINTEXT ON THE SERVER <span class="grn">★</span> NO HIDDEN AI <span class="grn">★</span> VERIFY EVERYTHING <span class="grn">★</span>&nbsp;
+  NO PHONE NUMBER <span class="grn">★</span> NO KEY ESCROW <span class="grn">★</span> NO PLAINTEXT ON THE SERVER <span class="grn">★</span> NO HIDDEN AI <span class="grn">★</span> VERIFY EVERYTHING <span class="grn">★</span>&nbsp;
+</div></div>
+
+<!-- ───────────── WHY · white ───────────── -->
+<section class="white" id="why">
+  <div class="wrap">
+    <h2 class="cmd reveal">cat <span class="grn">WHY.md</span></h2>
+    <p class="secout reveal d1">privacy as a property of the construction — not a paragraph in a policy.</p>
+    <p class="statement reveal d2" data-scramble>The server cannot read your messages. Not "will not." <span class="invert">Cannot.</span></p>
+    <div class="whygrid">
+      <div class="why reveal d1"><span class="tag">[01] KEYS</span><h3>Keys stay home</h3><p>Identity and message keys are sealed in your OS keychain. Never uploaded, never escrowed, never rendered in the clear — there is nothing server-side to leak.</p></div>
+      <div class="why reveal d2"><span class="tag">[02] RELAY</span><h3>The relay is a blind pipe</h3><p>Ciphertext in, ciphertext out, zero key material. Don't like ours? Self-host the relay with one Docker command and point Mercury at it.</p></div>
+      <div class="why reveal d3"><span class="tag">[03] IDENTITY</span><h3>You are not a phone number</h3><p>Identity is a cryptographic account id, shared by pairing code, username, or invite link — and confirmed human-to-human with safety numbers.</p></div>
+      <div class="why reveal d4"><span class="tag">[04] CRYPTO</span><h3>Real crypto, no improv</h3><p>MLS (RFC 9420) group messaging over verified 1:1 channels; post-quantum hybrid 1:1 sessions; audited libraries for the primitives. <a href="/security.html">Read the security model →</a></p></div>
+      <div class="why reveal d5"><span class="tag">[05] AI</span><h3>AI can't lurk</h3><p>An AI may only ever join as a visible, invited, end-to-end encrypted guest with scoped permissions. Block it and it's gone. No hidden plaintext path — ever.</p></div>
+      <div class="why reveal d5"><span class="tag">[06] PROOF</span><h3>Claims you can check</h3><p>Signed Windows installer, published SHA-256 for every artifact, and updates that always ask before installing. Verification over vibes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── RELEASE · carbon black ───────────── -->
+<section class="black scanlines" id="release">
+  <div class="wrap">
+    <h2 class="cmd reveal">ls <span class="grn">release/v0.1.30</span></h2>
+    <p class="secout reveal d1">two artifacts, two checksums. verify before you run — it takes ten seconds.
+    recent additions: mls group chat, read receipts (with a privacy toggle), pinned conversations,
+    message search, encrypted attachments to 4 MiB.</p>
+
+    <div class="artifacts">
+      <div class="arow reveal d1">
+        <div class="ainfo">
+          <span class="fname">Mercury-Setup-Windows-x64.exe</span>
+          <span class="fmeta">win 10/11 &middot; authenticode-signed + timestamped &middot; prompted auto-update &middot; <a href="/download/Mercury-Setup-Windows-x64.exe.sha256?v=0.1.30">sha256</a></span>
+        </div>
+        <a class="get primary" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">get ↓</a>
       </div>
-      <div class="cta">
-        <a class="btn ghost" href="/download/Mercury-Linux-amd64.deb?v=0.1.30">
-          Linux .deb &middot; v0.1.30
-        </a>
-        <a class="btn ghost" href="/download/Mercury-Linux-amd64.deb.sha256?v=0.1.30">
-          SHA-256
-        </a>
+      <div class="arow reveal d2">
+        <div class="ainfo">
+          <span class="fname">Mercury-Linux-amd64.deb</span>
+          <span class="fmeta">debian/ubuntu &middot; unsigned — verify the checksum &middot; manual update &middot; <a href="/download/Mercury-Linux-amd64.deb.sha256?v=0.1.30">sha256</a></span>
+        </div>
+        <a class="get" href="/download/Mercury-Linux-amd64.deb?v=0.1.30">get ↓</a>
       </div>
-      <p class="fineprint">
-        Signed Windows 10/11 installer &middot; Linux builds are unsigned (normal outside stores)
-        &mdash; verify every download against its published <code>.sha256</code> &middot; see
-        <a href="#status">honest status</a> below.
-      </p>
-    </section>
+    </div>
 
-    <section class="why" id="why">
-      <h2>Why it's different</h2>
-      <div class="cards">
-        <article class="card">
-          <h3>Keys stay with you</h3>
-          <p>Your identity and message keys are sealed in your operating system's keychain. They are
-          never uploaded, never escrowed, never shown to the user interface in the clear.</p>
-        </article>
-        <article class="card">
-          <h3>The server is blind</h3>
-          <p>The relay is a dumb router for already-encrypted bytes. It forwards opaque ciphertext and
-          content-free metadata, and has no path to decrypt anything.</p>
-        </article>
-        <article class="card">
-          <h3>No phone number</h3>
-          <p>Mercury identifies you by a cryptographic account id, not a phone number or email. Nothing
-          about your real-world identity is required to send a message.</p>
-        </article>
-        <article class="card">
-          <h3>AI is a visible guest</h3>
-          <p>An AI participant is an ordinary contact you explicitly invite, with exactly the same
-          end-to-end encryption as a person &mdash; never a hidden plaintext backdoor. Block it and
-          it is gone.</p>
-        </article>
+    <div class="verify reveal d3" id="verifybox">
+      <div class="vtitle">// verify before you run <button class="copybtn" type="button" data-copy="sha256sum -c Mercury-Linux-amd64.deb.sha256">copy command</button></div>
+      <pre><span class="dim"># the moment of truth:</span>
+$ <span id="verify-typed" data-cmd="sha256sum -c Mercury-Linux-amd64.deb.sha256"></span><span class="typecursor vcur" id="verify-cursor"></span>
+<span id="verify-result" style="opacity:0">Mercury-Linux-amd64.deb: <span class="okflash">OK</span></span>
+<span class="dim" id="verify-note" style="opacity:0"># windows: Get-FileHash, then check the Authenticode signature in Properties. details: <a href="/security.html#verify">/security</a></span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── STATUS · white ───────────── -->
+<section class="white" id="status">
+  <div class="wrap">
+    <h2 class="cmd reveal">mercury <span class="grn">--status --no-marketing</span></h2>
+    <p class="secout reveal d1">early software, built for small circles first. a security tool that
+    overstates itself isn't one — so here is exactly where mercury stands.</p>
+    <div class="statuslog">
+      <div class="sline reveal"><span class="stag ok">[ OK ]</span><p><b>windows 10/11 + linux (.deb) shipping.</b> windows signed + timestamped; in-app update prompts — never silent. linux updates by re-download; an appimage ships once a large-file host is set up.</p></div>
+      <div class="sline reveal d1"><span class="stag ok">[ OK ]</span><p><b>e2e by default.</b> pq-hybrid 1:1 sessions, mls (rfc 9420) groups, encrypted local store, encrypted attachments to 4 MiB.</p></div>
+      <div class="sline reveal d2"><span class="stag ok">[ OK ]</span><p><b>connect without a phone number.</b> pairing codes, usernames, invite links, or a raw account id — then confirm with safety numbers.</p></div>
+      <div class="sline reveal d3"><span class="stag warn">[WARN]</span><p><b>delivery requires a running process</b> — window open or minimized to tray ("start at login" recommended). fully quit, messages queue encrypted at the relay until next launch. no OS push yet.</p></div>
+      <div class="sline reveal d4"><span class="stag warn">[WARN]</span><p><b>macos + mobile: not yet.</b> macos awaits an apple signing certificate; ios/android are on the roadmap.</p></div>
+      <div class="sline reveal d5"><span class="stag warn">[WARN]</span><p><b>no third-party audit yet</b> — so the word "audited" does not appear on this site. security decisions are mirrored into a deterministic validator layer (<a href="https://github.com/Questeria/helix">helix, open source</a>) and cross-checked in ci.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── QUICKSTART · carbon black ───────────── -->
+<section class="black scanlines" id="quickstart">
+  <div class="wrap">
+    <h2 class="cmd reveal">man <span class="grn">mercury-quickstart</span></h2>
+    <p class="secout reveal d1">three steps to a conversation nobody else can read.</p>
+    <div class="steps">
+      <div class="step reveal d1"><span class="snum">[1]</span><h3>install</h3><p>Run the signed Windows installer or the Linux .deb. Keys generate locally and seal into your keychain.</p></div>
+      <div class="step reveal d2"><span class="snum">[2]</span><h3>connect</h3><p>Share a pairing code, username, invite link, or account id. No address book upload. No discovery profiling.</p></div>
+      <div class="step reveal d3"><span class="snum">[3]</span><h3>verify</h3><p>Compare safety numbers over a channel you already trust. A match rules out a man-in-the-middle — mathematically.</p></div>
+    </div>
+    <div class="finalcta reveal d2">
+      <p class="bigline" data-scramble>ready when you are.</p>
+      <div class="cta" style="justify-content:center">
+        <a class="btn pri" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download --windows</a>
+        <a class="btn sec" href="/download/Mercury-Linux-amd64.deb?v=0.1.30">download --linux-deb</a>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
-    <section class="status" id="status">
-      <h2>Honest status</h2>
-      <p class="status-intro">
-        Mercury is early and built for small-scale use first. We would rather tell you exactly what
-        works today than overstate it &mdash; that posture is the whole point of a security tool.
-      </p>
-      <ul class="status-list">
-        <li><strong>Windows and Linux (.deb) today; macOS later.</strong> The Windows installer is
-        code-signed; the Linux .deb is unsigned (normal outside app stores) &mdash; verify the
-        SHA-256. An AppImage is built in CI but exceeds this host&rsquo;s 25&nbsp;MiB file limit, so
-        it ships once a large-file host is set up. In-app auto-update is Windows-only for now:
-        Linux users re-download new versions. A macOS build awaits an Apple signing
-        certificate.</li>
-        <li><strong>Delivery needs Mercury running (window or tray).</strong> Messages arrive in real
-        time while the app is running — including minimized to the tray (closing the window keeps it
-        running; turn on &ldquo;start at login&rdquo; to receive automatically). If the process is fully
-        quit, messages wait in the relay&rsquo;s queue until next launch; there is no OS push for a
-        quit app yet.</li>
-        <li><strong>The Windows installer is code-signed.</strong> Mercury's Windows build is signed
-        with Azure Artifact Signing and timestamped by Microsoft. You can also verify the installer
-        against its published <code>SHA-256</code> checksum.</li>
-        <li><strong>A default relay is included; you can run your own.</strong> The app ships
-        pointed at our hosted relay (which only ever routes opaque ciphertext and cannot read
-        anything). Prefer full independence? Stand up your own relay with one Docker command and
-        point Mercury at it.</li>
-      </ul>
-    </section>
+<!-- ───────────── FOOTER · white ───────────── -->
+<footer class="site">
+  <div class="frow">
+    <span># verify everything. trust nothing. — <b>mercury</b></span>
+    <span><a href="/#why">why</a> &nbsp;·&nbsp; <a href="/security.html">security</a> &nbsp;·&nbsp; <a href="/faq.html">faq</a> &nbsp;·&nbsp; <a href="/privacy.html">privacy</a> &nbsp;·&nbsp; <a href="https://github.com/Questeria/helix">helix↗</a></span>
+  </div>
+</footer>
 
-    <section class="start">
-      <h2>Get started</h2>
-      <ol class="steps">
-        <li>Download and install Mercury (Windows installer or Linux <code>.deb</code>) above.</li>
-        <li>Open Mercury and connect: share a pairing code, a username, an invite link, or your
-          account id.</li>
-        <li>Compare the <strong>safety number</strong> with your contact over a channel you trust
-          &mdash; that&rsquo;s what proves there&rsquo;s no one in the middle.</li>
-      </ol>
-    </section>
-  </main>
-
-  <footer class="site">
-    <span>Mercury &middot; end-to-end encrypted messaging</span>
-    <nav>
-      <a href="#why">How it works</a>
-      <a href="#status">Status</a>
-      <a href="/privacy.html">Privacy</a>
-    </nav>
-  </footer>
+<script src="/site.js"></script>
 </body>
 </html>

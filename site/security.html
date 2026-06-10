@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security — Mercury</title>
+  <meta name="description" content="Mercury's security model in plain text: where plaintext exists, what the relay sees, what crypto is used, how to verify your download, and what is honestly not done yet." />
+  <link rel="icon" type="image/png" href="/assets/mercury-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<nav class="top">
+  <div class="bar">
+    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.30</span></a>
+    <div class="links">
+      <a href="/#why">why</a>
+      <a class="here" href="/security.html">security</a>
+      <a href="/#status">status</a>
+      <a href="/faq.html">faq</a>
+      <a href="/privacy.html">privacy</a>
+      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ───────────── PAGE HEAD · carbon black ───────────── -->
+<header class="pagehead scanlines">
+  <div class="wrap">
+    <div class="promptline"><span class="p">you@mercury</span><span class="dim">:~$</span> <span id="typed-cmd" data-cmd="cat SECURITY.md"></span><span id="cmd-cursor" class="typecursor" style="height:.9em;width:.45em"></span></div>
+    <h1>The security model, <span class="invert">in plain text.</span></h1>
+    <p class="lede">No diagrams that flatter us, no adjectives we haven't earned. This page says
+    where plaintext exists, what our server can and cannot see, what cryptography is in the box,
+    how to verify what you downloaded — and what is honestly not done yet.</p>
+  </div>
+</header>
+
+<!-- ───────────── TRUST BOUNDARY · white ───────────── -->
+<section class="white" id="boundary">
+  <div class="wrap">
+    <h2 class="cmd reveal">cat <span class="grn">TRUST_BOUNDARY.md</span></h2>
+    <p class="secout reveal d1">fig. 1 — the message path. plaintext exists only at the endpoints.</p>
+    <div class="flow reveal d2">
+      <div class="fnode">
+        <span class="nl">your device</span>
+        <h3>Sealed at the source</h3>
+        <p>Keys are generated locally and stored in the OS keychain. A message is encrypted before it touches the network — post-quantum hybrid for 1:1, MLS (RFC 9420) for groups.</p>
+      </div>
+      <div class="farrow"><span class="ln">──────▶</span><span class="al">ciphertext only</span></div>
+      <div class="fnode dashed">
+        <span class="nl">relay (untrusted)</span>
+        <h3>A blind courier</h3>
+        <p>Routes opaque bytes. Holds zero key material; no decrypt path exists. Runs at relay.mercury-messaging.com — or self-host your own.</p>
+      </div>
+      <div class="farrow"><span class="ln">──────▶</span><span class="al">ciphertext only</span></div>
+      <div class="fnode">
+        <span class="nl">their device</span>
+        <h3>Opened at the destination</h3>
+        <p>Decrypted locally with keys that also never left their machine. Authenticity is confirmed by comparing safety numbers, human to human.</p>
+      </div>
+    </div>
+    <div class="prose reveal d3" style="margin-top:30px">
+      <p><b>The operator of the relay — including us — is outside the trust boundary by
+      construction.</b> What the relay does handle is the routing metadata any courier needs:
+      account identifiers, timestamps, ciphertext sizes, and connection metadata. It is not
+      intended to receive plaintext message contents, and the client refuses to send any. The
+      <a href="/privacy.html">privacy page</a> states this in full.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── CRYPTO SPEC · carbon black ───────────── -->
+<section class="black scanlines" id="spec">
+  <div class="wrap">
+    <h2 class="cmd reveal">mercury <span class="grn">--spec</span></h2>
+    <p class="secout reveal d1">what's actually in the box, v0.1.30. engineering posture: reviewed
+    protocol libraries own the primitives; we own the policy around them.</p>
+    <table class="spec reveal d2">
+      <tr><td>encryption</td><td><b>End-to-end by default — there is no plaintext mode.</b> 1:1 sessions use a post-quantum hybrid; group chat is real MLS (RFC 9420) running over verified 1:1 channels.</td></tr>
+      <tr><td>key_storage</td><td>Identity and session state live in an encrypted snapshot sealed by the <b>OS keychain</b>. Keys are never uploaded, never escrowed, never rendered in the clear by the UI.</td></tr>
+      <tr><td>identity</td><td>A cryptographic <b>account id</b> (the hash of your identity key — self-authenticating). Shared via pairing code, username, or invite link; usernames are backed by the relay's key-transparency log, whose signed head the app pins. None of these change the trust model: the <b>safety number</b> is what proves you're talking to the real person.</td></tr>
+      <tr><td>local_data</td><td>Conversations are stored in an <b>encrypted local store</b> on your device. Attachments (up to 4 MiB) are encrypted end-to-end and chunked.</td></tr>
+      <tr><td>backups</td><td>Optional encrypted backup export, key-derived with <b>Argon2id</b>. A backup is useless without your passphrase.</td></tr>
+      <tr><td>ai_participation</td><td>By design, an AI can only join as an <b>explicit, visible, invited principal</b> with scoped grants, end-to-end encrypted like any contact. There is no hidden plaintext path for AI — or for us.</td></tr>
+      <tr><td>policy_assurance</td><td>Security-critical decisions are mirrored into a deterministic validator layer — <b><a href="https://github.com/Questeria/helix">Helix</a>, open source</b> — and cross-checked against shared test vectors in CI, so the client and the policy spec can't silently drift apart.</td></tr>
+      <tr><td>updates</td><td>The app checks a <b>signed update manifest</b> and prompts before installing — never silently. Installers are Authenticode-signed (Windows) with SHA-256 published for every artifact.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ───────────── VERIFY · white ───────────── -->
+<section class="white" id="verify">
+  <div class="wrap">
+    <h2 class="cmd reveal">man <span class="grn">verify-your-download</span></h2>
+    <p class="secout reveal d1">ten seconds of checking beats any amount of trusting. every release
+    publishes a sha-256 next to its download.</p>
+    <div class="whygrid reveal d2">
+      <div class="why"><span class="tag">LINUX</span><h3>sha256sum</h3><p>Put the <a href="/download/Mercury-Linux-amd64.deb.sha256?v=0.1.30">.sha256 file</a> next to the download and run <br /><code style="font-size:.8em">sha256sum -c Mercury-Linux-amd64.deb.sha256</code><br />Expect: <b>OK</b>. The .deb is unsigned (normal outside app stores) — the checksum is your verification.</p></div>
+      <div class="why"><span class="tag">WINDOWS</span><h3>Get-FileHash + signature</h3><p>In PowerShell: <code style="font-size:.8em">Get-FileHash .\Mercury-Setup-Windows-x64.exe</code> and compare against the published <a href="/download/Mercury-Setup-Windows-x64.exe.sha256?v=0.1.30">.sha256</a>. Then right-click → Properties → Digital Signatures: the installer is Authenticode-signed and timestamped.</p></div>
+      <div class="why"><span class="tag">UPDATES</span><h3>Signed manifest</h3><p>The in-app updater polls <code style="font-size:.8em">/updates/latest.json</code>, accepts only releases signed with Mercury's update key, and always shows an install prompt. It never installs silently. Manual re-download from this site always works too.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── SELF-HOST · carbon black ───────────── -->
+<section class="black scanlines" id="selfhost">
+  <div class="wrap">
+    <h2 class="cmd reveal">docker run <span class="grn">mercury-relay</span></h2>
+    <div class="prose reveal d1">
+      <p><b>You don't have to use our relay.</b> Mercury ships pointed at
+      <span class="grn">relay.mercury-messaging.com</span>, which only ever routes opaque
+      ciphertext — but full independence is one Docker command away. Stand up your own relay,
+      point Mercury at it in settings, and we are completely out of your loop.</p>
+      <p>Either way the math is the same: the relay holds no keys, so the relay reads nothing.
+      Choosing ours is a convenience, not a trust decision.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── HONEST LIMITS · white ───────────── -->
+<section class="white" id="limits">
+  <div class="wrap">
+    <h2 class="cmd reveal">cat <span class="grn">KNOWN_LIMITS.md</span></h2>
+    <p class="secout reveal d1">disclosed, not buried. high-assurance claims must be earned —
+    threat models, fuzzing, reproducible builds, third-party audits — and we name what's missing.</p>
+    <div class="statuslog reveal d2">
+      <div class="sline"><span class="stag warn">[WARN]</span><p><b>no independent audit yet.</b> our crypto comes from reviewed libraries and our policy layer is cross-checked in ci — but until a third party audits mercury, this site will not use the word "audited". when it happens you'll see the report, not an adjective.</p></div>
+      <div class="sline"><span class="stag warn">[WARN]</span><p><b>delivery requires a running process.</b> real-time while mercury runs (tray included); a fully-quit app receives queued, still-encrypted messages at next launch. no OS push yet.</p></div>
+      <div class="sline"><span class="stag warn">[WARN]</span><p><b>metadata is minimized, not zero.</b> the relay must route, so it sees account ids, timestamps, and ciphertext sizes. we publish exactly what it processes on the <a href="/privacy.html">privacy page</a>.</p></div>
+      <div class="sline"><span class="stag warn">[WARN]</span><p><b>built for small circles first.</b> windows + linux today, macos and mobile on the roadmap. capacity and platform claims follow evidence, not precede it.</p></div>
+    </div>
+    <div class="prose reveal d3" style="margin-top:34px">
+      <p>Found something? We want to know. Until a dedicated security contact is published, the
+      open-source <a href="https://github.com/Questeria/helix">Helix repository</a> on GitHub is
+      the most reliable public channel to reach the project.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── CTA · carbon black ───────────── -->
+<section class="black scanlines tight">
+  <div class="wrap">
+    <div class="finalcta reveal" style="margin-top:0">
+      <p class="bigline" data-scramble>check us, then run us.</p>
+      <div class="cta" style="justify-content:center">
+        <a class="btn pri" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download --windows</a>
+        <a class="btn sec" href="/download/Mercury-Linux-amd64.deb?v=0.1.30">download --linux-deb</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="frow">
+    <span># verify everything. trust nothing. — <b>mercury</b></span>
+    <span><a href="/#why">why</a> &nbsp;·&nbsp; <a href="/security.html">security</a> &nbsp;·&nbsp; <a href="/faq.html">faq</a> &nbsp;·&nbsp; <a href="/privacy.html">privacy</a> &nbsp;·&nbsp; <a href="https://github.com/Questeria/helix">helix↗</a></span>
+  </div>
+</footer>
+
+<script src="/site.js"></script>
+</body>
+</html>

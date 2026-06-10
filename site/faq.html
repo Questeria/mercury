@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ — Mercury</title>
+  <meta name="description" content="Frequently asked questions about Mercury: platforms, encryption, account ids, safety numbers, updates, AI participation, and self-hosting the relay." />
+  <link rel="icon" type="image/png" href="/assets/mercury-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<nav class="top">
+  <div class="bar">
+    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.30</span></a>
+    <div class="links">
+      <a href="/#why">why</a>
+      <a href="/security.html">security</a>
+      <a href="/#status">status</a>
+      <a class="here" href="/faq.html">faq</a>
+      <a href="/privacy.html">privacy</a>
+      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ───────────── PAGE HEAD · carbon black ───────────── -->
+<header class="pagehead scanlines">
+  <div class="wrap">
+    <div class="promptline"><span class="p">you@mercury</span><span class="dim">:~$</span> <span id="typed-cmd" data-cmd="grep -i 'question' FAQ.md"></span><span id="cmd-cursor" class="typecursor" style="height:.9em;width:.45em"></span></div>
+    <h1>Questions, <span class="invert">answered plainly.</span></h1>
+    <p class="lede">Short answers, no hedging. If a question isn't here, the
+    <a href="/security.html" style="text-decoration:underline;text-underline-offset:3px">security page</a>
+    goes deeper.</p>
+  </div>
+</header>
+
+<!-- ───────────── FAQ · white ───────────── -->
+<section class="white" id="questions">
+  <div class="wrap">
+    <h2 class="cmd reveal">cat <span class="grn">FAQ.md</span></h2>
+    <p class="secout reveal d1">click a question to expand it.</p>
+    <div class="faq reveal d2">
+
+      <details open>
+        <summary><span class="q">▶</span>What is Mercury?</summary>
+        <div class="a">
+          <p>An end-to-end encrypted messenger for Windows and Linux. Your keys are generated on
+          your device and sealed in its keychain; the server only ever routes encrypted bytes it
+          cannot read. No phone number or email is required. It is built for small circles first,
+          and it tells you exactly what works and what doesn't on the
+          <a href="/#status">status section</a>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>Is it free?</summary>
+        <div class="a">
+          <p>Yes — downloading and using Mercury costs nothing. The source code is source-available
+          under the PolyForm Noncommercial 1.0.0 license (commercial use requires a separate
+          license), and the Helix policy/validator layer that backs Mercury's security decisions is
+          fully open source at <a href="https://github.com/Questeria/helix">github.com/Questeria/helix</a>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>Can you read my messages?</summary>
+        <div class="a">
+          <p><b>No — and not because we promise not to.</b> Messages are encrypted on your device
+          before they touch the network, and the relay holds no key material, so there is no
+          decrypt path on our side. The same is true for anyone who might seize, subpoena, or hack
+          the relay: they'd get opaque ciphertext. What the relay does see is routing metadata
+          (account ids, timestamps, ciphertext sizes) — spelled out on the
+          <a href="/privacy.html">privacy page</a>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>Which platforms are supported?</summary>
+        <div class="a">
+          <p><b>Today:</b> Windows 10/11 (signed installer, auto-update) and Linux as a .deb
+          (unsigned — verify the SHA-256; update by re-download). An AppImage is built in CI and
+          ships once a large-file host is set up.</p>
+          <p><b>Not yet:</b> macOS (awaits an Apple signing certificate) and iOS/Android (on the
+          roadmap). We won't pretend otherwise.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>What's an account id? Why no phone number?</summary>
+        <div class="a">
+          <p>Your identity is a cryptographic account id — the hash of your identity key, so it's
+          self-authenticating. Nothing about your real-world identity (phone, email, name) is
+          required to message. You share it conveniently via a <b>pairing code</b> (short-lived,
+          single-use), a <b>username</b> (backed by a key-transparency log), or an
+          <b>invite link</b>.</p>
+          <p>None of those change the trust model: the <b>safety number</b> you compare with your
+          contact over a channel you already trust is what proves there's no one in the middle.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>Do messages arrive when Mercury is closed?</summary>
+        <div class="a">
+          <p>Messages arrive in real time while Mercury is <b>running</b> — including minimized to
+          the system tray (closing the window keeps it running; turn on "start at login" to receive
+          automatically). If the process is fully quit, messages wait — still encrypted — in the
+          relay's queue until your next launch. There is no OS push for a quit app yet; it's on the
+          roadmap.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>How do updates work?</summary>
+        <div class="a">
+          <p>On Windows, Mercury checks a <b>signed</b> update manifest on launch and periodically.
+          When a newer signed build exists, it shows an install prompt — one click downloads,
+          applies, and restarts. <b>It never installs silently.</b> On Linux, re-download the .deb
+          from this site. You can always verify any download against its published
+          <code>.sha256</code> — see <a href="/security.html#verify">how to verify</a>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>What's the deal with AI in Mercury?</summary>
+        <div class="a">
+          <p>Mercury is built so an AI can only ever participate the way a person does:
+          <b>visibly, by explicit invitation, end-to-end encrypted, with scoped permissions</b> —
+          and you can block it like anyone else. There is no hidden plaintext side-channel for AI,
+          full stop. In-app AI assistant features are still on the roadmap, and when they ship they
+          run behind exactly these gates.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>Can I run my own relay?</summary>
+        <div class="a">
+          <p>Yes. The app ships pointed at our hosted relay (<code>relay.mercury-messaging.com</code>),
+          which only routes opaque ciphertext — but you can stand up your own relay with one Docker
+          command and point Mercury at it. Since the relay holds no keys either way, using ours is
+          a convenience, not a trust decision.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>Has Mercury been audited?</summary>
+        <div class="a">
+          <p><b>Not yet — and we say so out loud.</b> The cryptographic primitives come from
+          reviewed libraries, and security decisions are mirrored into an open-source deterministic
+          validator (<a href="https://github.com/Questeria/helix">Helix</a>) cross-checked in CI.
+          But until an independent third-party audit exists, this site will not use the word
+          "audited". When it happens, you'll see the report.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">▶</span>How do I verify my download?</summary>
+        <div class="a">
+          <p>Linux: <code>sha256sum -c Mercury-Linux-amd64.deb.sha256</code> — expect <b>OK</b>.
+          Windows: <code>Get-FileHash</code> in PowerShell, compare to the published
+          <code>.sha256</code>, and check the Authenticode signature under file Properties →
+          Digital Signatures. Full instructions on the
+          <a href="/security.html#verify">security page</a>.</p>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── CTA · carbon black ───────────── -->
+<section class="black scanlines tight">
+  <div class="wrap">
+    <div class="finalcta reveal" style="margin-top:0">
+      <p class="bigline" data-scramble>no more questions?</p>
+      <div class="cta" style="justify-content:center">
+        <a class="btn pri" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download --windows</a>
+        <a class="btn sec" href="/download/Mercury-Linux-amd64.deb?v=0.1.30">download --linux-deb</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="frow">
+    <span># verify everything. trust nothing. — <b>mercury</b></span>
+    <span><a href="/#why">why</a> &nbsp;·&nbsp; <a href="/security.html">security</a> &nbsp;·&nbsp; <a href="/faq.html">faq</a> &nbsp;·&nbsp; <a href="/privacy.html">privacy</a> &nbsp;·&nbsp; <a href="https://github.com/Questeria/helix">helix↗</a></span>
+  </div>
+</footer>
+
+<script src="/site.js"></script>
+</body>
+</html>

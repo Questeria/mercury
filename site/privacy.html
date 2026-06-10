@@ -3,33 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mercury Privacy Statement</title>
-  <meta name="description" content="Mercury's privacy statement for the public website and Windows installer download." />
+  <title>Privacy — Mercury</title>
+  <meta name="description" content="Mercury's privacy statement for the public website, the installer downloads, the update check endpoint, and the app/relay." />
   <link rel="icon" type="image/png" href="/assets/mercury-logo.png" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <header class="site">
-    <a class="brand" href="/">
-      <img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />
-      <span>Mercury</span>
-    </a>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/#status">Status</a>
-    </nav>
-  </header>
 
-  <main>
-    <section class="legal">
-      <p class="fineprint">Last updated: June 5, 2026</p>
-      <h1>Privacy Statement</h1>
-      <p class="lede">
-        Mercury is an end-to-end encrypted messenger. This statement describes the public website
-        at <code>mercury-messaging.com</code> and the Windows installer download hosted there.
-      </p>
+<nav class="top">
+  <div class="bar">
+    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.30</span></a>
+    <div class="links">
+      <a href="/#why">why</a>
+      <a href="/security.html">security</a>
+      <a href="/#status">status</a>
+      <a href="/faq.html">faq</a>
+      <a class="here" href="/privacy.html">privacy</a>
+      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download</a>
+    </div>
+  </div>
+</nav>
 
-      <h2>Personal Information Collected By The Website</h2>
+<!-- ───────────── PAGE HEAD · carbon black ───────────── -->
+<header class="pagehead scanlines">
+  <div class="wrap">
+    <div class="promptline"><span class="p">you@mercury</span><span class="dim">:~$</span> <span id="typed-cmd" data-cmd="cat PRIVACY.md"></span><span id="cmd-cursor" class="typecursor" style="height:.9em;width:.45em"></span></div>
+    <h1>Privacy, <span class="invert">stated plainly.</span></h1>
+    <p class="lede">This statement covers the public website at mercury-messaging.com, the
+    installer downloads and update-check endpoint hosted on it, and what the Mercury app and relay
+    process. The short version: this site has no accounts, no analytics cookies, and no ad tech —
+    and the relay cannot read your messages.</p>
+  </div>
+</header>
+
+<!-- ───────────── LEGAL · white ───────────── -->
+<section class="white">
+  <div class="wrap">
+    <div class="legal">
+      <p class="updated">// last updated: june 10, 2026</p>
+
+      <h2>Personal information collected by the website</h2>
       <p>
         The Mercury website does not have account registration, contact forms, payment forms,
         advertising cookies, or analytics cookies. Mercury does not intentionally collect names,
@@ -37,48 +53,78 @@
         identifiers through this website.
       </p>
       <p>
-        The website is hosted on Cloudflare Pages. When someone visits the site or downloads the
+        The website is hosted on Cloudflare Pages. When someone visits the site or downloads an
         installer, Cloudflare may process standard hosting and security log data such as IP address,
         browser or user-agent information, requested URL, timestamp, and related request metadata.
       </p>
 
-      <h2>Why The Website Processes This Information</h2>
+      <h2>Why the website processes this information</h2>
       <p>
-        This information is used to operate the website, deliver the Windows installer and checksum,
-        secure the site, diagnose availability or abuse issues, and maintain basic hosting records.
-        Mercury does not sell website visitor information and does not use it for advertising.
+        This information is used to operate the website, deliver the Windows and Linux installers
+        and their checksums, secure the site, diagnose availability or abuse issues, and maintain
+        basic hosting records. Mercury does not sell website visitor information and does not use
+        it for advertising.
       </p>
 
-      <h2>Mercury App And Relay</h2>
+      <h2>Update checks</h2>
       <p>
-        The Mercury desktop app stores identity keys on the user's device. Message contents are
-        end-to-end encrypted before they reach a relay. A relay may process routing metadata needed
-        to deliver opaque ciphertext, such as account identifiers, timestamps, ciphertext sizes, and
-        network connection metadata. The relay is not intended to receive plaintext message contents.
+        The Mercury desktop app periodically requests <code>/updates/latest.json</code> from this
+        website to learn whether a newer signed release exists. Like any web request, this is
+        processed by Cloudflare with standard hosting log data (IP address, user-agent, timestamp).
+        The request carries no account identifier and no message data; updates are never installed
+        without an in-app prompt.
       </p>
 
-      <h2>Data Sharing</h2>
+      <h2>Invite links</h2>
+      <p>
+        The "add a contact" page at <code>/add</code> carries the shared account id in the URL
+        fragment (the part after <code>#</code>), which browsers do not send to the server. The id
+        is read and validated entirely client-side, in your browser. An account id is public
+        reachability information — it lets people reach you; it is not a key and exposes no message
+        content.
+      </p>
+
+      <h2>Mercury app and relay</h2>
+      <p>
+        The Mercury desktop app stores identity keys on the user's device, sealed by the operating
+        system's keychain. Message contents are end-to-end encrypted before they reach a relay. A
+        relay may process the routing metadata needed to deliver opaque ciphertext, such as account
+        identifiers, timestamps, ciphertext sizes, and network connection metadata. The relay is
+        not intended to receive plaintext message contents, and the client refuses to send any.
+        You can also <a href="/security.html#selfhost">run your own relay</a>, in which case our
+        infrastructure is not involved at all.
+      </p>
+
+      <h2>Data sharing</h2>
       <p>
         Website hosting and security processing is provided by Cloudflare. The Windows installer is
-        code-signed through Microsoft Azure Artifact Signing. Mercury does not sell personal
-        information.
+        code-signed through Microsoft Azure trusted signing infrastructure. Mercury does not sell
+        personal information.
       </p>
 
       <h2>Retention</h2>
       <p>
-        Mercury does not maintain a separate website visitor database. Hosting and security logs are
-        retained according to the policies and settings of the hosting provider and are used only for
-        the operational purposes described above.
+        Mercury does not maintain a separate website visitor database. Hosting and security logs
+        are retained according to the policies and settings of the hosting provider and are used
+        only for the operational purposes described above.
       </p>
-    </section>
-  </main>
 
-  <footer class="site">
-    <span>Mercury &middot; end-to-end encrypted messaging</span>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/privacy.html">Privacy</a>
-    </nav>
-  </footer>
+      <h2>Questions</h2>
+      <p>
+        The most reliable public channel to reach the project is the open-source
+        <a href="https://github.com/Questeria/helix">Helix repository</a> on GitHub.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="frow">
+    <span># verify everything. trust nothing. — <b>mercury</b></span>
+    <span><a href="/#why">why</a> &nbsp;·&nbsp; <a href="/security.html">security</a> &nbsp;·&nbsp; <a href="/faq.html">faq</a> &nbsp;·&nbsp; <a href="/privacy.html">privacy</a> &nbsp;·&nbsp; <a href="https://github.com/Questeria/helix">helix↗</a></span>
+  </div>
+</footer>
+
+<script src="/site.js"></script>
 </body>
 </html>
