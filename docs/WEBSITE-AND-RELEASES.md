@@ -21,8 +21,8 @@ page.
 
 ## Updating the app (current flow — manual website redownload)
 
-For now Mercury updates by **re-downloading the installer from the site**, not via the in-app
-auto-updater (that path stays wired but dormant until we host `updates/latest.json`). Each release:
+Mercury can update either way now: the in-app auto-updater is **live** (it polls `updates/latest.json`,
+which is hosted and signed), and you can also **re-download the installer from the site** manually. Each release:
 
 1. **I build + stage it** (done for the current version): the new installer is copied to
    `site/download/Mercury-Setup-Windows-x64.exe` (+ its `.sha256`), and the **Download** button's

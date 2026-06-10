@@ -1,17 +1,19 @@
 # In-app auto-update (no reinstall)
 
-> **Current status (2026-06-05): deferred — updates ship via manual website re-download.**
-> To update today, users download the new installer from `mercury-messaging.com` and reinstall
-> (see [WEBSITE-AND-RELEASES.md](WEBSITE-AND-RELEASES.md) → "Updating the app"). The in-app
-> auto-updater described below is fully wired (public key embedded, plugin on) but **dormant**: no
-> `latest.json` is hosted, so the launch check 404s and stays silent. This doc is the runbook for
-> switching auto-update on when we're ready.
+> **Current status (2026-06-10): LIVE — signed in-app auto-update is active.**
+> On launch the desktop app polls `https://mercury-messaging.com/updates/latest.json`, which is now
+> hosted and advertises the current signed release; the updater verifies each update's signature
+> against the public key embedded in the app and installs it on next launch — **no manual reinstall**.
+> (You can still re-download the installer from `mercury-messaging.com` and reinstall if you prefer.)
+> Both operator prerequisites are in place: CI **signs** releases (Azure Trusted Signing for
+> Authenticode + the Tauri updater signature) and `latest.json` is **hosted** at the endpoint.
 
 The desktop app ships with Tauri's updater **active**: your public key is embedded, the plugin is on,
 and on launch it polls `https://mercury-messaging.com/updates/latest.json` and — if a newer version is
-published — downloads + installs it (applied next launch), **no manual reinstall**. Two operator pieces
-remain to make updates actually flow: the **CI signing secrets** (so releases are signed) and
-**hosting `latest.json`** at that endpoint. Until a manifest is hosted, the check 404s and stays silent.
+published — downloads + installs it (applied next launch), **no manual reinstall**. Both operator
+prerequisites are now satisfied: CI **signs** releases (Azure Trusted Signing for Authenticode + the
+Tauri updater signature) and `latest.json` is **hosted** at that endpoint (currently advertising the
+live release). The manifest's signature is verified against the embedded key before any update applies.
 
 > One-time caveat: auto-update only works *forward* from a build that already contains the updater — so
 > the current build (and the next install) is manual; every update after is seamless.

@@ -1,8 +1,8 @@
 # Update channel (auto-update manifest)
 
-> **Status: dormant.** Updates currently ship via **manual website re-download** (the site's Download
-> button). No `latest.json` is hosted here yet, so the in-app auto-updater stays silent. This is the
-> runbook for the auto-update channel when we switch it on — see
+> **Status: LIVE.** A signed `latest.json` is hosted here and the in-app auto-updater is active — it
+> polls this endpoint on launch and installs newer **signed** releases (no reinstall). Manual
+> re-download from the site's Download button remains available too. Runbook below — see
 > [`../../docs/AUTO-UPDATE.md`](../../docs/AUTO-UPDATE.md).
 
 The desktop app's auto-updater polls **`https://mercury-messaging.com/updates/latest.json`** on
