@@ -88,8 +88,13 @@ jobs:
         id: signcheck
         shell: bash
         run: |
-          if [ -n "${{ secrets.TRUSTED_SIGNING_PROFILE }}" ]; then
+          # Trim stray whitespace/newlines that a paste into the GitHub secret box can introduce.
+          # A trailing newline makes Azure Trusted Signing 403 on an unrecognized profile name.
+          profile="$(printf '%s' "${{ secrets.TRUSTED_SIGNING_PROFILE }}" | tr -d '[:space:]')"
+          if [ -n "$profile" ]; then
+            echo "::add-mask::$profile"
             echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "profile=$profile" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::notice::No Trusted Signing profile secret set; producing an UNSIGNED installer."
@@ -110,7 +115,7 @@ jobs:
         with:
           endpoint: ${{ env.TRUSTED_SIGNING_ENDPOINT }}
           signing-account-name: ${{ env.TRUSTED_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ secrets.TRUSTED_SIGNING_PROFILE }}
+          certificate-profile-name: ${{ steps.signcheck.outputs.profile }}
           files-folder: ${{ github.workspace }}\dist
           files-folder-filter: exe
           file-digest: SHA256
