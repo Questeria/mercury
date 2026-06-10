@@ -35,9 +35,11 @@ zeroize = "1"
 # delivered without new plaintext crossing the wire (the receipt rides the sealed ratchet channel
 # like every other control message). Also hashes attachment bytes for receipt matching.
 sha2 = "0.10"
-# Backup-file KDF: PBKDF2-HMAC-SHA512 stretches the user's passphrase into the 32-byte key that
-# seals an exported backup (the same audited XChaCha20-Poly1305 seal as the at-rest snapshot).
-# RustCrypto crates, consistent with the rest of the workspace — no hand-rolled crypto.
+# Backup-file KDF. CURRENT: memory-hard Argon2id (argon2) stretches the passphrase into the 32-byte
+# key that seals an exported backup (same audited XChaCha20-Poly1305 seal as the at-rest snapshot) —
+# stronger than PBKDF2 against GPU/ASIC offline cracking of a stolen backup. LEGACY: PBKDF2-HMAC-SHA512
+# (pbkdf2+hmac+sha2), kept so backups written by older builds still restore. RustCrypto crates only.
+argon2 = "0.5"
 pbkdf2 = { version = "0.12", default-features = false }
 hmac = "0.12"
 # Attachment bytes cross the IPC boundary as base64 (the webview cannot pass raw bytes).

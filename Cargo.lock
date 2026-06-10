@@ -1687,6 +1687,7 @@ dependencies = [
 name = "mercury-app"
 version = "0.1.0"
 dependencies = [
+ "argon2",
  "base64",
  "getrandom 0.2.17",
  "hmac",

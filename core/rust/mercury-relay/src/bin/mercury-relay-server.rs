@@ -84,6 +84,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             KtDirectory::with_vrf_seed(seed).await?
         }
         Err(_) => {
+            // Durable usernames (MERCURY_USERNAME_DB) imply a PRODUCTION deployment. An ephemeral
+            // per-boot VRF key would silently break every pinned client after a restart, so fail
+            // CLOSED rather than warn-and-continue.
+            if std::env::var("MERCURY_USERNAME_DB").is_ok() {
+                return Err("MERCURY_USERNAME_DB is set (durable/production usernames) but MERCURY_KT_VRF_SEED is unset — refusing to start with an ephemeral VRF key that would break pinned clients across restarts. Set MERCURY_KT_VRF_SEED to a persisted 32-byte hex key (openssl rand -hex 32).".into());
+            }
             eprintln!(
                 "warning: MERCURY_KT_VRF_SEED unset — using an EPHEMERAL VRF key (pinned proofs will not verify across restarts; set it in production)"
             );

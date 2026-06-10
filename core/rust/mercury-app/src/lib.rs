@@ -146,16 +146,49 @@ fn hex_encode_vec(bytes: &[u8]) -> String {
     s
 }
 
-/// Backup-file magic prefix (versioned: a future format bump mints `MERCBAK2`).
+/// Backup-file magic prefixes. `MERCBAK2` (current) seals under a memory-hard Argon2id key;
+/// `MERCBAK1` (legacy) used PBKDF2-HMAC-SHA512 and is still accepted on import so older backups
+/// restore. The Argon2id header is self-describing (algorithm + params) for forward-compatibility.
+const BACKUP_MAGIC_V2: &[u8] = b"MERCBAK2";
 const BACKUP_MAGIC: &[u8] = b"MERCBAK1";
-/// PBKDF2-HMAC-SHA512 rounds for the backup passphrase KDF (OWASP-recommended order of magnitude;
-/// ~a noticeable fraction of a second on a modern machine — felt once per export/restore).
+/// KDF algorithm tag stored in a `MERCBAK2` header.
+const BACKUP_KDF_ARGON2ID: u8 = 1;
+/// CURRENT backup KDF parameters: Argon2id, 64 MiB / 3 passes / 1 lane — memory-hard (far harder to
+/// crack on GPU/ASIC than PBKDF2), matching the `mercury-backup` recovery profile and exceeding the
+/// OWASP Argon2id floor (>=19 MiB, >=2 passes).
+const BACKUP_ARGON2_MEM_KIB: u32 = 64 * 1024;
+const BACKUP_ARGON2_ITERS: u32 = 3;
+const BACKUP_ARGON2_LANES: u32 = 1;
+/// Sanity caps applied when IMPORTING a `MERCBAK2` header, so a hostile/corrupt file can't make
+/// Argon2id allocate absurd memory on restore — fail closed rather than OOM.
+const BACKUP_ARGON2_MAX_MEM_KIB: u32 = 1024 * 1024; // 1 GiB
+const BACKUP_ARGON2_MAX_ITERS: u32 = 64;
+const BACKUP_ARGON2_MAX_LANES: u32 = 16;
+/// LEGACY PBKDF2-HMAC-SHA512 rounds — used ONLY to restore `MERCBAK1` backups from older builds.
 const BACKUP_KDF_ITERATIONS: u32 = 210_000;
 /// Minimum backup passphrase length, in characters. The backup file's security IS the passphrase.
 pub const MIN_BACKUP_PASSPHRASE_CHARS: usize = 9;
 
-/// Stretch a backup passphrase into the 32-byte seal key: PBKDF2-HMAC-SHA512 (audited RustCrypto
-/// implementation — no hand-rolled KDF), domain-separated by the per-export random salt.
+/// Stretch a passphrase into the 32-byte seal key with the CURRENT KDF: memory-hard Argon2id
+/// (audited RustCrypto `argon2`), domain-separated by the per-export random salt. Bad parameters
+/// (only reachable from a corrupt import header — export uses fixed valid params) fail closed.
+fn derive_backup_key_argon2(
+    passphrase: &str,
+    salt: &[u8],
+    mem_kib: u32,
+    iters: u32,
+    lanes: u32,
+) -> Result<[u8; 32], AppError> {
+    let params = argon2::Params::new(mem_kib, iters, lanes, Some(32))
+        .map_err(|_| AppError::BackupInvalid)?;
+    let kdf = argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
+    let mut key = [0u8; 32];
+    kdf.hash_password_into(passphrase.as_bytes(), salt, &mut key)
+        .map_err(|_| AppError::BackupInvalid)?;
+    Ok(key)
+}
+
+/// LEGACY: stretch a passphrase via PBKDF2-HMAC-SHA512 — used only to restore `MERCBAK1` backups.
 fn derive_backup_key(passphrase: &str, salt: &[u8; 16]) -> [u8; 32] {
     let mut key = [0u8; 32];
     pbkdf2::pbkdf2::<hmac::Hmac<sha2::Sha512>>(
@@ -1040,23 +1073,36 @@ impl<T: Transport> AppController<T> {
         Ok(json!({ "seq": msg.seq, "pending": any_queued }))
     }
 
-    /// Export this account as a PASSPHRASE-SEALED backup file: `MERCBAK1 || salt(16) || sealed`,
+    /// Export this account as a PASSPHRASE-SEALED backup file. Current format (`MERCBAK2`):
+    /// `magic(8) || algo(1) || mem_kib(4 LE) || iters(4 LE) || lanes(4 LE) || salt(16) || sealed`,
     /// where `sealed` is the SAME audited snapshot seal used at rest (XChaCha20-Poly1305) under a
-    /// key stretched from the passphrase by PBKDF2-HMAC-SHA512 ([`BACKUP_KDF_ITERATIONS`] rounds,
-    /// fresh random salt per export). The backup contains EVERYTHING (identity, sessions,
-    /// contacts, history) — its security is exactly the passphrase's strength, so a minimum
-    /// length is enforced and the UI says so plainly.
+    /// key stretched from the passphrase by memory-hard Argon2id (self-describing header, fresh
+    /// random salt per export). The backup contains EVERYTHING (identity, sessions, contacts,
+    /// history) — its security is exactly the passphrase's strength, so a minimum length is enforced
+    /// and the UI says so plainly. Older `MERCBAK1` (PBKDF2) backups still restore via
+    /// [`AppController::import_backup`].
     pub fn export_backup(&self, passphrase: &str) -> Result<Vec<u8>, AppError> {
         if passphrase.len() < MIN_BACKUP_PASSPHRASE_CHARS {
             return Err(AppError::WeakPassphrase);
         }
         let mut salt = [0u8; 16];
         getrandom::getrandom(&mut salt).map_err(|_| AppError::Persistence)?;
-        let mut key = derive_backup_key(passphrase, &salt);
+        let mut key = derive_backup_key_argon2(
+            passphrase,
+            &salt,
+            BACKUP_ARGON2_MEM_KIB,
+            BACKUP_ARGON2_ITERS,
+            BACKUP_ARGON2_LANES,
+        )?;
         let sealed = self.to_encrypted_snapshot(&key);
         key.zeroize();
-        let mut out = Vec::with_capacity(BACKUP_MAGIC.len() + salt.len() + sealed.len());
-        out.extend_from_slice(BACKUP_MAGIC);
+        // magic(8) || algo(1) || mem_kib(4) || iters(4) || lanes(4) || salt(16) || sealed
+        let mut out = Vec::with_capacity(BACKUP_MAGIC_V2.len() + 29 + sealed.len());
+        out.extend_from_slice(BACKUP_MAGIC_V2);
+        out.push(BACKUP_KDF_ARGON2ID);
+        out.extend_from_slice(&BACKUP_ARGON2_MEM_KIB.to_le_bytes());
+        out.extend_from_slice(&BACKUP_ARGON2_ITERS.to_le_bytes());
+        out.extend_from_slice(&BACKUP_ARGON2_LANES.to_le_bytes());
         out.extend_from_slice(&salt);
         out.extend_from_slice(&sealed);
         Ok(out)
@@ -1068,19 +1114,47 @@ impl<T: Transport> AppController<T> {
     /// (the desktop shell) replaces the live controller with the returned one and re-seals it
     /// under the device key.
     pub fn import_backup(transport: T, backup: &[u8], passphrase: &str) -> Result<Self, AppError> {
-        let rest = backup
-            .strip_prefix(BACKUP_MAGIC)
-            .ok_or(AppError::BackupInvalid)?;
-        if rest.len() < 16 {
-            return Err(AppError::BackupInvalid);
+        // Current format: `MERCBAK2` with a self-describing memory-hard Argon2id header.
+        if let Some(rest) = backup.strip_prefix(BACKUP_MAGIC_V2) {
+            // algo(1) + mem_kib(4) + iters(4) + lanes(4) + salt(16) = 29 header bytes, then sealed.
+            if rest.len() < 29 || rest[0] != BACKUP_KDF_ARGON2ID {
+                return Err(AppError::BackupInvalid);
+            }
+            let mem_kib = u32::from_le_bytes([rest[1], rest[2], rest[3], rest[4]]);
+            let iters = u32::from_le_bytes([rest[5], rest[6], rest[7], rest[8]]);
+            let lanes = u32::from_le_bytes([rest[9], rest[10], rest[11], rest[12]]);
+            // Fail CLOSED on absurd parameters (a hostile/corrupt file): refuse rather than let
+            // Argon2id allocate gigabytes on restore.
+            if mem_kib > BACKUP_ARGON2_MAX_MEM_KIB
+                || !(1..=BACKUP_ARGON2_MAX_ITERS).contains(&iters)
+                || !(1..=BACKUP_ARGON2_MAX_LANES).contains(&lanes)
+            {
+                return Err(AppError::BackupInvalid);
+            }
+            let salt: [u8; 16] = rest[13..29]
+                .try_into()
+                .map_err(|_| AppError::BackupInvalid)?;
+            let sealed = &rest[29..];
+            let mut key = derive_backup_key_argon2(passphrase, &salt, mem_kib, iters, lanes)?;
+            let restored = Self::from_encrypted_snapshot(transport, sealed, &key)
+                .map_err(|_| AppError::BackupInvalid);
+            key.zeroize();
+            return restored;
         }
-        let (salt, sealed) = rest.split_at(16);
-        let salt: [u8; 16] = salt.try_into().map_err(|_| AppError::BackupInvalid)?;
-        let mut key = derive_backup_key(passphrase, &salt);
-        let restored = Self::from_encrypted_snapshot(transport, sealed, &key)
-            .map_err(|_| AppError::BackupInvalid);
-        key.zeroize();
-        restored
+        // Legacy format: `MERCBAK1` (PBKDF2-HMAC-SHA512) — kept so backups from older builds restore.
+        if let Some(rest) = backup.strip_prefix(BACKUP_MAGIC) {
+            if rest.len() < 16 {
+                return Err(AppError::BackupInvalid);
+            }
+            let (salt, sealed) = rest.split_at(16);
+            let salt: [u8; 16] = salt.try_into().map_err(|_| AppError::BackupInvalid)?;
+            let mut key = derive_backup_key(passphrase, &salt);
+            let restored = Self::from_encrypted_snapshot(transport, sealed, &key)
+                .map_err(|_| AppError::BackupInvalid);
+            key.zeroize();
+            return restored;
+        }
+        Err(AppError::BackupInvalid)
     }
 
     /// Delete a conversation LOCALLY ("delete for me"): drop its messages from the log AND the
@@ -3093,6 +3167,61 @@ mod tests {
                 b"junk",
                 "correct horse battery"
             )),
+            AppError::BackupInvalid
+        );
+    }
+
+    #[test]
+    fn current_export_is_argon2id_and_legacy_pbkdf2_backups_still_restore() {
+        use mercury_client::InMemoryTransport;
+        let transport = InMemoryTransport::new();
+        let mut alice = AppController::new(transport.clone());
+        let mut bob = AppController::new(transport.clone());
+        bob.publish_self().unwrap();
+        let bob_id = bob.account_id();
+        alice.add_contact(&bob_id).unwrap();
+        alice.send(&bob_id, "legacy hello").unwrap();
+        let pass = "correct horse battery";
+
+        // The CURRENT export is the memory-hard MERCBAK2 (Argon2id) format with a self-describing
+        // header carrying the exact parameters used.
+        let v2 = alice.export_backup(pass).unwrap();
+        assert!(v2.starts_with(BACKUP_MAGIC_V2));
+        assert_eq!(v2[8], BACKUP_KDF_ARGON2ID);
+        assert_eq!(
+            u32::from_le_bytes([v2[9], v2[10], v2[11], v2[12]]),
+            BACKUP_ARGON2_MEM_KIB
+        );
+
+        // Hand-build a LEGACY MERCBAK1 (PBKDF2) backup exactly as an older build would have, and
+        // prove it STILL restores through the back-compat import path.
+        let salt = [42u8; 16];
+        let key = derive_backup_key(pass, &salt);
+        let sealed = alice.to_encrypted_snapshot(&key);
+        let mut legacy = Vec::new();
+        legacy.extend_from_slice(BACKUP_MAGIC);
+        legacy.extend_from_slice(&salt);
+        legacy.extend_from_slice(&sealed);
+        let restored = AppController::import_backup(transport.clone(), &legacy, pass).unwrap();
+        assert_eq!(restored.account_id(), alice.account_id());
+        assert_eq!(restored.history(&bob_id).len(), 1);
+
+        // A MERCBAK2 header advertising absurd Argon2 memory is refused BEFORE any allocation
+        // (fail closed — a hostile/corrupt file cannot OOM the importer).
+        let err_of = |r: Result<AppController<InMemoryTransport>, AppError>| match r {
+            Ok(_) => panic!("an out-of-range KDF header must NOT restore"),
+            Err(e) => e,
+        };
+        let mut hostile = Vec::new();
+        hostile.extend_from_slice(BACKUP_MAGIC_V2);
+        hostile.push(BACKUP_KDF_ARGON2ID);
+        hostile.extend_from_slice(&(BACKUP_ARGON2_MAX_MEM_KIB + 1).to_le_bytes());
+        hostile.extend_from_slice(&BACKUP_ARGON2_ITERS.to_le_bytes());
+        hostile.extend_from_slice(&BACKUP_ARGON2_LANES.to_le_bytes());
+        hostile.extend_from_slice(&[0u8; 16]);
+        hostile.extend_from_slice(&[0u8; 64]);
+        assert_eq!(
+            err_of(AppController::import_backup(transport, &hostile, pass)),
             AppError::BackupInvalid
         );
     }
