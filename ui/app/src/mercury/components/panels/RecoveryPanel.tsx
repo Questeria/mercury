@@ -73,6 +73,7 @@ export function RecoveryPanel({ mobile, onClose, controller }: RecoveryPanelProp
   const [busy, setBusy] = useState<"export" | "restore" | "delete" | null>(null);
 
   const [confirmText, setConfirmText] = useState("");
+  const [alsoPeers, setAlsoPeers] = useState(false);
   const [deleteFeedback, setDeleteFeedback] = useState<Feedback>(null);
 
   const passTooShort = pass.length > 0 && pass.length < 9;
@@ -127,7 +128,7 @@ export function RecoveryPanel({ mobile, onClose, controller }: RecoveryPanelProp
     void (async () => {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
-        await invoke("delete_account");
+        await invoke("delete_account", { scope: alsoPeers ? "everyone" : "local" });
         // On success the shell restarts the process into a clean first run, so control never
         // returns here. If it somehow does, hold the busy state — the app is on its way out.
         setDeleteFeedback({ kind: "ok", text: "Erased — restarting…" });
@@ -275,6 +276,31 @@ export function RecoveryPanel({ mobile, onClose, controller }: RecoveryPanelProp
             backup, the account is gone for good. Messages already delivered to other people stay on
             their devices; undelivered messages waiting on the relay expire on their own.
           </div>
+          <label
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "flex-start",
+              fontSize: 11.5,
+              color: "var(--mc-ink2)",
+              lineHeight: 1.45,
+              marginBottom: 10,
+              cursor: canAct ? "pointer" : "default",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={alsoPeers}
+              onChange={(e) => setAlsoPeers(e.target.checked)}
+              disabled={!canAct}
+              style={{ marginTop: 2, flexShrink: 0 }}
+            />
+            <span>
+              Also delete my messages from the people I&apos;ve messaged. Best-effort — it reaches
+              contacts who are reachable now; someone offline, or who already kept a copy, is beyond
+              reach.
+            </span>
+          </label>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <input
               style={inputStyle}

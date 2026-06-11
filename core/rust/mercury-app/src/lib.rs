@@ -1207,6 +1207,35 @@ impl<T: Transport> AppController<T> {
         Ok(())
     }
 
+    /// Best-effort "delete for everyone, everywhere": send a delete-for-everyone control to EVERY
+    /// 1:1 conversation and end/leave EVERY group, so copies on REACHABLE peers' devices are removed
+    /// too. The account-delete flow calls this for the "also wipe from peers" scope, immediately
+    /// before the local erase. Every send is best-effort — an offline relay or a blocked peer is
+    /// tallied, never fatal: the caller erases this device regardless, because the user asked to
+    /// delete. (Keys are snapshotted first because the per-conversation calls mutate `contacts` /
+    /// `groups` as they go.) It cannot guarantee removal — a peer who is offline forever, or who
+    /// kept their own copy, is beyond our reach, and the UI says so plainly.
+    pub fn delete_for_everyone_all(&mut self) -> Value {
+        let peers: Vec<String> = self.contacts.keys().map(|id| hex_encode(id)).collect();
+        let groups: Vec<String> = self.groups.keys().map(|id| hex_encode(id)).collect();
+        let mut peers_wiped = 0u32;
+        let mut groups_ended = 0u32;
+        let mut failures = 0u32;
+        for p in &peers {
+            match self.delete_for_everyone(p) {
+                Ok(()) => peers_wiped += 1,
+                Err(_) => failures += 1,
+            }
+        }
+        for g in &groups {
+            match self.leave_group(g) {
+                Ok(()) => groups_ended += 1,
+                Err(_) => failures += 1,
+            }
+        }
+        json!({ "peers_wiped": peers_wiped, "groups_ended": groups_ended, "failures": failures })
+    }
+
     /// Apply an in-band control message from `from` (the bytes AFTER [`CONTROL_SENTINEL`]). Returns
     /// `true` iff a delete-for-everyone was applied (the conversation's history was wiped), so the
     /// poll loop can surface a single notice line. Unknown / malformed ops are ignored — a
@@ -3478,6 +3507,55 @@ mod tests {
             "prior messages wiped; only the notice remains"
         );
         assert!(hist[0].text.contains("deleted this conversation"));
+    }
+
+    #[test]
+    fn delete_for_everyone_all_wipes_every_conversation_and_reports_counts() {
+        use mercury_client::InMemoryTransport;
+        let transport = InMemoryTransport::new();
+        let mut alice = AppController::new(transport.clone());
+        let mut bob = AppController::new(transport.clone());
+        let mut carol = AppController::new(transport.clone());
+        bob.publish_self().unwrap();
+        carol.publish_self().unwrap();
+        let bob_id = bob.account_id();
+        let carol_id = carol.account_id();
+        let alice_id = alice.account_id();
+
+        alice.add_contact(&bob_id).unwrap();
+        alice.add_contact(&carol_id).unwrap();
+        alice.send(&bob_id, "hi bob").unwrap();
+        alice.send(&carol_id, "hi carol").unwrap();
+        bob.poll().unwrap();
+        carol.poll().unwrap();
+        assert_eq!(alice.history(&bob_id).len(), 1);
+        assert_eq!(alice.history(&carol_id).len(), 1);
+
+        // "Also wipe from peers": every 1:1 gets a delete-for-everyone; nothing left on this side.
+        let report = alice.delete_for_everyone_all();
+        assert_eq!(report["peers_wiped"].as_u64(), Some(2));
+        assert_eq!(report["groups_ended"].as_u64(), Some(0));
+        assert_eq!(report["failures"].as_u64(), Some(0));
+        assert!(alice.history(&bob_id).is_empty());
+        assert!(alice.history(&carol_id).is_empty());
+
+        // Each reachable peer receives the deletion control and wipes their copy.
+        let b = bob.poll().unwrap();
+        assert!(
+            b.iter()
+                .any(|m| m.text.contains("deleted this conversation"))
+        );
+        assert!(
+            bob.history(&alice_id)
+                .iter()
+                .all(|m| m.text.contains("deleted this conversation")),
+            "bob's prior messages from alice are wiped; only the notice remains"
+        );
+        let c = carol.poll().unwrap();
+        assert!(
+            c.iter()
+                .any(|m| m.text.contains("deleted this conversation"))
+        );
     }
 
     #[test]

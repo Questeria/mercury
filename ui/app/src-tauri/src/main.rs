@@ -302,11 +302,14 @@ async fn restore_backup(
 async fn delete_account(
     app: tauri::AppHandle,
     state: tauri::State<'_, Arc<AppState>>,
+    scope: String,
 ) -> Result<(), String> {
     let state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
         // Hold the controller lock so no concurrent command can re-seal a snapshot mid-erase.
-        let _guard = state.controller.lock().expect("controller mutex poisoned");
+        let mut controller = state.controller.lock().expect("controller mutex poisoned");
+        // 1. Remove the device key FIRST — the abortable step. If it fails, delete NOTHING (no peer
+        //    notifications, no snapshot removal): the account stays whole and the user retries.
         let keychain = MercuryKeychainAdapter::os(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
         keychain.delete_root_key().map_err(|e| {
             format!(
@@ -314,7 +317,13 @@ async fn delete_account(
                  unlock your system keychain and try again"
             )
         })?;
-        // Key is gone (ciphertext now unopenable); remove the snapshot + any half-written temp.
+        // 2. "everyone" scope: best-effort delete-for-everyone to every conversation, using the
+        //    in-memory sessions (which outlive the now-deleted key). Reachable peers drop their
+        //    copies; failures are tallied inside and ignored here — the user asked to delete.
+        if scope == "everyone" {
+            let _ = controller.delete_for_everyone_all();
+        }
+        // 3. Remove the snapshot + any half-written temp (the ciphertext is already unopenable).
         let _ = std::fs::remove_file(&state.snapshot_path);
         let _ = std::fs::remove_file(state.snapshot_path.with_extension("tmp"));
         Ok(())
