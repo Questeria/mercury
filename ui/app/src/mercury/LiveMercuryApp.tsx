@@ -512,6 +512,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               onAdd={addPeer}
               onCopy={() => copy("me", state.accountId)}
               copied={copied === "me"}
+              onRestore={() => setModal({ kind: "recovery" })}
             />
           ) : (
             <div className={styles.thread}>
@@ -1335,6 +1336,7 @@ function Welcome({
   onAdd,
   onCopy,
   copied,
+  onRestore,
 }: {
   accountId: string | null;
   error: string | null;
@@ -1346,6 +1348,7 @@ function Welcome({
   onAdd: (e: FormEvent) => void;
   onCopy: () => void;
   copied: boolean;
+  onRestore: () => void;
 }) {
   const [showQr, setShowQr] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -1421,6 +1424,26 @@ function Welcome({
         </button>
         {error && <div className={styles.connectErr}>{error}</div>}
       </form>
+      {!hasPeers && (
+        <button
+          type="button"
+          onClick={onRestore}
+          style={{
+            marginTop: 16,
+            alignSelf: "center",
+            background: "none",
+            border: "none",
+            color: "var(--mc-ink2)",
+            fontSize: 12,
+            cursor: "pointer",
+            textDecoration: "underline",
+            textUnderlineOffset: 3,
+          }}
+          data-tip="Reinstalled, or on a new machine? Restore your account from an encrypted backup."
+        >
+          Already have an account? Restore from a backup
+        </button>
+      )}
     </div>
   );
 }
