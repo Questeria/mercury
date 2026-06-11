@@ -9,20 +9,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=0.1.30" />
+  <link rel="stylesheet" href="/style.css?v=0.1.31" />
 </head>
 <body>
 
 <nav class="top">
   <div class="bar">
-    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.30</span></a>
+    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.31</span></a>
     <div class="links">
       <a href="/#why">why</a>
       <a href="/security.html">security</a>
       <a href="/#status">status</a>
       <a href="/faq.html">faq</a>
       <a class="here" href="/privacy.html">privacy</a>
-      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.30">download</a>
+      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.31">download</a>
     </div>
   </div>
 </nav>
@@ -95,6 +95,24 @@
         infrastructure is not involved at all.
       </p>
 
+      <h2>Your data: yours, persistent, and deletable</h2>
+      <p>
+        Your account — profile, contacts, and conversations — lives in an encrypted file on your
+        device, sealed by a key in your operating system's keychain. It survives app updates, and on
+        the same machine it survives an uninstall and reinstall. To move to a new machine, export an
+        encrypted backup from the app's Recovery panel and restore it on first run. Nothing
+        recoverable leaves your device unless you export that backup yourself.
+      </p>
+      <p>
+        You can erase everything at any time:
+        <strong>Recovery &rarr; Delete everything on this device</strong> removes the account and its
+        key from your device irreversibly, and can optionally send a delete-for-everyone to the people
+        you have messaged (best-effort &mdash; it reaches reachable contacts; it cannot reach someone
+        offline forever or who already kept a copy). Undelivered messages waiting on a relay expire on
+        their own. Full details, including the honest limits, are in
+        <a href="https://github.com/Questeria/mercury/blob/main/docs/DATA-HANDLING.md">DATA-HANDLING.md</a>.
+      </p>
+
       <h2>Data sharing</h2>
       <p>
         Website hosting and security processing is provided by Cloudflare. The Windows installer is
@@ -125,6 +143,6 @@
   </div>
 </footer>
 
-<script src="/site.js?v=0.1.30"></script>
+<script src="/site.js?v=0.1.31"></script>
 </body>
 </html>
