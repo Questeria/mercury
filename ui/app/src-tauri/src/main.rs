@@ -291,6 +291,42 @@ async fn restore_backup(
     .map_err(|e| format!("restore task failed: {e}"))?
 }
 
+/// Erase this device's Mercury account: remove the OS-keychain device key, then the encrypted
+/// snapshot, then RESTART into a clean first run. Order is deliberate and fail-closed: the key is
+/// deleted FIRST — if that fails we stop and delete nothing, so the account stays whole and openable
+/// and the user can simply retry (never a half-wiped state). Only once the key is gone (which makes
+/// the ciphertext permanently unopenable) do we remove the snapshot file. The restart discards the
+/// in-memory controller, so no later persist can resurrect the account. This is LOCAL erasure (this
+/// device + its at-rest data); server traces and peer copies are handled by the account-delete flow.
+#[tauri::command]
+async fn delete_account(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<AppState>>,
+) -> Result<(), String> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        // Hold the controller lock so no concurrent command can re-seal a snapshot mid-erase.
+        let _guard = state.controller.lock().expect("controller mutex poisoned");
+        let keychain = MercuryKeychainAdapter::os(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
+        keychain.delete_root_key().map_err(|e| {
+            format!(
+                "could not remove the device key from the OS keychain ({e}); nothing was deleted — \
+                 unlock your system keychain and try again"
+            )
+        })?;
+        // Key is gone (ciphertext now unopenable); remove the snapshot + any half-written temp.
+        let _ = std::fs::remove_file(&state.snapshot_path);
+        let _ = std::fs::remove_file(state.snapshot_path.with_extension("tmp"));
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("erase task failed: {e}"))??;
+    // Relaunch into a clean first run; the live in-memory account is dropped without re-persisting.
+    app.restart();
+    #[allow(unreachable_code)]
+    Ok(())
+}
+
 /// Fetch the device root key from the OS keychain, provisioning a fresh random one ONLY on a
 /// genuine first run (`NotFound`).
 ///
@@ -511,7 +547,8 @@ fn main() {
             command,
             wait_for_delivery,
             save_file,
-            restore_backup
+            restore_backup,
+            delete_account
         ])
         .build(tauri::generate_context!())
         .expect("error while building the Mercury desktop app")

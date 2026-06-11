@@ -49,6 +49,15 @@ const btnStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
+// Destructive actions read as caution: outlined in the warn colour rather than the accent fill, so
+// "Delete my data" can never be mistaken for the safe primary action.
+const dangerBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  background: "transparent",
+  color: "var(--mc-warn)",
+  border: "1px solid var(--mc-warn)",
+};
+
 export function RecoveryPanel({ mobile, onClose, controller }: RecoveryPanelProps) {
   const tauri = inTauri();
   const canAct = tauri && !!controller;
@@ -61,7 +70,10 @@ export function RecoveryPanel({ mobile, onClose, controller }: RecoveryPanelProp
   const [restorePass, setRestorePass] = useState("");
   const [restoreFeedback, setRestoreFeedback] = useState<Feedback>(null);
 
-  const [busy, setBusy] = useState<"export" | "restore" | null>(null);
+  const [busy, setBusy] = useState<"export" | "restore" | "delete" | null>(null);
+
+  const [confirmText, setConfirmText] = useState("");
+  const [deleteFeedback, setDeleteFeedback] = useState<Feedback>(null);
 
   const passTooShort = pass.length > 0 && pass.length < 9;
   const mismatch = confirm.length > 0 && confirm !== pass;
@@ -103,6 +115,26 @@ export function RecoveryPanel({ mobile, onClose, controller }: RecoveryPanelProp
         // Wrong passphrase / damaged file: the shell rejected before touching the store — nothing
         // changed. Show the real error and let the user try again.
         setRestoreFeedback({ kind: "warn", text: e instanceof Error ? e.message : String(e) });
+        setBusy(null);
+      }
+    })();
+  };
+
+  const doDelete = () => {
+    if (!canAct || busy !== null || confirmText !== "DELETE") return;
+    setBusy("delete");
+    setDeleteFeedback(null);
+    void (async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("delete_account");
+        // On success the shell restarts the process into a clean first run, so control never
+        // returns here. If it somehow does, hold the busy state — the app is on its way out.
+        setDeleteFeedback({ kind: "ok", text: "Erased — restarting…" });
+      } catch (e) {
+        // Keychain locked / access denied → the shell deleted NOTHING (fail-closed). The account is
+        // intact; surface the reason and let the user unlock and retry.
+        setDeleteFeedback({ kind: "warn", text: e instanceof Error ? e.message : String(e) });
         setBusy(null);
       }
     })();
@@ -231,6 +263,54 @@ export function RecoveryPanel({ mobile, onClose, controller }: RecoveryPanelProp
           <strong>and</strong> the passphrase IS you — they can read your history and message as
           you. Store it offline (a USB stick in a drawer beats a cloud folder), and prefer a long
           passphrase you don&apos;t use anywhere else.
+        </div>
+      </Section>
+
+      <Section kicker="Delete everything on this device">
+        <div className={styles.card}>
+          <div style={{ fontSize: 11.5, color: "var(--mc-ink2)", lineHeight: 1.55, marginBottom: 10 }}>
+            Permanently erases your Mercury account from <strong>this device</strong> — identity
+            keys, contacts, sessions, and all message history — and removes the device key from your
+            OS keychain. <strong>This cannot be undone.</strong> If you haven&apos;t exported a
+            backup, the account is gone for good. Messages already delivered to other people stay on
+            their devices; undelivered messages waiting on the relay expire on their own.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <input
+              style={inputStyle}
+              type="text"
+              placeholder="Type DELETE to confirm"
+              value={confirmText}
+              onChange={(e) => {
+                setConfirmText(e.target.value);
+                setDeleteFeedback(null);
+              }}
+              aria-label="Type DELETE to confirm erasing this device"
+              autoComplete="off"
+              spellCheck={false}
+              disabled={!canAct}
+            />
+            <button
+              type="button"
+              style={dangerBtnStyle}
+              disabled={!canAct || busy !== null || confirmText !== "DELETE"}
+              onClick={doDelete}
+            >
+              {busy === "delete" ? "Erasing…" : "Delete my data"}
+            </button>
+          </div>
+          {deleteFeedback && (
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 11.5,
+                lineHeight: 1.45,
+                color: deleteFeedback.kind === "ok" ? "var(--mc-accent)" : "var(--mc-warn)",
+              }}
+            >
+              {deleteFeedback.text}
+            </div>
+          )}
         </div>
       </Section>
     </PanelShell>

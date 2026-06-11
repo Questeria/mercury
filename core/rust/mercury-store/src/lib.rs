@@ -672,6 +672,27 @@ impl MercuryKeychainAdapter {
             }
         }
     }
+
+    /// Permanently delete the device root key from the OS keychain — account erasure ("delete my
+    /// data"). No-op for the dev adapter. IDEMPOTENT: an already-absent key is success, since the
+    /// goal state is simply "no key here". After this returns Ok, any snapshot that was sealed under
+    /// the key is cryptographically unopenable, so the caller MUST also delete the snapshot file;
+    /// the two together leave nothing recoverable on the device.
+    pub fn delete_root_key(&self) -> Result<(), KeychainError> {
+        match &self.source {
+            KeySource::DevMemory(_) => Ok(()),
+            KeySource::Os { service, account } => {
+                let entry =
+                    keyring::Entry::new(service, account).map_err(KeychainError::Keyring)?;
+                match entry.delete_credential() {
+                    Ok(()) => Ok(()),
+                    // Already gone — erasure is idempotent; the desired end state holds.
+                    Err(keyring::Error::NoEntry) => Ok(()),
+                    Err(other) => Err(KeychainError::Keyring(other)),
+                }
+            }
+        }
+    }
 }
 
 /// Errors from OS-keychain key access. Never includes key bytes.
