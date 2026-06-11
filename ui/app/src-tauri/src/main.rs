@@ -32,6 +32,12 @@ const KEYCHAIN_ACCOUNT: &str = "device-root";
 /// local relay during development).
 const DEFAULT_RELAY: &str = "https://relay.mercury-messaging.com";
 const SNAPSHOT_FILE: &str = "mercury-snapshot.bin";
+/// Filename of the durable snapshot MIRROR (an automatic backup). It lives in the LOCAL app-data dir
+/// — a different directory from the primary (Roaming) snapshot on Windows — so the account survives
+/// the primary directory being cleared/corrupted while the OS-keychain device key lives on. It is the
+/// snapshot, byte-for-byte (same device-key seal): no passphrase, no new stored secret, restored
+/// automatically on next launch if the primary is gone.
+const MIRROR_FILE: &str = "mercury-account.mirror";
 const WINDOW_ICON: &[u8] = include_bytes!("../icons/128x128.png");
 
 /// The DEFAULT relay's username-directory VRF public key, BAKED into the signed build — real
@@ -55,6 +61,10 @@ struct AppState {
     controller: Mutex<AppController<RelayTransport>>,
     key: [u8; 32],
     snapshot_path: PathBuf,
+    /// Durable mirror of the snapshot (automatic backup) in the LOCAL app-data dir. `None` if that
+    /// directory couldn't be resolved at startup. Written best-effort after every good primary write;
+    /// read as a fallback when the primary snapshot is missing. Never the source of truth.
+    mirror_path: Option<PathBuf>,
     /// A SEPARATE relay handle used only by `wait_for_delivery` to long-poll `/relay/wait`, so a
     /// multi-second wait runs WITHOUT holding the `controller` lock (send/poll stay responsive).
     /// The wait carries a proof pre-signed by the controller, so this handle needs no clock sync.
@@ -152,6 +162,9 @@ async fn command(state: tauri::State<'_, Arc<AppState>>, body: String) -> Result
             if let Err(e) = persisted {
                 eprintln!("mercury-desktop: snapshot persist failed (kept previous snapshot): {e}");
                 let _ = std::fs::remove_file(&tmp);
+            } else {
+                // Primary write landed — refresh the durable mirror (automatic backup).
+                write_snapshot_mirror(&state, &blob);
             }
         }
         out
@@ -192,7 +205,29 @@ fn persist_snapshot(state: &AppState, ctrl: &AppController<RelayTransport>) -> R
         .map_err(|e| {
             let _ = std::fs::remove_file(&tmp);
             format!("snapshot persist failed: {e}")
-        })
+        })?;
+    write_snapshot_mirror(state, &blob);
+    Ok(())
+}
+
+/// Best-effort durable mirror of the encrypted snapshot to [`AppState::mirror_path`] — the automatic
+/// backup. Same crash-consistent temp+rename discipline as the primary, and the same bytes (same
+/// device-key seal). A mirror failure is swallowed: the primary write already succeeded and remains
+/// the source of truth, so the account is never at risk if the mirror location is unavailable.
+fn write_snapshot_mirror(state: &AppState, blob: &[u8]) {
+    let Some(mirror) = state.mirror_path.as_ref() else {
+        return;
+    };
+    if let Some(dir) = mirror.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let tmp = mirror.with_extension("tmp");
+    if std::fs::write(&tmp, blob)
+        .and_then(|()| std::fs::rename(&tmp, mirror))
+        .is_err()
+    {
+        let _ = std::fs::remove_file(&tmp);
+    }
 }
 
 /// Save bytes (base64 from the webview) into the user's Downloads folder under a sanitized name,
@@ -323,9 +358,14 @@ async fn delete_account(
         if scope == "everyone" {
             let _ = controller.delete_for_everyone_all();
         }
-        // 3. Remove the snapshot + any half-written temp (the ciphertext is already unopenable).
+        // 3. Remove the snapshot + any half-written temp, AND the durable mirror (automatic backup)
+        //    + its temp, so the erase leaves nothing recoverable on disk.
         let _ = std::fs::remove_file(&state.snapshot_path);
         let _ = std::fs::remove_file(state.snapshot_path.with_extension("tmp"));
+        if let Some(mirror) = state.mirror_path.as_ref() {
+            let _ = std::fs::remove_file(mirror);
+            let _ = std::fs::remove_file(mirror.with_extension("tmp"));
+        }
         Ok(())
     })
     .await
@@ -440,6 +480,15 @@ fn main() {
             let data_dir = app.path().app_data_dir().expect("resolve app-data dir");
             std::fs::create_dir_all(&data_dir).ok();
             let snapshot_path = data_dir.join(SNAPSHOT_FILE);
+            // Durable automatic-backup mirror in the LOCAL app-data dir (a different directory from
+            // the Roaming snapshot on Windows), so the account survives the primary directory being
+            // cleared or corrupted while the keychain device key persists. Best-effort: `None` if the
+            // local dir can't be resolved on this platform.
+            let mirror_path = app
+                .path()
+                .app_local_data_dir()
+                .ok()
+                .map(|d| d.join(MIRROR_FILE));
 
             let keychain = MercuryKeychainAdapter::os(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
             let key = device_key(&keychain)?;
@@ -477,7 +526,24 @@ fn main() {
                         AppController::new(RelayTransport::new(relay.clone()))
                     }
                 },
-                Err(_) => AppController::new(RelayTransport::new(relay.clone())),
+                // Primary snapshot missing (e.g. the Roaming app-data dir was cleared). Self-heal
+                // from the durable mirror if it opens under the device key; otherwise start fresh.
+                Err(_) => match mirror_path.as_ref().and_then(|m| std::fs::read(m).ok()) {
+                    Some(blob) => match AppController::from_encrypted_snapshot(
+                        RelayTransport::new(relay.clone()),
+                        &blob,
+                        &key,
+                    ) {
+                        Ok(c) => {
+                            eprintln!(
+                                "mercury-desktop: primary snapshot missing — self-healed from the durable mirror"
+                            );
+                            c
+                        }
+                        Err(_) => AppController::new(RelayTransport::new(relay.clone())),
+                    },
+                    None => AppController::new(RelayTransport::new(relay.clone())),
+                },
             };
 
             // Out-of-band VRF pin for the DEFAULT relay: the key ships inside this signed build,
@@ -496,6 +562,7 @@ fn main() {
                 controller: Mutex::new(controller),
                 key,
                 snapshot_path,
+                mirror_path,
                 wait_transport,
                 relay_url: relay,
             }));

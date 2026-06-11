@@ -47,9 +47,17 @@ an interrupted update cannot corrupt or reset the snapshot.
 
 ## Across uninstall / reinstall
 
-**Same machine:** by default your data **survives**. The uninstaller does not erase the app-data
-directory, and the OS keychain entry persists independently of the app, so a reinstall reattaches to
-your existing account and restores it.
+**Same machine:** your data **survives** unless you choose to erase it. On Windows the uninstaller
+**asks** — *Keep your encrypted data so reinstalling restores your account, or erase it now?* — and
+defaults to **Keep** (so a silent/automated uninstall never destroys data). If you keep it (or on
+platforms without that prompt), a reinstall reattaches to your existing account via the snapshot + the
+OS keychain key.
+
+The snapshot is also **automatically mirrored** to a second local directory and **self-healed** on
+launch, so the account survives the primary directory being cleared or corrupted — as long as the
+keychain device key remains. This automatic backup is the snapshot byte-for-byte (same device-key
+seal): no passphrase, no new stored secret, and it is removed by both the uninstall "erase" choice and
+the in-app delete.
 
 **New machine, or after a full wipe:** restore from an **encrypted backup**. In the Recovery panel,
 *Export an encrypted backup* writes a passphrase-sealed `.mercbak` file (memory-hard **Argon2id** key
@@ -93,8 +101,6 @@ learns nothing it could decrypt by doing so.
 
 ## Roadmap (not yet shipped — listed so this page never overstates)
 
-- **Automatic local backups** to a durable folder, so survival doesn't depend on remembering to export.
-- An **uninstall-time prompt**: *Keep your encrypted data for a reinstall, or erase everything now?*
 - **Opt-in end-to-end-encrypted cloud backup** (the relay would store only an opaque, passphrase-sealed
   blob it cannot read) for effortless restore on any machine.
 - **Server-side revocation** of the contact card and username on account delete.

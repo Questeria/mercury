@@ -34,3 +34,17 @@
 
   ExecWait '"$SYSDIR\ie4uinit.exe" -show'
 !macroend
+
+; On uninstall, ask whether to KEEP the encrypted account data (so reinstalling restores the account)
+; or ERASE it now. Default is KEEP, so a silent/automated uninstall never destroys data. "No" removes
+; the encrypted snapshot AND its durable mirror from this PC. The OS-keychain device key is left as a
+; harmless orphan (useless without the ciphertext) — the in-app "Delete my data" is what removes the
+; key as well, for a full cryptographic erase.
+!macro NSIS_HOOK_PREUNINSTALL
+  MessageBox MB_YESNO|MB_ICONQUESTION \
+    "Keep your encrypted Mercury data on this PC, so reinstalling restores your account?$\n$\nYes = keep it (recommended)$\nNo = erase your account data now (cannot be undone)" \
+    /SD IDYES IDYES mercury_keep_data
+    RMDir /r "$APPDATA\com.mercury.messaging"
+    RMDir /r "$LOCALAPPDATA\com.mercury.messaging"
+  mercury_keep_data:
+!macroend
