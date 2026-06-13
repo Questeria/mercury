@@ -1,0 +1,12 @@
+# The auto-update manifest must always be read fresh — it is the pointer to the current version.
+# (Cloudflare already serves it DYNAMIC; no-store makes the intent explicit and is strictly safest.)
+/updates/latest.json
+  Cache-Control: no-store
+
+# Version-pinned installers are immutable: the bytes at a /download/<version>/ URL never change, so
+# they are safe to cache forever AND can never skew against the (always-fresh) manifest signature.
+# This is the fix for the rapid-release auto-update breakage — the updater downloads a version-locked
+# URL, so even a stale edge cache yields the exact bytes the manifest is signed for. (Correctness does
+# not depend on this header: an immutable URL is correct under any cache; this only skips revalidation.)
+/download/:version/*
+  Cache-Control: public, max-age=31536000, immutable

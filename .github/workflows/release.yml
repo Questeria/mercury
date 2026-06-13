@@ -4,8 +4,11 @@ name: Build Windows installer
 #
 # This repository is PRIVATE, so GitHub Release assets are not publicly downloadable. The public
 # download is therefore served from the static host (see docs/WEBSITE-AND-RELEASES.md): download
-# this run's "mercury-windows-installer" artifact, drop the two files into site/download/, and
-# deploy the site. The page links to /download/Mercury-Setup-Windows-x64.exe on the same origin.
+# this run's "mercury-windows-installer" artifact and deploy its contents with the site —
+#   - the stable-named exe/sha256/sig + latest.json  -> site/download/ and site/updates/
+#   - the version-pinned <version>/ subdir            -> site/download/<version>/
+# The page links to /download/Mercury-Setup-Windows-x64.exe (humans); the auto-updater manifest
+# points at the immutable /download/<version>/Mercury-Setup-Windows-x64.exe (never cache-skews).
 #
 # Trigger: a version tag (git tag v0.1.0 && git push origin v0.1.0) or a manual run.
 
@@ -146,7 +149,7 @@ jobs:
           "$hash  Mercury-Setup-Windows-x64.exe" | Set-Content -Encoding ascii dist/Mercury-Setup-Windows-x64.exe.sha256
           Write-Host "SHA-256: $hash"
 
-      - name: Generate auto-update manifest (latest.json)
+      - name: Generate auto-update manifest (latest.json) + version-pinned installer copy
         shell: pwsh
         run: |
           if (-not (Test-Path dist/Mercury-Setup-Windows-x64.exe.sig)) {
@@ -154,6 +157,16 @@ jobs:
           } else {
             $ver = (Get-Content ui/app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
             $sig = (Get-Content dist/Mercury-Setup-Windows-x64.exe.sig -Raw).Trim()
+            # Version-pinned, immutable copy of the FINAL signed installer. The updater points at THIS
+            # URL (not the reused /download/Mercury-Setup-Windows-x64.exe), so a stale CDN cache can
+            # never feed the app bytes that mismatch the always-fresh manifest signature. That skew —
+            # dynamic manifest vs a 4h-cached reused-filename binary — is what broke auto-update across
+            # same-day rapid releases; a version-locked URL is immutable and can never skew. The stable
+            # name is kept for the website's manual-download button (humans, not the updater).
+            New-Item -ItemType Directory -Force -Path "dist/$ver" | Out-Null
+            Copy-Item dist/Mercury-Setup-Windows-x64.exe        "dist/$ver/Mercury-Setup-Windows-x64.exe"
+            Copy-Item dist/Mercury-Setup-Windows-x64.exe.sig    "dist/$ver/Mercury-Setup-Windows-x64.exe.sig"
+            Copy-Item dist/Mercury-Setup-Windows-x64.exe.sha256 "dist/$ver/Mercury-Setup-Windows-x64.exe.sha256"
             $m = [ordered]@{
               version   = $ver
               notes     = "Mercury $ver"
@@ -161,12 +174,12 @@ jobs:
               platforms = [ordered]@{
                 "windows-x86_64" = [ordered]@{
                   signature = $sig
-                  url       = "https://mercury-messaging.com/download/Mercury-Setup-Windows-x64.exe"
+                  url       = "https://mercury-messaging.com/download/$ver/Mercury-Setup-Windows-x64.exe"
                 }
               }
             }
             $m | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 dist/latest.json
-            Write-Host "wrote dist/latest.json (version $ver)"
+            Write-Host "wrote dist/latest.json (version $ver) + dist/$ver/ version-pinned installer"
           }
 
       - name: Upload installer + checksum (+ update manifest) artifact
