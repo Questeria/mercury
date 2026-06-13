@@ -1,12 +1,14 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 
 import { fileToBase64 } from "../b64file";
-import { LockIcon, PaperclipIcon, SendIcon } from "../icons";
+import { LockIcon, PaperclipIcon, SendIcon, SmileIcon } from "../icons";
 import { labelGloss, toneVar } from "../strings";
 import type { MercuryThreadState, PanelId } from "../types";
 import styles from "./Composer.module.css";
 
 const MAX_ATTACH_BYTES = 4 * 1024 * 1024;
+
+const EMOJIS = ["👍","❤️","😂","🎉","🔥","🙏","👀","✅","💯","😊","🤔","😍","😎","🚀","💪","✨","👏","🙌","😢","😮","🥳","🤝","😅","🤙"];
 
 interface ComposerProps {
   thread: MercuryThreadState;
@@ -27,6 +29,7 @@ export function Composer({ thread, mobile, onOpenPanel, onAttach }: ComposerProp
   const fileRef = useRef<HTMLInputElement>(null);
   const [attaching, setAttaching] = useState(false);
   const [attachErr, setAttachErr] = useState<string | null>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
 
   const placeholder = !canSend
     ? `Withheld / ${reason.gloss}`
@@ -90,6 +93,42 @@ export function Composer({ thread, mobile, onOpenPanel, onAttach }: ComposerProp
           aria-label="Message"
         />
         {!thread.draft && canSend && <span className={`${styles.idleCursor} blink`} />}
+        <div className={styles.emojiCell}>
+          <div className={styles.emojiWrap}>
+            <button
+              type="button"
+              className={styles.attachBtn}
+              onClick={() => setShowEmoji((v) => !v)}
+              disabled={!canSend}
+              data-tip="Emoji"
+              aria-label="Insert emoji"
+              aria-expanded={showEmoji}
+            >
+              <SmileIcon size={16} className={styles.icon} />
+            </button>
+            {showEmoji && (
+              <>
+                <div className={styles.emojiBackdrop} onClick={() => setShowEmoji(false)} />
+                <div className={styles.emojiPop} role="menu" aria-label="Emoji">
+                  {EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      className={styles.emojiItem}
+                      role="menuitem"
+                      onClick={() => {
+                        thread.setDraft(thread.draft + e);
+                        setShowEmoji(false);
+                      }}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
         <div className={styles.attachCell}>
           {onAttach ? (
             <>

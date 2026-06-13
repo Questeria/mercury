@@ -28,7 +28,7 @@ import { PolicyPanel } from "./components/panels/PolicyPanel";
 import { RecoveryPanel } from "./components/panels/RecoveryPanel";
 import { TrustPanel } from "./components/panels/TrustPanel";
 import { UpdatesPanel } from "./components/panels/UpdatesPanel";
-import { PreviewContext } from "./components/panels/PanelShell";
+import { EmbeddedContext, PreviewContext } from "./components/panels/panelContext";
 import { downloadViaBlob, saveToDownloads } from "./b64file";
 import { fmtDay, fmtMsgTime, sameDay } from "./format";
 import { inviteLink } from "./invite";
@@ -252,6 +252,8 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
     useLiveConversations(messaging);
   const [peerInput, setPeerInput] = useState("");
   const [query, setQuery] = useState("");
+  const [railCollapsed, setRailCollapsed] = useState(false);
+  const [railView, setRailView] = useState<"messages" | "contacts">("messages");
   const [panelOpen, setPanelOpen] = useState(true);
   const [copied, setCopied] = useState<"me" | "peer" | null>(null);
   const mobile = useViewport() < MOBILE_BP;
@@ -344,6 +346,12 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
         ),
     );
   }, [q, peers, state.conversations]);
+  // Contacts view: 1:1 people only (no groups), filtered by the same search box, sorted A->Z.
+  const contactPeers = useMemo(() => {
+    const list = peers.filter((p) => !state.groups[p.peer]);
+    const filtered = q ? list.filter((p) => p.person.name.toLowerCase().includes(q)) : list;
+    return [...filtered].sort((a, b) => a.person.name.localeCompare(b.person.name));
+  }, [peers, state.groups, q]);
   // Ids of the ACTIVE thread's messages whose text contains the query: those bubbles get a subtle
   // static tint and the thread header shows the count. Empty set when the query is empty.
   const activeMatchIds = useMemo(() => {
@@ -387,14 +395,46 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
       >
         <div className="shimmer-bg" />
 
+        {/* ---------- floating top-right quick controls ---------- */}
+        <div className={styles.quickBar} role="toolbar" aria-label="Quick controls">
+          <button
+            type="button"
+            className={styles.quickBtn}
+            onClick={() => setModal({ kind: "settings" })}
+            data-tip="Settings"
+            aria-label="Settings"
+          >
+            ⚙
+          </button>
+          <button
+            type="button"
+            className={styles.quickBtn}
+            data-active={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
+            onClick={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
+            data-tip="Inspector"
+            aria-label="Toggle inspector"
+          >
+            ⓘ
+          </button>
+          <button
+            type="button"
+            className={styles.quickBtn}
+            onClick={() => setTheme(dark ? "light" : "dark")}
+            data-tip={dark ? "Light mode" : "Dark mode"}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {dark ? "☀" : "☾"}
+          </button>
+        </div>
+
         {/* ---------- rail ---------- */}
-        <aside className={styles.rail}>
+        <aside className={styles.rail} data-collapsed={railCollapsed ? "" : undefined}>
           <div className={styles.railHead}>
             <span className={styles.logo} aria-hidden>
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.26</span>
+            <span className={`${styles.version} mono`}>v0.1.33</span>
             <button
               className={styles.gear}
               type="button"
@@ -403,6 +443,16 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               data-tip="Settings"
             >
               ⚙
+            </button>
+            <button
+              className={styles.railToggle}
+              type="button"
+              onClick={() => setRailCollapsed((v) => !v)}
+              aria-label={railCollapsed ? "Expand conversation list" : "Collapse conversation list"}
+              aria-expanded={!railCollapsed}
+              data-tip={railCollapsed ? "Expand" : "Collapse"}
+            >
+              {railCollapsed ? "›" : "‹"}
             </button>
           </div>
 
@@ -432,6 +482,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
             </button>
           </form>
 
+          {!railCollapsed && (
           <button
             type="button"
             onClick={() => setNewGroupOpen(true)}
@@ -454,22 +505,71 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
           >
             + New group
           </button>
+          )}
 
-          <div className={`${styles.kicker} mono`}>conversations</div>
+          <div className={styles.railSeg} role="tablist" aria-label="Rail view">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={railView === "messages"}
+              className={styles.railSegBtn}
+              data-active={railView === "messages" ? "" : undefined}
+              onClick={() => setRailView("messages")}
+            >
+              Messages
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={railView === "contacts"}
+              className={styles.railSegBtn}
+              data-active={railView === "contacts" ? "" : undefined}
+              onClick={() => setRailView("contacts")}
+            >
+              Contacts
+            </button>
+          </div>
+
+          <div className={`${styles.kicker} mono`}>
+            {railView === "messages" ? "conversations" : "contacts"}
+          </div>
           <div className={styles.convList}>
-            {shownPeers.length === 0 && (
-              <div className={styles.railEmpty}>
-                {peers.length === 0 ? "No conversations yet." : "No matches."}
-              </div>
+            {railView === "messages" ? (
+              <>
+                {shownPeers.length === 0 && (
+                  <div className={styles.railEmpty}>
+                    {peers.length === 0 ? "No conversations yet." : "No matches."}
+                  </div>
+                )}
+                {shownPeers.map((p) => (
+                  <ConvRow
+                    key={p.peer}
+                    p={p}
+                    active={active?.peer === p.peer}
+                    onClick={() => selectConv(p.peer)}
+                    collapsed={railCollapsed}
+                  />
+                ))}
+              </>
+            ) : (
+              <>
+                {contactPeers.length === 0 && (
+                  <div className={styles.railEmpty}>
+                    {peers.length === 0 ? "No contacts yet." : "No matches."}
+                  </div>
+                )}
+                {contactPeers.map((p) => (
+                  <ConvRow
+                    key={p.peer}
+                    p={p}
+                    active={active?.peer === p.peer}
+                    onClick={() => selectConv(p.peer)}
+                    collapsed={railCollapsed}
+                    contactMode
+                  />
+                ))}
+              </>
             )}
-            {shownPeers.map((p) => (
-              <ConvRow
-                key={p.peer}
-                p={p}
-                active={active?.peer === p.peer}
-                onClick={() => selectConv(p.peer)}
-              />
-            ))}
           </div>
 
           <button
@@ -728,17 +828,6 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               </button>
             </div>
             <div className={styles.panelScroll}>
-              {state.activeDecisions ? (
-                <div className={styles.decisions}>
-                  <DecisionCard title="bootstrap" view={state.activeDecisions.bootstrap} />
-                  <DecisionCard title="outbound send" view={state.activeDecisions.outbound} />
-                  <DecisionCard title="last receive" view={state.activeDecisions.receive} />
-                </div>
-              ) : (
-                <div className={`${styles.decisionsPending} mono`}>
-                  fetching mercury-core decision views…
-                </div>
-              )}
               <Field label="You" value={state.accountId} onCopy={() => copy("me", state.accountId)} copied={copied === "me"} />
               <Field
                 label={activeGroup ? "Group" : "Peer"}
@@ -766,6 +855,35 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                 </div>
               )}
               <div className={styles.card}>
+                <div className={`${styles.cardKicker} mono`}>this conversation</div>
+                {!activeGroup && (
+                  <Row
+                    k="safety number"
+                    v={state.verified.includes(active.peer) ? "verified" : "not verified"}
+                    tone={state.verified.includes(active.peer) ? "ok" : undefined}
+                  />
+                )}
+                {!activeGroup && (
+                  <Row
+                    k="ai access"
+                    v={state.blocked.includes(active.peer) ? "blocked" : "scoped"}
+                    tone={state.blocked.includes(active.peer) ? undefined : "ok"}
+                  />
+                )}
+                {activeGroup && <Row k="members" v={`${activeGroup.members.length} / 16`} />}
+                <Row
+                  k="disappearing"
+                  v={fmtDisappear(state.disappearing[active.peer] ?? 0)}
+                  tone={(state.disappearing[active.peer] ?? 0) > 0 ? "irid" : undefined}
+                />
+                <Row k="pinned" v={state.pinned.includes(active.peer) ? "yes" : "no"} />
+                <Row k="notifications" v={state.muted.includes(active.peer) ? "muted" : "on"} />
+                <Row
+                  k="shared files"
+                  v={String(activeConv ? activeConv.messages.filter((m) => m.att).length : 0)}
+                />
+              </div>
+              <div className={styles.card}>
                 <div className={`${styles.cardKicker} mono`}>transport</div>
                 <Row k="relay" v="opaque router" />
                 <Row k="server sees" v="ciphertext only" tone="ok" />
@@ -773,6 +891,20 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                 <Row k="received" v={String(inCount)} />
               </div>
               <EventTail events={state.events} />
+              {state.activeDecisions ? (
+                <details className={`${styles.decisionRaw} mono`}>
+                  <summary>mercury-core decision views</summary>
+                  <div className={styles.decisions} style={{ marginTop: 8 }}>
+                    <DecisionCard title="bootstrap" view={state.activeDecisions.bootstrap} />
+                    <DecisionCard title="outbound send" view={state.activeDecisions.outbound} />
+                    <DecisionCard title="last receive" view={state.activeDecisions.receive} />
+                  </div>
+                </details>
+              ) : (
+                <div className={`${styles.decisionsPending} mono`}>
+                  fetching mercury-core decision views…
+                </div>
+              )}
               <div className={styles.panelNote}>
                 The server stores and forwards only sealed bytes. Keys never leave the device; this
                 screen only sees plaintext you send or receive.
@@ -829,9 +961,10 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
         />
       )}
 
-      {modal && !isLiveFeatureKind(modal.kind) && (
-        <ModalHost
-          modal={modal as LegacyModalState}
+      {modal && modal.kind === "settings" && (
+        <SettingsHub
+          mobile={mobile}
+          onClose={() => setModal(null)}
           accountId={state.accountId}
           backendUrl={backendUrl}
           convCount={peers.length}
@@ -839,7 +972,25 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
           setTheme={setTheme}
           profile={profile}
           setProfile={setProfile}
-          openFeature={openFeaturePanel}
+          me={me}
+          thread={composer}
+          controller={controller}
+          convState={state}
+          active={active}
+          trust={trustState}
+          setTrust={setTrustState}
+          ai={aiState}
+          setAi={setAiState}
+          openPanel={openFeaturePanel}
+        />
+      )}
+
+      {modal && !isLiveFeatureKind(modal.kind) && modal.kind !== "settings" && (
+        <ModalHost
+          modal={modal as LegacyModalState}
+          convCount={peers.length}
+          profile={profile}
+          setProfile={setProfile}
           onClose={() => setModal(null)}
         />
       )}
@@ -847,9 +998,9 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   );
 }
 
-function ConvRow({ p, active, onClick }: { p: PeerView; active: boolean; onClick: () => void }) {
+function ConvRow({ p, active, onClick, collapsed, contactMode }: { p: PeerView; active: boolean; onClick: () => void; collapsed?: boolean; contactMode?: boolean }) {
   return (
-    <button className={styles.convRow} data-active={active ? "" : undefined} onClick={onClick} type="button">
+    <button className={styles.convRow} data-active={active ? "" : undefined} onClick={onClick} type="button" data-tip={collapsed ? p.person.name : undefined}>
       <Avatar person={p.person} size={30} />
       <div className={styles.convText}>
         <div className={styles.convName}>
@@ -861,12 +1012,28 @@ function ConvRow({ p, active, onClick }: { p: PeerView; active: boolean; onClick
           {p.person.name}
         </div>
         <div className={`${styles.convLast} mono`}>
-          {p.lastText ? p.lastText : p.connected ? "no messages yet" : "incoming"}
+          {contactMode
+            ? p.connected
+              ? "connected"
+              : "not connected yet"
+            : p.lastText
+              ? p.lastText
+              : p.connected
+                ? "no messages yet"
+                : "incoming"}
         </div>
       </div>
       {p.unread > 0 && <span className={styles.unread}>{p.unread}</span>}
     </button>
   );
+}
+
+/** Human-readable disappearing-timer label for the inspector (e.g. 30m / 6h / 7d / off). */
+function fmtDisappear(secs: number): string {
+  if (!secs) return "off";
+  if (secs < 3600) return `${Math.round(secs / 60)}m`;
+  if (secs < 86400) return `${Math.round(secs / 3600)}h`;
+  return `${Math.round(secs / 86400)}d`;
 }
 
 function DataStrip({
@@ -1483,25 +1650,15 @@ function ThemeIcon({ choice }: { choice: ThemeChoice }) {
 
 function ModalHost({
   modal,
-  accountId,
-  backendUrl,
   convCount,
-  theme,
-  setTheme,
   profile,
   setProfile,
-  openFeature,
   onClose,
 }: {
   modal: LegacyModalState;
-  accountId: string | null;
-  backendUrl: string;
   convCount: number;
-  theme: ThemeChoice;
-  setTheme: (t: ThemeChoice) => void;
   profile: Profile;
   setProfile: (p: Profile) => void;
-  openFeature: (panel: PanelId | LiveFeatureKind) => void;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -1539,64 +1696,6 @@ function ModalHost({
           </button>
         </div>
         <div className={styles.modalBody}>
-          {modal.kind === "settings" && (
-            <>
-              <ModalField label="Your account id" value={accountId} onCopy={() => copy(accountId)} copied={copied} />
-              <div className={styles.card}>
-                <div className={`${styles.cardKicker} mono`}>appearance</div>
-                <div className={styles.themePicker}>
-                  {(["light", "dark", "auto"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      className={styles.themeOption}
-                      data-active={theme === t ? "" : undefined}
-                      onClick={() => setTheme(t)}
-                    >
-                      <ThemeIcon choice={t} />
-                      {t === "auto" ? "Auto" : t === "light" ? "Light" : "Dark"}
-                    </button>
-                  ))}
-                </div>
-                <div className={styles.themeHint}>Auto follows your system setting.</div>
-              </div>
-              <div className={styles.card}>
-                <div className={`${styles.cardKicker} mono`}>this device</div>
-                <Row k="backend" v={inTauri() ? "in-process (Tauri)" : "loopback shim"} />
-                <Row k="conversations" v={String(convCount)} />
-              </div>
-              <div className={styles.card}>
-                <div className={`${styles.cardKicker} mono`}>workflows</div>
-                <div className={styles.actionGrid}>
-                  <FeatureButton label="Trust" panel="trust" openFeature={openFeature} />
-                  <FeatureButton label="AI" panel="ai" openFeature={openFeature} />
-                  <FeatureButton label="Updates" panel="updates" openFeature={openFeature} />
-                  <FeatureButton label="Files" panel="attachments" openFeature={openFeature} />
-                  <FeatureButton label="Notify" panel="notifications" openFeature={openFeature} />
-                  <FeatureButton label="Recovery" panel="recovery" openFeature={openFeature} />
-                  <FeatureButton label="Room" panel="group" openFeature={openFeature} />
-                  <FeatureButton label="Policy" panel="policy" openFeature={openFeature} />
-                  <FeatureButton label="Connect" panel="connection" openFeature={openFeature} />
-                  <FeatureButton label="Start" panel="onboarding" openFeature={openFeature} />
-                </div>
-              </div>
-              <div className={styles.panelNote}>
-                {inTauri() ? (
-                  <>
-                    Desktop build. The backend runs in-process — your keys and messages never leave
-                    this application; there is no socket or local server. Only end-to-end-encrypted
-                    ciphertext goes to the relay.
-                  </>
-                ) : (
-                  <>
-                    Dev build. The backend shim ({backendUrl}) holds your keys on this machine only —
-                    loopback, never a public server. In production this is in-process (Tauri), not an
-                    open port.
-                  </>
-                )}
-              </div>
-            </>
-          )}
           {modal.kind === "encryption" && (
             <>
               <div className={styles.card}>
@@ -1797,18 +1896,333 @@ function ModalField({
   );
 }
 
-function FeatureButton({
-  label,
-  panel,
-  openFeature,
+/** Self-profile editor (avatar/name/status/colour incl. the custom <input type=color> picker).
+ *  Authored as a standalone block so the unified Settings hub renders it inline; the standalone
+ *  profile modal keeps its own copy unchanged. Reads/writes the same `profile` state. */
+function SelfProfileFields({
+  profile,
+  setProfile,
+  person,
+  accountId,
+  convCount,
+  onCopyId,
+  copied,
 }: {
-  label: string;
-  panel: LiveFeatureKind;
-  openFeature: (panel: PanelId | LiveFeatureKind) => void;
+  profile: Profile;
+  setProfile: (p: Profile) => void;
+  person: Person;
+  accountId: string | null;
+  convCount: number;
+  onCopyId: () => void;
+  copied: boolean;
 }) {
+  const display: Person = {
+    ...person,
+    name: profile.name.trim() || "You",
+    short: profile.name.trim() ? initials(profile.name) : "Y",
+    hue: profile.hue,
+    avatar: profile.avatar,
+    color: profile.color,
+  };
   return (
-    <button type="button" className={styles.actionBtn} onClick={() => openFeature(panel)}>
-      {label}
-    </button>
+    <>
+      <div className={styles.profileHead}>
+        <Avatar person={display} size={54} />
+        <div className={styles.profileName}>{profile.name.trim() || "You"}</div>
+        <div className={styles.profileTag}>{profile.status.trim() || "your identity"}</div>
+      </div>
+      <ModalField label="Account id" value={accountId} onCopy={onCopyId} copied={copied} />
+      <div className={styles.card}>
+        <div className={`${styles.cardKicker} mono`}>customise your profile</div>
+        <div className={styles.profileEdit}>
+          <span className={`${styles.fieldLabel} mono`}>profile picture</span>
+          <div className={styles.avatarEditRow}>
+            <Avatar person={display} size={48} />
+            <label className={styles.uploadBtn}>
+              {profile.avatar ? "Change photo" : "Upload photo"}
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  const url = await imageToAvatarDataUrl(f);
+                  if (url) setProfile({ ...profile, avatar: url });
+                }}
+              />
+            </label>
+            {profile.avatar && (
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={() => setProfile({ ...profile, avatar: undefined })}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+        <label className={styles.profileEdit}>
+          <span className={`${styles.fieldLabel} mono`}>display name</span>
+          <input
+            className={styles.profileInput}
+            value={profile.name}
+            maxLength={40}
+            onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+            placeholder="Your name"
+          />
+        </label>
+        <label className={styles.profileEdit}>
+          <span className={`${styles.fieldLabel} mono`}>status</span>
+          <input
+            className={styles.profileInput}
+            value={profile.status}
+            maxLength={80}
+            onChange={(e) => setProfile({ ...profile, status: e.target.value })}
+            placeholder="What's your status?"
+          />
+        </label>
+        <div className={styles.profileEdit}>
+          <span className={`${styles.fieldLabel} mono`}>avatar colour</span>
+          <div className={styles.hueRow}>
+            {PROFILE_HUES.map((h) => (
+              <button
+                key={h}
+                type="button"
+                className={styles.hueDot}
+                data-active={profile.hue === h && !profile.color ? "" : undefined}
+                style={{ background: `hsl(${h} 68% 55%)` }}
+                onClick={() => setProfile({ ...profile, hue: h, color: undefined })}
+                aria-label={`avatar colour ${h}`}
+              />
+            ))}
+            <label
+              className={styles.customHue}
+              data-active={profile.color ? "" : undefined}
+              style={{ background: profile.color ?? `hsl(${profile.hue} 68% 55%)` }}
+              data-tip="Custom colour"
+            >
+              <span className={styles.customHuePlus}>+</span>
+              <input
+                type="color"
+                className={styles.customHueInput}
+                value={profile.color ?? hueToHex(profile.hue)}
+                onChange={(e) => setProfile({ ...profile, color: e.target.value })}
+                aria-label="Custom avatar colour"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+      <div className={styles.card}>
+        <div className={`${styles.cardKicker} mono`}>this device</div>
+        <Row k="keys" v="on device only" tone="ok" />
+        <Row k="conversations" v={String(convCount)} />
+      </div>
+    </>
+  );
+}
+
+const HUB_SECTIONS = [
+  { id: "profile", label: "Profile" },
+  { id: "appearance", label: "Appearance" },
+  { id: "privacy", label: "Privacy & trust" },
+  { id: "notifications", label: "Notifications" },
+  { id: "ai", label: "AI access" },
+  { id: "account", label: "Account & backup" },
+  { id: "connections", label: "Connections" },
+  { id: "about", label: "About" },
+] as const;
+type HubSection = (typeof HUB_SECTIONS)[number]["id"];
+
+/** Unified Settings hub: one modal, left nav + content pane. Feature panels render INLINE via
+ *  EmbeddedContext (no nested modal); simple sections render their controls directly. Every panel
+ *  is wired to the SAME backend handlers as its standalone modal — no logic divergence. */
+function SettingsHub({
+  mobile,
+  onClose,
+  accountId,
+  backendUrl,
+  convCount,
+  theme,
+  setTheme,
+  profile,
+  setProfile,
+  me,
+  thread,
+  controller,
+  convState,
+  active,
+  trust,
+  setTrust,
+  ai,
+  setAi,
+  openPanel,
+}: {
+  mobile: boolean;
+  onClose: () => void;
+  accountId: string | null;
+  backendUrl: string;
+  convCount: number;
+  theme: ThemeChoice;
+  setTheme: (t: ThemeChoice) => void;
+  profile: Profile;
+  setProfile: (p: Profile) => void;
+  me: Person;
+  thread: ReturnType<typeof useLiveConversations>["composer"];
+  controller: ReturnType<typeof useLiveConversations>["controller"];
+  convState: ReturnType<typeof useLiveConversations>["state"];
+  active: ReturnType<typeof useLiveConversations>["active"];
+  trust: TrustState;
+  setTrust: (v: TrustState) => void;
+  ai: AiState;
+  setAi: (v: AiState) => void;
+  openPanel: (panel: PanelId | LiveFeatureKind) => void;
+}) {
+  const [section, setSection] = useState<HubSection>("profile");
+  const [copied, setCopied] = useState(false);
+  const copyId = async () => {
+    if (!accountId) return;
+    try {
+      await navigator.clipboard.writeText(accountId);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      /* clipboard unavailable; ignore */
+    }
+  };
+  const embed = (kind: LiveFeatureKind) => (
+    <EmbeddedContext.Provider value={true}>
+      <LiveFeaturePanel
+        kind={kind}
+        mobile={mobile}
+        thread={thread}
+        controller={controller}
+        convState={convState}
+        active={active}
+        trust={trust}
+        setTrust={setTrust}
+        ai={ai}
+        setAi={setAi}
+        onClose={onClose}
+        openPanel={openPanel}
+      />
+    </EmbeddedContext.Provider>
+  );
+  return (
+    <div className={styles.scrim} onClick={onClose}>
+      <div
+        className={`${styles.modal} ${styles.hubModal}`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className={styles.modalHead}>
+          <span className={styles.modalTitle}>Settings</span>
+          <button className={styles.modalClose} type="button" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <div className={styles.hub}>
+          <nav className={styles.hubNav} aria-label="Settings sections">
+            {HUB_SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={styles.hubNavItem}
+                data-active={section === s.id ? "" : undefined}
+                aria-current={section === s.id ? "page" : undefined}
+                onClick={() => setSection(s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
+          <div className={styles.hubContent}>
+            {section === "profile" && (
+              <SelfProfileFields
+                profile={profile}
+                setProfile={setProfile}
+                person={me}
+                accountId={accountId}
+                convCount={convCount}
+                onCopyId={copyId}
+                copied={copied}
+              />
+            )}
+            {section === "appearance" && (
+              <div className={styles.card}>
+                <div className={`${styles.cardKicker} mono`}>appearance</div>
+                <div className={styles.themePicker}>
+                  {(["light", "dark", "auto"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={styles.themeOption}
+                      data-active={theme === t ? "" : undefined}
+                      onClick={() => setTheme(t)}
+                    >
+                      <ThemeIcon choice={t} />
+                      {t === "auto" ? "Auto" : t === "light" ? "Light" : "Dark"}
+                    </button>
+                  ))}
+                </div>
+                <div className={styles.themeHint}>Auto follows your system setting.</div>
+              </div>
+            )}
+            {section === "privacy" && (
+              <>
+                {embed("trust")}
+                <div className={styles.hubDivider} />
+                {embed("policy")}
+                <div className={styles.hubDivider} />
+                <div className={styles.card}>
+                  <div className={`${styles.cardKicker} mono`}>encryption</div>
+                  <Row k="key agreement" v="X25519 + ML-KEM-768" tone="irid" />
+                  <Row k="messages" v="double ratchet · FS" tone="ok" />
+                  <button
+                    type="button"
+                    className={styles.actionBtn}
+                    style={{ marginTop: 8 }}
+                    onClick={() => openPanel("encryption")}
+                  >
+                    Encryption details
+                  </button>
+                </div>
+              </>
+            )}
+            {section === "notifications" && embed("notifications")}
+            {section === "ai" && embed("ai")}
+            {section === "account" && (
+              <>
+                <div className={styles.card}>
+                  <div className={`${styles.cardKicker} mono`}>this device</div>
+                  <Row k="backend" v={inTauri() ? "in-process (Tauri)" : "loopback shim"} />
+                  <Row k="conversations" v={String(convCount)} />
+                </div>
+                {embed("recovery")}
+                <div className={styles.hubDivider} />
+                {embed("attachments")}
+              </>
+            )}
+            {section === "connections" && embed("connection")}
+            {section === "about" && (
+              <>
+                <div className={styles.card}>
+                  <div className={`${styles.cardKicker} mono`}>this build</div>
+                  <Row k="app" v="Mercury" />
+                  <Row k="backend" v={inTauri() ? "in-process (Tauri)" : backendUrl} />
+                </div>
+                {embed("updates")}
+                <div className={styles.hubDivider} />
+                {embed("onboarding")}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

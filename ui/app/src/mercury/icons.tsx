@@ -78,6 +78,17 @@ export function PaperclipIcon({ size = 15, color = "currentColor", className }: 
   );
 }
 
+/** Smiley -- composer emoji button. */
+export function SmileIcon({ size = 16, color = "currentColor", className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 14.5s1.6 2 4 2 4-2 4-2" />
+      <path d="M9 9.6h.01M15 9.6h.01" />
+    </svg>
+  );
+}
+
 /** Small padlock -- composer blocked state. */
 export function LockIcon({ size = 14, color = "currentColor", className }: IconProps) {
   return (

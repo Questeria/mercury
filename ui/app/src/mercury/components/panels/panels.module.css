@@ -109,6 +109,25 @@
   overflow: auto;
   padding: 14px 18px 18px;
 }
+
+/* embedded mode: panel rendered inline inside the unified Settings hub (PORT-4) */
+.embedded {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.embeddedHead {
+  margin-bottom: 12px;
+}
+.embedded .body {
+  padding: 0;
+  overflow: visible;
+}
+.embedded .footer {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .footer {
   padding: 10px 18px 14px;
   border-top: 1px solid var(--mc-border);

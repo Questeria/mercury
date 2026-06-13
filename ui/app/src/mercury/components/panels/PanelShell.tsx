@@ -1,10 +1,7 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 
+import { EmbeddedContext, PreviewContext } from "./panelContext";
 import styles from "./panels.module.css";
-
-/** When true (set by the live app for not-yet-wired screens), PanelShell shows a "preview" banner so a
- *  mockup panel can never be mistaken for a working, backend-enforced feature. Demo usage leaves it false. */
-export const PreviewContext = createContext(false);
 
 function PreviewBanner() {
   const preview = useContext(PreviewContext);
@@ -29,6 +26,25 @@ interface PanelShellProps {
 /** Modal on desktop, bottom sheet on mobile. Mounted only while active, so the
  *  enter animation plays on mount; Esc is handled by the app shell. */
 export function PanelShell({ mobile, onClose, eyebrow, title, children, footer }: PanelShellProps) {
+  const embedded = useContext(EmbeddedContext);
+  if (embedded) {
+    // Inline inside the Settings hub: section header + body + footer, no overlay / no close.
+    return (
+      <div className={styles.embedded}>
+        {(eyebrow || title) && (
+          <div className={styles.embeddedHead}>
+            {eyebrow && <div className={styles.eyebrow}>{eyebrow}</div>}
+            <div className={`display ${styles.title}`}>{title}</div>
+          </div>
+        )}
+        <div className={styles.body}>
+          <PreviewBanner />
+          {children}
+        </div>
+        {footer && <div className={styles.footer}>{footer}</div>}
+      </div>
+    );
+  }
   return (
     <>
       <div className={styles.backdrop} onClick={onClose} aria-hidden />

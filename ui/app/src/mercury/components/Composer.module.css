@@ -101,6 +101,51 @@
 .attachCell {
   padding-right: 0;
 }
+
+/* Emoji button — same cell + button styling as the paperclip; only addition to the composer. */
+.emojiCell {
+  padding: 5px;
+  padding-right: 0;
+  display: flex;
+  align-items: flex-end;
+}
+.emojiWrap {
+  position: relative;
+}
+.emojiBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+.emojiPop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  background: var(--mc-surface);
+  border: 1px solid var(--mc-border-strong);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 12px 34px rgba(28, 22, 80, 0.18);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  width: 268px;
+}
+.emojiItem {
+  border: none;
+  background: transparent;
+  font-size: 19px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+}
+.emojiItem:hover {
+  background: var(--mc-surface-mute);
+}
 .attachBtn {
   border: 1px solid var(--mc-border);
   cursor: pointer;

@@ -8,6 +8,47 @@
   font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* ============ floating top-right quick controls ============ */
+.quickBar {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  padding: 4px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--mc-surface) 88%, transparent);
+  border: 1px solid var(--mc-border-strong);
+  box-shadow: 0 8px 24px rgba(28, 22, 80, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.quickBtn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--mc-ink2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.quickBtn:hover {
+  background: var(--mc-surface-mute);
+  color: var(--mc-ink);
+}
+.quickBtn[data-active] {
+  background: var(--mc-surface-mute);
+  color: var(--mc-accent);
+}
+
 /* ============ rail ============ */
 .rail {
   position: relative;
@@ -99,6 +140,37 @@
   letter-spacing: 0.7px;
   color: var(--mc-muted);
   padding: 2px 6px;
+}
+
+/* messages / contacts segmented toggle (PORT-3) */
+.railSeg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--mc-bg);
+  border: 1px solid var(--mc-border);
+}
+.railSegBtn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--mc-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.railSegBtn:hover {
+  color: var(--mc-ink2);
+}
+.railSegBtn[data-active] {
+  background: var(--mc-surface);
+  color: var(--mc-ink);
+  box-shadow: 0 1px 3px rgba(28, 22, 80, 0.08);
 }
 
 .peerRow {
@@ -761,6 +833,90 @@
   font-weight: 700;
 }
 
+/* ============ collapsible rail (PORT-2) ============ */
+.railToggle {
+  margin-left: 4px;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 1px solid var(--mc-border);
+  border-radius: 7px;
+  background: var(--mc-surface);
+  color: var(--mc-ink2);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.railToggle:hover {
+  background: var(--mc-surface-mute);
+  color: var(--mc-ink);
+}
+
+.rail[data-collapsed] {
+  width: 66px;
+  padding: 14px 9px;
+  gap: 10px;
+  align-items: center;
+}
+.rail[data-collapsed] .railHead {
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0 11px;
+  width: 100%;
+}
+.rail[data-collapsed] .wordmark,
+.rail[data-collapsed] .version,
+.rail[data-collapsed] .search,
+.rail[data-collapsed] .addForm,
+.rail[data-collapsed] .railSeg,
+.rail[data-collapsed] .kicker {
+  display: none;
+}
+.rail[data-collapsed] .railToggle {
+  margin-left: 0;
+}
+.rail[data-collapsed] .logo {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+}
+.rail[data-collapsed] .convList {
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+.rail[data-collapsed] .convRow {
+  position: relative;
+  justify-content: center;
+  padding: 6px;
+  width: 48px;
+}
+.rail[data-collapsed] .convText {
+  display: none;
+}
+.rail[data-collapsed] .unread {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+.rail[data-collapsed] .idCard {
+  justify-content: center;
+  padding: 8px 6px;
+  width: 48px;
+}
+.rail[data-collapsed] .idText,
+.rail[data-collapsed] .idArrow {
+  display: none;
+}
+
 /* ---- day divider ---- */
 .dayDivider {
   display: flex;
@@ -911,6 +1067,62 @@
   align-items: center;
   padding: 14px 16px;
   border-bottom: 1px solid var(--mc-border);
+}
+
+/* unified Settings hub (PORT-4): wider modal, left nav + scrolling content pane */
+.hubModal {
+  max-width: 840px;
+  max-height: 88vh;
+}
+.hub {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.hubNav {
+  flex: 0 0 184px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  border-right: 1px solid var(--mc-border);
+  overflow-y: auto;
+}
+.hubNavItem {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--mc-ink2);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.hubNavItem:hover {
+  background: var(--mc-surface-mute);
+  color: var(--mc-ink);
+}
+.hubNavItem[data-active] {
+  background: var(--mc-surface-mute);
+  color: var(--mc-ink);
+  box-shadow: inset 2px 0 0 var(--mc-accent);
+}
+.hubContent {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hubDivider {
+  height: 1px;
+  background: var(--mc-border);
+  margin: 2px 0;
 }
 
 .modalTitle {
