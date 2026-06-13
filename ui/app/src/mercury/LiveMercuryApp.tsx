@@ -14,7 +14,7 @@ import { Composer } from "./components/Composer";
 import { ConversationMenu } from "./components/ConversationMenu";
 import { NewGroupModal } from "./components/NewGroupModal";
 import { ConnectionPanel } from "./components/panels/ConnectionPanel";
-import { getConnectionPrefs } from "./connectionPrefs";
+import { getConnectionPrefs, type ConnectionPrefs } from "./connectionPrefs";
 import { MercuryLogo } from "./components/MercuryLogo";
 import { QrCode } from "./components/QrCode";
 import { TitleBar } from "./components/TitleBar";
@@ -251,6 +251,15 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const { state, controller, peers, active, messages, composer, mePerson } =
     useLiveConversations(messaging);
   const [peerInput, setPeerInput] = useState("");
+  // Connection-method prefs (Settings → Connections), kept live so the rail add-box reflects toggles.
+  const [connPrefs, setConnPrefs] = useState(getConnectionPrefs);
+  const [addHint, setAddHint] = useState<string | null>(null);
+  useEffect(() => {
+    const onPrefs = (e: Event) =>
+      setConnPrefs((e as CustomEvent<ConnectionPrefs>).detail ?? getConnectionPrefs());
+    window.addEventListener("mercury-connprefs", onPrefs);
+    return () => window.removeEventListener("mercury-connprefs", onPrefs);
+  }, []);
   const [query, setQuery] = useState("");
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [railView, setRailView] = useState<"messages" | "contacts">("messages");
@@ -315,11 +324,30 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
 
   const addPeer = (e: FormEvent) => {
     e.preventDefault();
-    const id = peerInput.trim();
-    if (!id) return;
-    setPeerInput("");
-    void controller.addPeer(id);
-    if (mobile) setMobileView("thread");
+    const v = peerInput.trim();
+    if (!v) return;
+    const handle = v.replace(/^@+/, "");
+    // An invite link / account id is long, hex, or URL-shaped; anything short is a pairing code.
+    const looksLikeId = v.length >= 32 || /[:/#]/.test(v) || /^[0-9a-f]{16,}$/i.test(v);
+    const commit = (run: () => void) => {
+      run();
+      setPeerInput("");
+      setAddHint(null);
+      if (mobile) setMobileView("thread");
+    };
+    // Route only to a method ENABLED in Settings → Connections; otherwise say where to turn it on.
+    if (v.startsWith("@")) {
+      if (connPrefs.username) return commit(() => void controller.addByUsername(handle));
+      return setAddHint("Usernames are off — turn them on in Settings → Connections.");
+    }
+    if (looksLikeId) {
+      if (connPrefs.link) return commit(() => void controller.addPeer(v));
+      return setAddHint("Invite link / ID is off — turn it on in Settings → Connections.");
+    }
+    if (connPrefs.pairing) return commit(() => void controller.addByPairing(v));
+    if (connPrefs.username) return commit(() => void controller.addByUsername(handle));
+    if (connPrefs.link) return commit(() => void controller.addPeer(v));
+    setAddHint("No connect method is enabled — turn one on in Settings → Connections.");
   };
 
   const copy = async (which: "me" | "peer", value: string | null) => {
@@ -391,6 +419,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
         className={styles.shell}
         data-mobile={mobile ? "" : undefined}
         data-view={mobileView}
+        data-inspector={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
         style={tauri ? { top: 36 } : undefined}
       >
         <div className="shimmer-bg" />
@@ -434,16 +463,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.33</span>
-            <button
-              className={styles.gear}
-              type="button"
-              onClick={() => setModal({ kind: "settings" })}
-              aria-label="Settings"
-              data-tip="Settings"
-            >
-              ⚙
-            </button>
+            <span className={`${styles.version} mono`}>v0.1.34</span>
             <button
               className={styles.railToggle}
               type="button"
@@ -467,20 +487,44 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
             />
           </label>
 
-          <form className={styles.addForm} onSubmit={addPeer}>
-            <input
-              className={styles.addInput}
-              value={peerInput}
-              onChange={(e) => setPeerInput(e.target.value)}
-              placeholder="+ id or invite link"
-              autoComplete="off"
-              spellCheck={false}
-              aria-label="Add a peer by account id or invite link"
-            />
-            <button className={styles.addBtn} type="submit" disabled={state.busy || state.status !== "ready"}>
-              Add
-            </button>
-          </form>
+          {(connPrefs.link || connPrefs.username || connPrefs.pairing) && (
+            <form className={styles.addForm} onSubmit={addPeer}>
+              <input
+                className={styles.addInput}
+                value={peerInput}
+                onChange={(e) => {
+                  setPeerInput(e.target.value);
+                  if (addHint) setAddHint(null);
+                }}
+                placeholder={`+ ${[
+                  connPrefs.link && "id / link",
+                  connPrefs.username && "@username",
+                  connPrefs.pairing && "code",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}`}
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Add someone using a connection method you've enabled in Settings"
+              />
+              <button className={styles.addBtn} type="submit" disabled={state.busy || state.status !== "ready"}>
+                Add
+              </button>
+            </form>
+          )}
+          {!railCollapsed && !(connPrefs.link || connPrefs.username || connPrefs.pairing) && (
+            <div className={styles.railEmpty} style={{ padding: "6px 4px" }}>
+              All connect methods are off. Turn one on in Settings → Connections.
+            </div>
+          )}
+          {!railCollapsed && addHint && (
+            <div
+              className={styles.railEmpty}
+              style={{ padding: "0 4px 4px", color: "var(--mc-warn)", fontSize: 11.5 }}
+            >
+              {addHint}
+            </div>
+          )}
 
           {!railCollapsed && (
           <button
@@ -693,15 +737,6 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                 >
                   ⋯
                 </button>
-                <button
-                  className={styles.infoBtn}
-                  type="button"
-                  onClick={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
-                  aria-label="Toggle inspector"
-                  data-open={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
-                >
-                  ⓘ
-                </button>
               </header>
 
               <DataStrip
@@ -840,18 +875,17 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                 // docs/GROUPS.md. Never show the 1:1 PQ-hybrid claims on a group thread.
                 <div className={styles.card}>
                   <div className={`${styles.cardKicker} mono`}>encryption</div>
-                  <Row k="scheme" v="end-to-end" tone="ok" />
-                  <Row k="protocol" v="MLS group" tone="irid" />
-                  <Row k="post-quantum" v="not yet (v1)" />
-                  <Row k="members" v={`${activeGroup.members.length} / 16`} />
+                  <Row k="who can read" v="members only" tone="ok" tip="Group messages are sealed so only members can read them — not the relay, not us." />
+                  <Row k="protocol" v="MLS group" tone="irid" tip="Uses the MLS group-messaging standard to share keys among members." />
+                  <Row k="quantum-safe" v="not yet (v1)" tip="Groups use classical-strength encryption in v1; quantum-safe groups are on the way." />
+                  <Row k="members" v={`${activeGroup.members.length} / 16`} tip="People in this group (up to 16)." />
                 </div>
               ) : (
                 <div className={styles.card}>
                   <div className={`${styles.cardKicker} mono`}>encryption</div>
-                  <Row k="scheme" v="end-to-end" tone="ok" />
-                  <Row k="key agreement" v="X25519 + ML-KEM-768" tone="irid" />
-                  <Row k="ratchet" v="double ratchet" />
-                  <Row k="post-quantum" v="yes" tone="ok" />
+                  <Row k="who can read" v="only you two" tone="ok" tip="End-to-end encrypted: only you and the person you're messaging can read these — not the relay, not us." />
+                  <Row k="quantum-safe" v="yes" tone="ok" tip="A hybrid X25519 + ML-KEM-768 handshake keeps messages private even against future quantum computers." />
+                  <Row k="forward secrecy" v="yes" tone="ok" tip="Every message uses a fresh key (a double ratchet), so even a stolen key can't reveal past or future messages." />
                 </div>
               )}
               <div className={styles.card}>
@@ -861,34 +895,48 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                     k="safety number"
                     v={state.verified.includes(active.peer) ? "verified" : "not verified"}
                     tone={state.verified.includes(active.peer) ? "ok" : undefined}
+                    tip="Compare your safety number out-of-band (in person or a call you recognise), then mark the contact verified — that's the one check that proves nobody is impersonating them."
                   />
                 )}
                 {!activeGroup && (
                   <Row
                     k="ai access"
-                    v={state.blocked.includes(active.peer) ? "blocked" : "scoped"}
+                    v={state.blocked.includes(active.peer) ? "blocked" : "only when shared"}
                     tone={state.blocked.includes(active.peer) ? undefined : "ok"}
+                    tip="The AI assistant only sees a message when you send it to @ai. 'Blocked' turns even that off for this chat."
                   />
                 )}
-                {activeGroup && <Row k="members" v={`${activeGroup.members.length} / 16`} />}
+                {activeGroup && (
+                  <Row k="members" v={`${activeGroup.members.length} / 16`} tip="People in this group (up to 16)." />
+                )}
                 <Row
                   k="disappearing"
                   v={fmtDisappear(state.disappearing[active.peer] ?? 0)}
                   tone={(state.disappearing[active.peer] ?? 0) > 0 ? "irid" : undefined}
+                  tip="When on, messages auto-delete on both sides after this long. Set it from the ⋯ menu."
                 />
-                <Row k="pinned" v={state.pinned.includes(active.peer) ? "yes" : "no"} />
-                <Row k="notifications" v={state.muted.includes(active.peer) ? "muted" : "on"} />
+                <Row
+                  k="pinned"
+                  v={state.pinned.includes(active.peer) ? "yes" : "no"}
+                  tip="Pinned chats stay at the top of your conversation list."
+                />
+                <Row
+                  k="notifications"
+                  v={state.muted.includes(active.peer) ? "muted" : "on"}
+                  tip="Whether this chat can notify you. Mute or unmute from the ⋯ menu."
+                />
                 <Row
                   k="shared files"
                   v={String(activeConv ? activeConv.messages.filter((m) => m.att).length : 0)}
+                  tip="Files exchanged in this chat — all end-to-end encrypted, same as messages."
                 />
               </div>
               <div className={styles.card}>
-                <div className={`${styles.cardKicker} mono`}>transport</div>
-                <Row k="relay" v="opaque router" />
-                <Row k="server sees" v="ciphertext only" tone="ok" />
-                <Row k="sent" v={String(outCount)} />
-                <Row k="received" v={String(inCount)} />
+                <div className={`${styles.cardKicker} mono`}>the server</div>
+                <Row k="role" v="blind relay" tip="The server only stores and forwards sealed bytes between devices — there's no separate message or file server." />
+                <Row k="can read" v="nothing" tone="ok" tip="The relay only ever sees ciphertext — never your messages, names, or files." />
+                <Row k="sent" v={String(outCount)} tip="Messages you've sent in this chat." />
+                <Row k="received" v={String(inCount)} tip="Messages you've received in this chat." />
               </div>
               <EventTail events={state.events} />
               {state.activeDecisions ? (
@@ -1050,49 +1098,74 @@ function DataStrip({
   // verdict arrives. The other chips are static, true crypto facts (not decisions) — and they
   // differ for GROUPS, which are real MLS but classical (not yet PQ) in v1; saying "ml-kem-768"
   // on a group thread would be a lie. See docs/GROUPS.md.
-  const send: { v: string; tone?: "ok" | "irid"; dot?: boolean } = !outbound
-    ? { v: "…" }
+  // Plain-language status for a beginner: WHAT it means, not the algorithm names. Each chip carries a
+  // hover tooltip with the one-line "why", and the whole strip still clicks through to the full
+  // technical breakdown. Group threads are honestly distinguished (real MLS, classical in v1).
+  const sendCell: { label: string; tip: string; tone?: "ok" | "irid"; dot?: boolean } = !outbound
+    ? { label: "Checking…", tip: "Working out whether this message can be sent." }
     : outbound.accepted
-      ? { v: "ready", tone: "ok", dot: true }
-      : { v: "held" };
-  const cells: { k: string; v: string; tone?: "ok" | "irid"; dot?: boolean }[] = group
+      ? { label: "Ready to send", tip: "Checked — you can send right now.", tone: "ok", dot: true }
+      : {
+          label: "Sending paused",
+          tip: "Sending is on hold — usually the contact still needs to be set up or verified.",
+        };
+  const cells: { label: string; tip: string; tone?: "ok" | "irid"; dot?: boolean }[] = group
     ? [
-        { k: "encryption", v: "end-to-end", tone: "ok", dot: true },
-        { k: "protocol", v: "mls", tone: "irid" },
-        { k: "pq", v: "not yet" },
-        { k: "send", v: send.v, tone: send.tone, dot: send.dot },
-        { k: "transport", v: "relay fan-out" },
+        {
+          label: "End-to-end encrypted",
+          tip: "Group messages are sealed so only members can read them — not the relay, not us.",
+          tone: "ok",
+          dot: true,
+        },
+        {
+          label: "Group encryption (MLS)",
+          tip: "Uses the MLS group-messaging standard. Groups are classical-strength in v1 — quantum-safe groups are on the way.",
+          tone: "irid",
+        },
+        sendCell,
       ]
     : [
-        { k: "encryption", v: "end-to-end", tone: "ok", dot: true },
-        { k: "pq", v: "ml-kem-768", tone: "irid" },
-        { k: "ratchet", v: "double" },
-        { k: "send", v: send.v, tone: send.tone, dot: send.dot },
-        { k: "transport", v: "relay" },
+        {
+          label: "End-to-end encrypted",
+          tip: "Only you and the person you're messaging can read these — not the relay, not us, nobody in between.",
+          tone: "ok",
+          dot: true,
+        },
+        {
+          label: "Quantum-safe",
+          tip: "A hybrid X25519 + ML-KEM-768 handshake keeps your messages private even against future quantum computers.",
+          tone: "irid",
+        },
+        sendCell,
       ];
   return (
     <button
-      className={`${styles.dataStrip} mono`}
+      className={styles.dataStrip}
       type="button"
       onClick={onClick}
-      data-tip={group ? "Group security details" : "Encryption details"}
+      aria-label="What this means — open the full encryption details"
     >
       {cells.map((c) => (
-        <span key={c.k} className={styles.cell}>
+        <span key={c.label} className={styles.cell} title={c.tip}>
           {c.dot && <span className={styles.cellDot} data-tone={c.tone} />}
-          <span className={styles.cellKey}>{c.k}</span>
-          <span className={styles.cellEq}>=</span>
           {c.tone === "irid" ? (
             <span className="iris-text" style={{ fontWeight: 600 }}>
-              {c.v}
+              {c.label}
             </span>
           ) : (
             <span className={styles.cellVal} data-tone={c.tone}>
-              {c.v}
+              {c.label}
             </span>
           )}
         </span>
       ))}
+      <span
+        className={styles.cell}
+        style={{ marginLeft: "auto", color: "var(--mc-muted)" }}
+        title="See the full encryption breakdown."
+      >
+        details ›
+      </span>
     </button>
   );
 }
@@ -1126,9 +1199,9 @@ function Field({
   );
 }
 
-function Row({ k, v, tone }: { k: string; v: string; tone?: "ok" | "irid" }) {
+function Row({ k, v, tone, tip }: { k: string; v: string; tone?: "ok" | "irid"; tip?: string }) {
   return (
-    <div className={styles.row}>
+    <div className={styles.row} title={tip}>
       <span className={`${styles.rowKey} mono`}>{k}</span>
       {tone === "irid" ? (
         <span className="iris-text" style={{ fontWeight: 600, fontSize: 12.5 }}>
@@ -1699,27 +1772,64 @@ function ModalHost({
           {modal.kind === "encryption" && (
             <>
               <div className={styles.card}>
-                <div className={`${styles.cardKicker} mono`}>key agreement</div>
-                <Row k="classical" v="X25519" />
-                <Row k="post-quantum" v="ML-KEM-768" tone="irid" />
-                <Row k="hybrid" v="both must break" tone="ok" />
+                <div className={`${styles.cardKicker} mono`}>what protects your messages</div>
+                <Row
+                  k="who can read them"
+                  v="only you two"
+                  tone="ok"
+                  tip="End-to-end encrypted: messages are sealed on your device and can only be opened on the other person's — not the relay, not us."
+                />
+                <Row
+                  k="quantum-safe"
+                  v="yes"
+                  tone="ok"
+                  tip="The handshake combines classical X25519 with post-quantum ML-KEM-768 — an attacker would have to break BOTH, so it stays private even against future quantum computers."
+                />
               </div>
               <div className={styles.card}>
-                <div className={`${styles.cardKicker} mono`}>messages</div>
-                <Row k="ratchet" v="double ratchet" />
-                <Row k="forward secrecy" v="yes" tone="ok" />
-                <Row k="break-in recovery" v="yes" tone="ok" />
-                <Row k="cipher" v="AEAD" />
+                <div className={`${styles.cardKicker} mono`}>how it stays safe over time</div>
+                <Row
+                  k="fresh key per message"
+                  v="yes"
+                  tone="ok"
+                  tip="A double ratchet gives every message its own key (forward secrecy), so a stolen key can't unlock your past messages."
+                />
+                <Row
+                  k="heals if a device is hacked"
+                  v="yes"
+                  tone="ok"
+                  tip="If a device is compromised, the ratchet recovers so future messages become private again (post-compromise / break-in recovery)."
+                />
+                <Row
+                  k="tamper-proof"
+                  v="yes"
+                  tone="ok"
+                  tip="Every message is encrypted AND authenticated (AEAD), so nobody can read it or quietly change it in transit."
+                />
               </div>
               <div className={styles.card}>
-                <div className={`${styles.cardKicker} mono`}>metadata</div>
-                <Row k="relay" v="opaque router" />
-                <Row k="server sees" v="ciphertext only" tone="ok" />
-                <Row k="directory" v="self-authenticating" />
+                <div className={`${styles.cardKicker} mono`}>what the server can see</div>
+                <Row
+                  k="the server's job"
+                  v="just relays bytes"
+                  tip="The relay only stores and forwards sealed bytes — there's no separate message or file server."
+                />
+                <Row
+                  k="server can read"
+                  v="nothing"
+                  tone="ok"
+                  tip="It only ever sees ciphertext — never your messages, names, or files."
+                />
+                <Row
+                  k="how people find you"
+                  v="verifiable directory"
+                  tip="Usernames live in a key-transparency directory with self-authenticating entries, so the server can't quietly swap in a fake key for someone."
+                />
               </div>
               <div className={styles.panelNote}>
-                Every message is sealed on your device with a hybrid classical + post-quantum
-                handshake, then ratcheted forward. The relay only stores and forwards opaque bytes.
+                In plain terms: every message is locked on your device so only the person you're
+                messaging can open it, each message gets its own key, and the relay only ever moves
+                sealed bytes it can't read. Hover any line for the detail.
               </div>
             </>
           )}

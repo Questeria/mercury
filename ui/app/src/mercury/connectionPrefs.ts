@@ -49,7 +49,11 @@ export function getConnectionPrefs(): ConnectionPrefs {
 export function setConnectionPref(key: keyof ConnectionPrefs, value: boolean): ConnectionPrefs {
   const next = { ...getConnectionPrefs(), [key]: value };
   try {
-    if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(next));
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(KEY, JSON.stringify(next));
+      // Let other surfaces (e.g. the rail add-box) react live, without a reload.
+      window.dispatchEvent(new CustomEvent("mercury-connprefs", { detail: next }));
+    }
   } catch {
     /* persistence unavailable — keep the in-memory value */
   }
