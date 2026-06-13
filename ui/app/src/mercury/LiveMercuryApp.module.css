@@ -879,7 +879,8 @@
 .rail[data-collapsed] .search,
 .rail[data-collapsed] .addForm,
 .rail[data-collapsed] .railSeg,
-.rail[data-collapsed] .kicker {
+.rail[data-collapsed] .kicker,
+.rail[data-collapsed] .railEmpty {
   display: none;
 }
 .rail[data-collapsed] .railToggle {
