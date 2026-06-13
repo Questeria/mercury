@@ -8,13 +8,14 @@ import { inTauri } from "../messaging";
 import { checkForUpdates, downloadAndInstallUpdate } from "../updater";
 import styles from "../LiveMercuryApp.module.css";
 
-type Phase = "hidden" | "available" | "installing" | "installed" | "failed";
+type Phase = "hidden" | "available" | "installing" | "installed" | "failed" | "checkfailed";
 
 const RECHECK_MS = 6 * 60 * 60 * 1000;
 
 export function UpdateBanner() {
   const [phase, setPhase] = useState<Phase>("hidden");
   const [version, setVersion] = useState<string | undefined>();
+  const [detail, setDetail] = useState<string | undefined>();
   // Persists across the periodic re-check so a "Later"/"Dismiss" isn't re-nagged this session.
   const dismissed = useRef(false);
 
@@ -24,10 +25,18 @@ export function UpdateBanner() {
     const check = async () => {
       if (dismissed.current) return;
       const r = await checkForUpdates(); // never throws
-      if (cancelled || r.state !== "available") return;
-      setVersion(r.version);
-      // Only raise the banner from a resting state — don't interrupt an in-progress install.
-      setPhase((p) => (p === "hidden" ? "available" : p));
+      if (cancelled) return;
+      if (r.state === "available") {
+        setVersion(r.version);
+        setDetail(undefined);
+        // Only raise the banner from a resting state — don't interrupt an in-progress install.
+        setPhase((p) => (p === "hidden" ? "available" : p));
+      } else if (r.state === "dormant" || r.state === "error") {
+        // Surface a swallowed check failure (unreachable manifest, blocked request, …) instead of
+        // silently looking "up to date" — a stuck auto-updater should be visible, not invisible.
+        setDetail(r.detail);
+        setPhase((p) => (p === "hidden" ? "checkfailed" : p));
+      }
     };
     void check();
     const id = window.setInterval(() => void check(), RECHECK_MS);
@@ -78,6 +87,16 @@ export function UpdateBanner() {
         <>
           <span className={styles.updateBarText}>
             Update couldn&apos;t install — try Settings → Updates.
+          </span>
+          <button className={styles.updateBarLater} type="button" onClick={dismiss}>
+            Dismiss
+          </button>
+        </>
+      )}
+      {phase === "checkfailed" && (
+        <>
+          <span className={styles.updateBarText}>
+            Couldn&apos;t check for updates{detail ? ` — ${detail}` : "."}
           </span>
           <button className={styles.updateBarLater} type="button" onClick={dismiss}>
             Dismiss

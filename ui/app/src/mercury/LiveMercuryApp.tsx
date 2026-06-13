@@ -463,7 +463,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.34</span>
+            <span className={`${styles.version} mono`}>v0.1.35</span>
             <button
               className={styles.railToggle}
               type="button"
@@ -657,6 +657,9 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               onCopy={() => copy("me", state.accountId)}
               copied={copied === "me"}
               onRestore={() => setModal({ kind: "recovery" })}
+              controller={controller}
+              connPrefs={connPrefs}
+              myUsername={state.myUsername}
             />
           ) : (
             <div className={styles.thread}>
@@ -1577,6 +1580,9 @@ function Welcome({
   onCopy,
   copied,
   onRestore,
+  controller,
+  connPrefs,
+  myUsername,
 }: {
   accountId: string | null;
   error: string | null;
@@ -1589,11 +1595,18 @@ function Welcome({
   onCopy: () => void;
   copied: boolean;
   onRestore: () => void;
+  controller: ReturnType<typeof useLiveConversations>["controller"];
+  connPrefs: ConnectionPrefs;
+  myUsername: string | null;
 }) {
   const [showQr, setShowQr] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [pairCode, setPairCode] = useState<string | null>(null);
+  const [claimName, setClaimName] = useState("");
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const link = accountId ? inviteLink(accountId) : "";
-  const prefs = getConnectionPrefs();
+  const prefs = connPrefs;
   const copyLink = async () => {
     if (!link) return;
     try {
@@ -1602,6 +1615,43 @@ function Welcome({
       window.setTimeout(() => setLinkCopied(false), 1200);
     } catch {
       /* clipboard unavailable; ignore */
+    }
+  };
+  // Share-your-handle via the OTHER enabled methods (mirrors the Connections panel): a one-time
+  // pairing code, and claiming a username so people can add you by handle.
+  const showPairingCode = async () => {
+    setBusyAction("pair");
+    setFeedback(null);
+    try {
+      const { code } = await controller.pairingCode();
+      setPairCode(code);
+    } catch (e) {
+      setFeedback(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+  const claimUsername = async () => {
+    const name = claimName.trim();
+    if (!name) return;
+    setBusyAction("claim");
+    setFeedback(null);
+    try {
+      const { status: st, username } = await controller.claimUsername(name);
+      setFeedback(
+        st === "created" || st === "already_owned"
+          ? `You now own @${username} — share it so people can add you by handle.`
+          : st === "taken"
+            ? `@${username} is already taken.`
+            : st === "rejected"
+              ? "Usernames are 3–20 chars: a–z, 0–9, _ and must start with a letter."
+              : "The directory is busy — try again shortly.",
+      );
+      if (st === "created" || st === "already_owned") setClaimName("");
+    } catch (e) {
+      setFeedback(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyAction(null);
     }
   };
   return (
@@ -1637,12 +1687,69 @@ function Welcome({
               {showQr ? "Hide QR" : "Show QR"}
             </button>
           )}
+          {prefs.pairing && (
+            <button
+              className={styles.inviteGhost}
+              type="button"
+              onClick={showPairingCode}
+              disabled={!accountId || busyAction !== null}
+              data-tip="A short, single-use code (~10 min) they can type to add you"
+            >
+              {busyAction === "pair" ? "…" : "Show pairing code"}
+            </button>
+          )}
         </div>
         {prefs.qr && showQr && link && (
           <div className={styles.qrWrap}>
             <QrCode value={link} size={188} />
             <span className={styles.qrCaption}>Scan to add you on Mercury</span>
           </div>
+        )}
+        {pairCode && (
+          <div className={styles.yourId} style={{ cursor: "default" }}>
+            <span className={`${styles.yourIdLabel} mono`}>your pairing code · one-time · ~10 min</span>
+            <span className={`${styles.yourIdVal} mono`} style={{ fontSize: 18, fontWeight: 700, letterSpacing: 2 }}>
+              {pairCode}
+            </span>
+          </div>
+        )}
+        {prefs.username &&
+          (myUsername ? (
+            <p className={styles.connectLead} style={{ margin: "0 0 2px" }}>
+              Your handle: <strong>@{myUsername}</strong> — share it so people can add you by username.
+            </p>
+          ) : (
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                className={styles.connectInput}
+                style={{ flex: 1, marginTop: 0 }}
+                value={claimName}
+                onChange={(e) => setClaimName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void claimUsername();
+                  }
+                }}
+                placeholder="claim a username so people can add you by handle"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Claim a username"
+              />
+              <button
+                type="button"
+                className={styles.inviteGhost}
+                onClick={claimUsername}
+                disabled={busyAction !== null || !claimName.trim()}
+              >
+                {busyAction === "claim" ? "…" : "Claim"}
+              </button>
+            </div>
+          ))}
+        {feedback && (
+          <p className={styles.connectLead} style={{ margin: "2px 0 0", color: "var(--mc-accent)", fontSize: 12 }}>
+            {feedback}
+          </p>
         )}
         <button className={styles.yourId} type="button" onClick={onCopy} data-tip="Copy your raw account id">
           <span className={`${styles.yourIdLabel} mono`}>your id</span>
@@ -1654,10 +1761,14 @@ function Welcome({
           className={styles.connectInput}
           value={peerInput}
           onChange={(e) => setPeerInput(e.target.value)}
-          placeholder="paste an account id or invite link"
+          placeholder={`paste ${
+            [prefs.link && "an id / invite link", prefs.username && "@username", prefs.pairing && "a pairing code"]
+              .filter(Boolean)
+              .join(" · ") || "their handle"
+          }`}
           autoComplete="off"
           spellCheck={false}
-          aria-label="Peer account id or invite link"
+          aria-label="Add someone by any enabled connection method"
         />
         <button className={styles.primary} type="submit" disabled={busy || status !== "ready"}>
           {busy ? "Connecting…" : status === "ready" ? "Connect" : "Starting…"}
