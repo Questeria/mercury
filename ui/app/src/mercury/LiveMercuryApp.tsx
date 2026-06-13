@@ -463,7 +463,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.36</span>
+            <span className={`${styles.version} mono`}>v0.1.37</span>
             <button
               className={styles.railToggle}
               type="button"
@@ -482,8 +482,8 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               className={styles.searchInput}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search conversations"
-              aria-label="Search conversations"
+              placeholder={railView === "messages" ? "Search messages" : "Search contacts"}
+              aria-label={railView === "messages" ? "Search messages (names and text)" : "Search contacts"}
             />
           </label>
 
@@ -2247,14 +2247,15 @@ function SelfProfileFields({
 }
 
 const HUB_SECTIONS = [
-  { id: "profile", label: "Profile" },
-  { id: "appearance", label: "Appearance" },
-  { id: "privacy", label: "Privacy & trust" },
-  { id: "notifications", label: "Notifications" },
-  { id: "ai", label: "AI access" },
-  { id: "account", label: "Account & backup" },
-  { id: "connections", label: "Connections" },
-  { id: "about", label: "About" },
+  { id: "profile", label: "Profile", keywords: "name color avatar id account display picture handle" },
+  { id: "appearance", label: "Appearance", keywords: "theme dark light mode colour color" },
+  { id: "privacy", label: "Privacy & trust", keywords: "encryption security trust safety number block verify policy keys ratchet" },
+  { id: "notifications", label: "Notifications", keywords: "alerts sound mute push badge ping" },
+  { id: "ai", label: "AI access", keywords: "assistant ai automation agent model" },
+  { id: "account", label: "Account & backup", keywords: "backup restore recovery delete data device passphrase export erase wipe" },
+  { id: "connections", label: "Connections", keywords: "connect qr link username pairing invite relay add contact" },
+  { id: "updates", label: "Updates", keywords: "update version auto-update download install check signed upgrade release" },
+  { id: "about", label: "About", keywords: "build version onboarding help license info" },
 ] as const;
 type HubSection = (typeof HUB_SECTIONS)[number]["id"];
 
@@ -2303,6 +2304,11 @@ function SettingsHub({
   openPanel: (panel: PanelId | LiveFeatureKind) => void;
 }) {
   const [section, setSection] = useState<HubSection>("profile");
+  const [hubQuery, setHubQuery] = useState("");
+  const hubQ = hubQuery.trim().toLowerCase();
+  const filteredSections = hubQ
+    ? HUB_SECTIONS.filter((s) => s.label.toLowerCase().includes(hubQ) || s.keywords.includes(hubQ))
+    : HUB_SECTIONS;
   const [copied, setCopied] = useState(false);
   const copyId = async () => {
     if (!accountId) return;
@@ -2348,18 +2354,43 @@ function SettingsHub({
         </div>
         <div className={styles.hub}>
           <nav className={styles.hubNav} aria-label="Settings sections">
-            {HUB_SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={styles.hubNavItem}
-                data-active={section === s.id ? "" : undefined}
-                aria-current={section === s.id ? "page" : undefined}
-                onClick={() => setSection(s.id)}
-              >
-                {s.label}
-              </button>
-            ))}
+            <label className={styles.hubSearch}>
+              <span className={styles.searchIcon}>⌕</span>
+              <input
+                className={styles.searchInput}
+                value={hubQuery}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setHubQuery(v);
+                  const q = v.trim().toLowerCase();
+                  if (q) {
+                    // Jump the content pane to the first match so search feels live, not just a filter.
+                    const hit = HUB_SECTIONS.filter(
+                      (s) => s.label.toLowerCase().includes(q) || s.keywords.includes(q),
+                    );
+                    if (hit.length && !hit.some((h) => h.id === section)) setSection(hit[0].id);
+                  }
+                }}
+                placeholder="Search settings"
+                aria-label="Search settings"
+              />
+            </label>
+            {filteredSections.length === 0 ? (
+              <div className={styles.hubNavEmpty}>No settings match “{hubQuery.trim()}”.</div>
+            ) : (
+              filteredSections.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={styles.hubNavItem}
+                  data-active={section === s.id ? "" : undefined}
+                  aria-current={section === s.id ? "page" : undefined}
+                  onClick={() => setSection(s.id)}
+                >
+                  {s.label}
+                </button>
+              ))
+            )}
           </nav>
           <div className={styles.hubContent}>
             {section === "profile" && (
@@ -2429,6 +2460,7 @@ function SettingsHub({
               </>
             )}
             {section === "connections" && embed("connection")}
+            {section === "updates" && embed("updates")}
             {section === "about" && (
               <>
                 <div className={styles.card}>
@@ -2436,8 +2468,6 @@ function SettingsHub({
                   <Row k="app" v="Mercury" />
                   <Row k="backend" v={inTauri() ? "in-process (Tauri)" : backendUrl} />
                 </div>
-                {embed("updates")}
-                <div className={styles.hubDivider} />
                 {embed("onboarding")}
               </>
             )}

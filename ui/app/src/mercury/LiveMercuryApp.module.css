@@ -1117,6 +1117,22 @@
   color: var(--mc-ink);
   box-shadow: inset 2px 0 0 var(--mc-accent);
 }
+.hubSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  margin-bottom: 8px;
+  border-radius: 9px;
+  background: var(--mc-bg);
+  border: 1px solid var(--mc-border);
+}
+.hubNavEmpty {
+  padding: 10px 12px;
+  color: var(--mc-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
 .hubContent {
   flex: 1;
   min-width: 0;
