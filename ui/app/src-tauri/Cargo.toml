@@ -26,6 +26,8 @@ base64 = "0.22"
 tauri-plugin-updater = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
+# `relaunch()` — quit + restart into the just-installed update so it applies without a manual quit.
+tauri-plugin-process = "2"
 # Click-to-add invite links: registers the `mercury://` scheme + delivers `mercury://add/<id>` opens.
 tauri-plugin-deep-link = "2"
 # So a mercury:// invite clicked while Mercury is already running is forwarded to the running

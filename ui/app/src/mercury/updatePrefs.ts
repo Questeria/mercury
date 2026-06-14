@@ -73,3 +73,46 @@ export function getUpdateLog(): UpdateLogEntry[] {
     return [];
   }
 }
+
+// --- Auto-relaunch loop guard -----------------------------------------------------------------
+// Before quitting+relaunching to apply an update we record the target version + time. If, after the
+// relaunch, the SAME version is STILL offered (the install didn't actually apply), we must NOT
+// relaunch again — that would be an infinite restart loop. So we relaunch at most once per version
+// per RELAUNCH_GUARD_MS; if it didn't take, we fall back to a manual-install prompt.
+
+const RELAUNCH_KEY = "mercury.updateRelaunch";
+export const RELAUNCH_GUARD_MS = 5 * 60 * 1000;
+
+export function setRelaunchAttempt(version: string): void {
+  try {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(RELAUNCH_KEY, JSON.stringify({ version, at: Date.now() }));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** The version we last auto-relaunched for, if it was within the guard window; else null. */
+export function getRecentRelaunchVersion(): string | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(RELAUNCH_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw) as { version?: string; at?: number };
+    if (o.version && typeof o.at === "number" && Date.now() - o.at < RELAUNCH_GUARD_MS) {
+      return o.version;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearRelaunchAttempt(): void {
+  try {
+    if (typeof window !== "undefined") window.localStorage.removeItem(RELAUNCH_KEY);
+  } catch {
+    /* ignore */
+  }
+}

@@ -476,7 +476,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.42</span>
+            <span className={`${styles.version} mono`}>v0.1.43</span>
             <button
               className={styles.railToggle}
               type="button"

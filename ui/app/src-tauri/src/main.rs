@@ -454,6 +454,8 @@ fn main() {
         // Auto-update: requires the `plugins.updater` config (endpoints + pubkey) in
         // tauri.conf.json, which is now present. See docs/AUTO-UPDATE.md.
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // `relaunch()` so the auto-updater can quit + restart into the installed update.
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,

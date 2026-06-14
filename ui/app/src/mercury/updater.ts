@@ -110,6 +110,18 @@ export async function downloadAndInstallUpdate(): Promise<UpdateCheckResult> {
   }
 }
 
+/** Quit and restart the app so a just-installed update takes effect. No-op in the browser. The
+ *  caller is responsible for a loop guard (only relaunch once per version) — see UpdateBanner. */
+export async function relaunchApp(): Promise<void> {
+  if (!inTauri()) return;
+  try {
+    const { relaunch } = await import("@tauri-apps/plugin-process");
+    await relaunch();
+  } catch {
+    /* relaunch unavailable — the staged update will apply on the next manual restart instead */
+  }
+}
+
 export async function probeUpdateManifest(): Promise<UpdateManifestProbe> {
   try {
     const res = await fetch(UPDATE_MANIFEST_URL, { cache: "no-store" });

@@ -2,15 +2,23 @@
 // the window is shown from the tray. That last trigger matters: with close-to-tray + single-instance
 // the process rarely restarts, so the "on launch" check almost never re-fires — the window-show check
 // is what actually catches a new build for a tray-resident app. If "auto-update" is ON (the default,
-// see ../updatePrefs.ts) any trigger downloads + installs the signed build automatically (it applies
-// on the next FULL restart — tray → Quit → reopen); the banner shows progress + the restart prompt,
-// never silent. Every outcome is recorded via recordUpdateResult so the Updates panel shows exactly
-// what happened. The signature is verified before applying, and it's a no-op in the browser.
+// see ../updatePrefs.ts) any trigger downloads + installs the signed build automatically, and on a
+// user-present trigger (launch / window-shown) it then QUITS + RELAUNCHES to apply it — no manual
+// quit needed (the 6h background re-check only stages it, to avoid yanking a window mid-action). A
+// localStorage loop guard relaunches at most once per version: if the same version is still offered
+// after a relaunch, it stops and shows a manual-install prompt instead of looping. Every outcome is
+// recorded via recordUpdateResult (Updates → Recent activity). Signature verified; no-op in browser.
 import { useEffect, useRef, useState } from "react";
 
 import { inTauri } from "../messaging";
-import { checkForUpdates, downloadAndInstallUpdate } from "../updater";
-import { getAutoUpdate, recordUpdateResult } from "../updatePrefs";
+import { checkForUpdates, downloadAndInstallUpdate, relaunchApp } from "../updater";
+import {
+  getAutoUpdate,
+  recordUpdateResult,
+  setRelaunchAttempt,
+  getRecentRelaunchVersion,
+  clearRelaunchAttempt,
+} from "../updatePrefs";
 import styles from "../LiveMercuryApp.module.css";
 
 type Phase = "hidden" | "available" | "installing" | "installed" | "failed" | "checkfailed";
@@ -43,35 +51,54 @@ export function UpdateBanner() {
       if (r.state === "available") {
         setVersion(r.version);
         setDetail(undefined);
-        if (getAutoUpdate()) {
-          // Auto-install on EVERY trigger — launch, the periodic re-check, AND when the window is
-          // shown from the tray. A tray app's process rarely restarts (close-to-tray + single
-          // instance), so the window-show check is the main chance to catch a newer build.
-          setPhase((p) => (p === "hidden" || p === "available" ? "installing" : p));
-          const ir = await downloadAndInstallUpdate();
-          if (cancelled) return;
-          recordUpdateResult({
-            at: Date.now(),
-            kind: `${kind}-install`,
-            state: ir.state,
-            detail: ir.detail,
-            version: ir.version,
-          });
-          if (ir.state === "available") {
-            setPhase((p) => (p === "installing" ? "installed" : p));
-          } else {
-            setDetail(ir.detail);
-            setPhase((p) => (p === "installing" ? "failed" : p));
-          }
-        } else {
+        if (!getAutoUpdate()) {
           // Auto-update off — just surface the one-click banner.
           setPhase((p) => (p === "hidden" ? "available" : p));
+          return;
+        }
+
+        // Loop guard: if we already quit+relaunched for this exact version and it's STILL offered,
+        // the install didn't apply — do NOT relaunch again (that would loop). Fall back to manual.
+        if (r.version && getRecentRelaunchVersion() === r.version) {
+          clearRelaunchAttempt();
+          recordUpdateResult({ at: Date.now(), kind: `${kind}-relaunch-noop`, state: "error", detail: "relaunch did not apply the update", version: r.version });
+          setDetail("Auto-update couldn't apply — please reinstall from mercury-messaging.com.");
+          setPhase("failed");
+          return;
+        }
+
+        // Download + install the signed build (verified). Runs on launch, the 6h re-check, AND when
+        // the window is shown from the tray — the last is the main chance for a tray-resident app.
+        setPhase((p) => (p === "hidden" || p === "available" ? "installing" : p));
+        const ir = await downloadAndInstallUpdate();
+        if (cancelled) return;
+        recordUpdateResult({ at: Date.now(), kind: `${kind}-install`, state: ir.state, detail: ir.detail, version: ir.version });
+
+        if (ir.state !== "available") {
+          setDetail(ir.detail);
+          setPhase((p) => (p === "installing" ? "failed" : p));
+          return;
+        }
+
+        // Installed. On a user-present trigger (launch / window-shown) quit + relaunch so it applies
+        // with no manual quit. On the background 6h re-check, just stage it (don't yank a window the
+        // user may be mid-action in) — the next launch/show will relaunch.
+        if (kind === "launch" || kind === "focus") {
+          if (r.version) setRelaunchAttempt(r.version);
+          recordUpdateResult({ at: Date.now(), kind: `${kind}-relaunch`, state: "available", detail: "quitting to apply update", version: r.version });
+          setPhase("installing");
+          await relaunchApp(); // quits + restarts into the new version
+        } else {
+          setPhase((p) => (p === "installing" ? "installed" : p));
         }
       } else if (r.state === "dormant" || r.state === "error") {
         // Surface a swallowed check failure (unreachable manifest, blocked request, …) instead of
         // silently looking "up to date" — a stuck auto-updater should be visible, not invisible.
         setDetail(r.detail);
         setPhase((p) => (p === "hidden" ? "checkfailed" : p));
+      } else if (r.state === "current") {
+        // Up to date — the relaunch (if any) applied, or there was nothing to do. Reset the guard.
+        clearRelaunchAttempt();
       }
     };
 
@@ -116,7 +143,9 @@ export function UpdateBanner() {
           </button>
         </>
       )}
-      {phase === "installing" && <span className={styles.updateBarText}>Downloading update…</span>}
+      {phase === "installing" && (
+        <span className={styles.updateBarText}>Updating Mercury — it will restart to finish…</span>
+      )}
       {phase === "installed" && (
         <>
           <span className={styles.updateBarText}>
