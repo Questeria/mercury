@@ -11,6 +11,7 @@ import {
 } from "../../updater";
 import { inTauri } from "../../messaging";
 import { isAutostartEnabled, setAutostartEnabled } from "../../autostart";
+import { getAutoUpdate, setAutoUpdate } from "../../updatePrefs";
 import { PanelShell } from "./PanelShell";
 import { GhostButton, IridButton, Kv, ScopeTile, Section, StatusRow } from "./primitives";
 import styles from "./panels.module.css";
@@ -25,6 +26,7 @@ export function UpdatesPanel({ mobile, onClose }: UpdatesPanelProps) {
   const [check, setCheck] = useState<UpdateCheckResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [autoUpdate, setAuto] = useState(getAutoUpdate);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,31 +109,50 @@ export function UpdatesPanel({ mobile, onClose }: UpdatesPanelProps) {
 
       {inTauri() && (
         <Section kicker="Startup">
-          <div
-            className={styles.card}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
-          >
-            <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-              <div>
-                <strong>Launch at login</strong>
-              </div>
-              <div style={{ color: "var(--mc-ink2)" }}>
-                Start Mercury minimized in the tray at sign-in, so messages arrive without opening it.
-              </div>
-            </div>
-            <GhostButton
-              onClick={async () => {
-                if (busy || autostart === null) return;
-                setBusy(true);
-                try {
-                  setAutostart(await setAutostartEnabled(!autostart));
-                } finally {
-                  setBusy(false);
-                }
-              }}
+          <div className={styles.colGap}>
+            <div
+              className={styles.card}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
             >
-              {autostart === null ? "…" : autostart ? "On" : "Off"}
-            </GhostButton>
+              <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                <div>
+                  <strong>Update automatically at launch</strong>
+                </div>
+                <div style={{ color: "var(--mc-ink2)" }}>
+                  Install the latest signed build when Mercury starts (applies on the next restart). The
+                  signature is always verified first — this only changes whether you have to click.
+                </div>
+              </div>
+              <GhostButton onClick={() => setAuto(setAutoUpdate(!autoUpdate))}>
+                {autoUpdate ? "On" : "Off"}
+              </GhostButton>
+            </div>
+            <div
+              className={styles.card}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+            >
+              <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                <div>
+                  <strong>Launch at login</strong>
+                </div>
+                <div style={{ color: "var(--mc-ink2)" }}>
+                  Start Mercury minimized in the tray at sign-in, so messages arrive without opening it.
+                </div>
+              </div>
+              <GhostButton
+                onClick={async () => {
+                  if (busy || autostart === null) return;
+                  setBusy(true);
+                  try {
+                    setAutostart(await setAutostartEnabled(!autostart));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {autostart === null ? "…" : autostart ? "On" : "Off"}
+              </GhostButton>
+            </div>
           </div>
         </Section>
       )}

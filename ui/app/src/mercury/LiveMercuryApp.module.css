@@ -517,11 +517,11 @@
   border-bottom: 1px solid var(--mc-border);
   background: color-mix(in srgb, var(--mc-surface) 66%, transparent);
 }
-/* Reserve room at the top-right for the floating quick bar, but only on desktop AND only when the
-   inspector is closed (the thread head then runs to the window edge under the bar). With the
-   inspector open the bar floats over the inspector instead, so the header needs no extra room. */
+/* Reserve room at the top-right for the floating menu button, but only on desktop AND only when the
+   inspector is closed (the thread head then runs to the window edge under the button). With the
+   inspector open the button floats over the inspector instead (see .panelHead below). */
 .shell:not([data-mobile]):not([data-inspector]) .threadHead {
-  padding-right: 124px;
+  padding-right: 60px;
 }
 
 .threadHeadText {
@@ -666,6 +666,11 @@
   gap: 8px;
   padding: 13px 16px;
   border-bottom: 1px solid var(--mc-border);
+}
+/* When the inspector is open on desktop the floating menu button sits over its top-right corner —
+   reserve room so the ✕ / "live" never disappear under the button (the screenshot overlap fix). */
+.shell:not([data-mobile]) .panelHead {
+  padding-right: 60px;
 }
 
 .panelTitle {

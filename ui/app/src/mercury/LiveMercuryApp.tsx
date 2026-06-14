@@ -430,28 +430,10 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
           <button
             type="button"
             className={styles.quickBtn}
-            onClick={() => setModal({ kind: "settings" })}
-            data-tip="Settings"
-            aria-label="Settings"
-          >
-            ⚙
-          </button>
-          <button
-            type="button"
-            className={styles.quickBtn}
-            onClick={() => setTheme(dark ? "light" : "dark")}
-            data-tip={dark ? "Light mode" : "Dark mode"}
-            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {dark ? "☀" : "☾"}
-          </button>
-          <button
-            type="button"
-            className={styles.quickBtn}
             data-active={moreMenu ? "" : undefined}
             onClick={() => setMoreMenu((o) => !o)}
-            data-tip="More"
-            aria-label="More options"
+            data-tip="Menu"
+            aria-label="Menu"
             aria-haspopup="menu"
             aria-expanded={moreMenu}
           >
@@ -459,11 +441,35 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
           </button>
         </div>
 
-        {/* top-right overflow menu: inspector collapse + conversation settings */}
+        {/* single top-right menu: settings, theme, inspector collapse, conversation settings */}
         {moreMenu && (
           <>
             <div className={styles.moreBackdrop} onClick={() => setMoreMenu(false)} />
-            <div className={`${styles.moreMenu} card-in`} role="menu" aria-label="More options">
+            <div className={`${styles.moreMenu} card-in`} role="menu" aria-label="Menu">
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.moreItem}
+                onClick={() => {
+                  setModal({ kind: "settings" });
+                  setMoreMenu(false);
+                }}
+              >
+                <span className={styles.moreIcon}>⚙</span>
+                Settings
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.moreItem}
+                onClick={() => {
+                  setTheme(dark ? "light" : "dark");
+                  setMoreMenu(false);
+                }}
+              >
+                <span className={styles.moreIcon}>{dark ? "☀" : "☾"}</span>
+                {dark ? "Light mode" : "Dark mode"}
+              </button>
               <button
                 type="button"
                 role="menuitemcheckbox"
@@ -488,7 +494,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                     setMoreMenu(false);
                   }}
                 >
-                  <span className={styles.moreIcon}>⚙</span>
+                  <span className={styles.moreIcon}>💬</span>
                   Conversation settings
                 </button>
               )}
@@ -503,7 +509,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.38</span>
+            <span className={`${styles.version} mono`}>v0.1.39</span>
             <button
               className={styles.railToggle}
               type="button"
