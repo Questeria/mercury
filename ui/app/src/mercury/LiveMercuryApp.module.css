@@ -55,8 +55,10 @@
   z-index: 6;
 }
 .moreMenu {
-  position: absolute;
-  top: 47px;
+  /* fixed to the viewport top-right so it drops below the title bar (desktop) or the floating ⋯
+     (browser) without depending on the shell's 36px tauri offset. */
+  position: fixed;
+  top: 42px;
   right: 12px;
   z-index: 7;
   min-width: 200px;
@@ -517,10 +519,11 @@
   border-bottom: 1px solid var(--mc-border);
   background: color-mix(in srgb, var(--mc-surface) 66%, transparent);
 }
-/* Reserve room at the top-right for the floating menu button, but only on desktop AND only when the
-   inspector is closed (the thread head then runs to the window edge under the button). With the
-   inspector open the button floats over the inspector instead (see .panelHead below). */
-.shell:not([data-mobile]):not([data-inspector]) .threadHead {
+/* Reserve room at the top-right for the floating menu button — ONLY in the browser fallback
+   (`:not([data-tauri])`), where the ⋯ floats over the content; the desktop app puts the menu in the
+   title bar so nothing floats over the headers. Also only on desktop and only when the inspector is
+   closed (the thread head then runs to the window edge under the button). */
+.shell:not([data-mobile]):not([data-tauri]):not([data-inspector]) .threadHead {
   padding-right: 60px;
 }
 
@@ -667,9 +670,9 @@
   padding: 13px 16px;
   border-bottom: 1px solid var(--mc-border);
 }
-/* When the inspector is open on desktop the floating menu button sits over its top-right corner —
-   reserve room so the ✕ / "live" never disappear under the button (the screenshot overlap fix). */
-.shell:not([data-mobile]) .panelHead {
+/* Browser fallback only: the floating ⋯ sits over the inspector's top-right corner, so reserve room.
+   The desktop app keeps the menu in the title bar, so its inspector header needs no reservation. */
+.shell:not([data-mobile]):not([data-tauri]) .panelHead {
   padding-right: 60px;
 }
 

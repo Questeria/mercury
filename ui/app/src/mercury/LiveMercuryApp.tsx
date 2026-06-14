@@ -414,38 +414,49 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const tauri = inTauri();
   return (
     <div className="mercury" data-theme={dark ? "dark" : "light"}>
-      {tauri && <TitleBar />}
+      {tauri && <TitleBar menuOpen={moreMenu} onToggleMenu={() => setMoreMenu((o) => !o)} />}
       <UpdateBanner />
       <div
         className={styles.shell}
         data-mobile={mobile ? "" : undefined}
+        data-tauri={tauri ? "" : undefined}
         data-view={mobileView}
         data-inspector={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
         style={tauri ? { top: 36 } : undefined}
       >
         <div className="shimmer-bg" />
 
-        {/* ---------- floating top-right quick controls ---------- */}
-        <div className={styles.quickBar} role="toolbar" aria-label="Quick controls">
-          <button
-            type="button"
-            className={styles.quickBtn}
-            data-active={moreMenu ? "" : undefined}
-            onClick={() => setMoreMenu((o) => !o)}
-            data-tip="Menu"
-            aria-label="Menu"
-            aria-haspopup="menu"
-            aria-expanded={moreMenu}
-          >
-            ⋯
-          </button>
-        </div>
+        {/* The menu lives in the title bar on the desktop app (TitleBar above). In the browser there's
+            no title bar, so fall back to a small floating ⋯ button for the same menu. */}
+        {!tauri && (
+          <div className={styles.quickBar} role="toolbar" aria-label="Quick controls">
+            <button
+              type="button"
+              className={styles.quickBtn}
+              data-active={moreMenu ? "" : undefined}
+              onClick={() => setMoreMenu((o) => !o)}
+              data-tip="Menu"
+              aria-label="Menu"
+              aria-haspopup="menu"
+              aria-expanded={moreMenu}
+            >
+              ⋯
+            </button>
+          </div>
+        )}
 
         {/* single top-right menu: settings, theme, inspector collapse, conversation settings */}
         {moreMenu && (
           <>
             <div className={styles.moreBackdrop} onClick={() => setMoreMenu(false)} />
-            <div className={`${styles.moreMenu} card-in`} role="menu" aria-label="Menu">
+            {/* On desktop the trigger sits in the title bar left of the 3 window controls (3×46px),
+                so drop the menu under it; in the browser it drops under the floating ⋯ at right:12. */}
+            <div
+              className={`${styles.moreMenu} card-in`}
+              role="menu"
+              aria-label="Menu"
+              style={tauri ? { right: 138 } : undefined}
+            >
               <button
                 type="button"
                 role="menuitem"
@@ -509,7 +520,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.39</span>
+            <span className={`${styles.version} mono`}>v0.1.40</span>
             <button
               className={styles.railToggle}
               type="button"
@@ -893,14 +904,18 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <span className={styles.panelTitle}>Inspector</span>
               <span className={styles.panelSub}>binding view</span>
               <span className={`${styles.panelLive} mono`}>● live</span>
-              <button
-                className={styles.panelClose}
-                type="button"
-                onClick={() => (mobile ? setMobileInspector(false) : setPanelOpen(false))}
-                aria-label="Hide inspector"
-              >
-                ✕
-              </button>
+              {/* Desktop closes the inspector from the ⋯ menu ("Hide inspector"), so no ✕ here. On
+                  mobile the inspector is a full overlay that can cover the menu, so it keeps its ✕. */}
+              {mobile && (
+                <button
+                  className={styles.panelClose}
+                  type="button"
+                  onClick={() => setMobileInspector(false)}
+                  aria-label="Hide inspector"
+                >
+                  ✕
+                </button>
+              )}
             </div>
             <div className={styles.panelScroll}>
               <Field label="You" value={state.accountId} onCopy={() => copy("me", state.accountId)} copied={copied === "me"} />

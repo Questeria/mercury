@@ -11,7 +11,16 @@ async function appWindow() {
   return getCurrentWindow();
 }
 
-export function TitleBar() {
+export function TitleBar({
+  menuOpen,
+  onToggleMenu,
+}: {
+  /** Open state of the app menu (drives the ⋯ button highlight). */
+  menuOpen?: boolean;
+  /** Toggle the app menu. When provided, a ⋯ menu button is shown left of the window controls so the
+   *  menu lives in the fixed title bar — above every panel, never floating over the inspector. */
+  onToggleMenu?: () => void;
+} = {}) {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
@@ -45,6 +54,20 @@ export function TitleBar() {
         <span className={`${styles.title} iris-text`}>Mercury</span>
       </div>
       <div className={styles.controls}>
+        {onToggleMenu && (
+          <button
+            className={`${styles.ctl} ${styles.menuCtl}`}
+            type="button"
+            onClick={onToggleMenu}
+            aria-label="Menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen ?? false}
+            data-active={menuOpen ? "" : undefined}
+            title="Menu"
+          >
+            ⋯
+          </button>
+        )}
         <button className={styles.ctl} type="button" onClick={minimize} aria-label="Minimize" title="Minimize">
           <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden>
             <rect x="1.5" y="5" width="8" height="1.2" fill="currentColor" />

@@ -63,3 +63,14 @@
   background: #e81123;
   color: #fff;
 }
+
+/* the ⋯ app-menu button (left of the window controls) */
+.menuCtl {
+  font-size: 20px;
+  line-height: 1;
+  padding-bottom: 4px;
+}
+.ctl[data-active] {
+  background: var(--mc-surface-mute);
+  color: var(--mc-ink);
+}

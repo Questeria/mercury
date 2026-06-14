@@ -9,20 +9,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=0.1.39" />
+  <link rel="stylesheet" href="/style.css?v=0.1.40" />
 </head>
 <body>
 
 <nav class="top">
   <div class="bar">
-    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.39</span></a>
+    <a class="brand" href="/"><img class="logo" src="/assets/mercury-logo.png" alt="" aria-hidden="true" />mercury <span class="v">v0.1.40</span></a>
     <div class="links">
       <a href="/#why">why</a>
       <a class="here" href="/security.html">security</a>
       <a href="/#status">status</a>
       <a href="/faq.html">faq</a>
       <a href="/privacy.html">privacy</a>
-      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.39">download</a>
+      <a class="navbtn" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.40">download</a>
     </div>
   </div>
 </nav>
@@ -76,7 +76,7 @@
 <section class="black scanlines" id="spec">
   <div class="wrap">
     <h2 class="cmd reveal">mercury <span class="grn">--spec</span></h2>
-    <p class="secout reveal d1">what's actually in the box, v0.1.39. engineering posture: reviewed
+    <p class="secout reveal d1">what's actually in the box, v0.1.40. engineering posture: reviewed
     protocol libraries own the primitives; we own the policy around them.</p>
     <table class="spec reveal d2">
       <tr><td>encryption</td><td><b>End-to-end by default — there is no plaintext mode.</b> 1:1 sessions use a post-quantum hybrid; group chat is real MLS (RFC 9420) running over verified 1:1 channels.</td></tr>
@@ -98,8 +98,8 @@
     <p class="secout reveal d1">ten seconds of checking beats any amount of trusting. every release
     publishes a sha-256 next to its download.</p>
     <div class="whygrid reveal d2">
-      <div class="why"><span class="tag">LINUX</span><h3>sha256sum</h3><p>Put the <a href="/download/Mercury-Linux-amd64.deb.sha256?v=0.1.39">.sha256 file</a> next to the download and run <br /><code style="font-size:.8em">sha256sum -c Mercury-Linux-amd64.deb.sha256</code><br />Expect: <b>OK</b>. The .deb is unsigned (normal outside app stores) — the checksum is your verification.</p></div>
-      <div class="why"><span class="tag">WINDOWS</span><h3>Get-FileHash + signature</h3><p>In PowerShell: <code style="font-size:.8em">Get-FileHash .\Mercury-Setup-Windows-x64.exe</code> and compare against the published <a href="/download/Mercury-Setup-Windows-x64.exe.sha256?v=0.1.39">.sha256</a>. Then right-click → Properties → Digital Signatures: the installer is Authenticode-signed and timestamped.</p></div>
+      <div class="why"><span class="tag">LINUX</span><h3>sha256sum</h3><p>Put the <a href="/download/Mercury-Linux-amd64.deb.sha256?v=0.1.40">.sha256 file</a> next to the download and run <br /><code style="font-size:.8em">sha256sum -c Mercury-Linux-amd64.deb.sha256</code><br />Expect: <b>OK</b>. The .deb is unsigned (normal outside app stores) — the checksum is your verification.</p></div>
+      <div class="why"><span class="tag">WINDOWS</span><h3>Get-FileHash + signature</h3><p>In PowerShell: <code style="font-size:.8em">Get-FileHash .\Mercury-Setup-Windows-x64.exe</code> and compare against the published <a href="/download/Mercury-Setup-Windows-x64.exe.sha256?v=0.1.40">.sha256</a>. Then right-click → Properties → Digital Signatures: the installer is Authenticode-signed and timestamped.</p></div>
       <div class="why"><span class="tag">UPDATES</span><h3>Signed manifest</h3><p>The in-app updater polls <code style="font-size:.8em">/updates/latest.json</code>, accepts only releases signed with Mercury's update key, and always shows an install prompt. It never installs silently. Manual re-download from this site always works too.</p></div>
     </div>
   </div>
@@ -146,8 +146,8 @@
     <div class="finalcta reveal" style="margin-top:0">
       <p class="bigline" data-scramble>check us, then run us.</p>
       <div class="cta" style="justify-content:center">
-        <a class="btn pri" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.39">download --windows</a>
-        <a class="btn sec" href="/download/Mercury-Linux-amd64.deb?v=0.1.39">download --linux-deb</a>
+        <a class="btn pri" href="/download/Mercury-Setup-Windows-x64.exe?v=0.1.40">download --windows</a>
+        <a class="btn sec" href="/download/Mercury-Linux-amd64.deb?v=0.1.40">download --linux-deb</a>
       </div>
     </div>
   </div>
@@ -160,6 +160,6 @@
   </div>
 </footer>
 
-<script src="/site.js?v=0.1.39"></script>
+<script src="/site.js?v=0.1.40"></script>
 </body>
 </html>
