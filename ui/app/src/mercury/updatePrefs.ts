@@ -33,3 +33,43 @@ export function setAutoUpdate(value: boolean): boolean {
   }
   return value;
 }
+
+// --- Update diagnostics -----------------------------------------------------------------------
+// Every check/install records its outcome here so the Updates panel can show exactly what the
+// updater last did (e.g. "found 0.1.42 but install failed: <reason>"). This is what makes a
+// silent auto-update FAILURE visible + reportable instead of invisible — critical for a tray app
+// where the user never sees the transient launch banner.
+
+const LOG_KEY = "mercury.updateLog";
+
+export interface UpdateLogEntry {
+  at: number; // epoch ms
+  kind: string; // "launch" | "focus" | "periodic" | "<kind>-install"
+  state: string;
+  detail: string;
+  version?: string;
+}
+
+/** Append an update event (keeps the last 8). Never throws. */
+export function recordUpdateResult(entry: UpdateLogEntry): void {
+  try {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(LOG_KEY);
+    const log: UpdateLogEntry[] = raw ? JSON.parse(raw) : [];
+    log.push(entry);
+    window.localStorage.setItem(LOG_KEY, JSON.stringify(log.slice(-8)));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Read the recorded update events, newest last. Never throws. */
+export function getUpdateLog(): UpdateLogEntry[] {
+  try {
+    if (typeof window === "undefined") return [];
+    const raw = window.localStorage.getItem(LOG_KEY);
+    return raw ? (JSON.parse(raw) as UpdateLogEntry[]) : [];
+  } catch {
+    return [];
+  }
+}

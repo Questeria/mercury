@@ -11,7 +11,7 @@ import {
 } from "../../updater";
 import { inTauri } from "../../messaging";
 import { isAutostartEnabled, setAutostartEnabled } from "../../autostart";
-import { getAutoUpdate, setAutoUpdate } from "../../updatePrefs";
+import { getAutoUpdate, setAutoUpdate, getUpdateLog } from "../../updatePrefs";
 import { PanelShell } from "./PanelShell";
 import { GhostButton, IridButton, Kv, ScopeTile, Section, StatusRow } from "./primitives";
 import styles from "./panels.module.css";
@@ -27,6 +27,7 @@ export function UpdatesPanel({ mobile, onClose }: UpdatesPanelProps) {
   const [busy, setBusy] = useState(false);
   const [autostart, setAutostart] = useState<boolean | null>(null);
   const [autoUpdate, setAuto] = useState(getAutoUpdate);
+  const log = getUpdateLog().slice().reverse(); // newest first
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +98,20 @@ export function UpdatesPanel({ mobile, onClose }: UpdatesPanelProps) {
         label={status?.title ?? "Checking update channel"}
         sub={status?.detail ?? "Probing latest.json"}
       />
+
+      {log.length > 0 && (
+        <Section kicker="Recent activity">
+          <div className={styles.colGap}>
+            {log.map((e, i) => (
+              <div key={i} className={styles.monoCard} style={{ fontSize: 11, lineHeight: 1.5 }}>
+                <strong>{e.kind}</strong> → {e.state}
+                {e.version ? ` (v${e.version})` : ""}
+                {e.detail ? <div style={{ color: "var(--mc-ink2)" }}>{e.detail}</div> : null}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       <Section kicker="Release path">
         <div className={styles.featureGrid}>

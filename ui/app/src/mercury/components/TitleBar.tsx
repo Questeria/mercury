@@ -11,24 +11,7 @@ async function appWindow() {
   return getCurrentWindow();
 }
 
-export function TitleBar({
-  onSettings,
-  onTheme,
-  dark,
-  onToggleInspector,
-  inspectorOpen,
-  onConvSettings,
-}: {
-  /** App controls shown left of the window buttons — visible (not collapsed into a menu), in the
-   *  fixed title bar so they never float over the inspector. Each is omitted if its handler is absent
-   *  (e.g. Conversation settings only when a conversation is open). */
-  onSettings?: () => void;
-  onTheme?: () => void;
-  dark?: boolean;
-  onToggleInspector?: () => void;
-  inspectorOpen?: boolean;
-  onConvSettings?: () => void;
-} = {}) {
+export function TitleBar() {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
@@ -62,40 +45,6 @@ export function TitleBar({
         <span className={`${styles.title} iris-text`}>Mercury</span>
       </div>
       <div className={styles.controls}>
-        {onSettings && (
-          <button className={`${styles.ctl} ${styles.appCtl}`} type="button" onClick={onSettings} aria-label="Settings" title="Settings">
-            ⚙
-          </button>
-        )}
-        {onTheme && (
-          <button
-            className={`${styles.ctl} ${styles.appCtl}`}
-            type="button"
-            onClick={onTheme}
-            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-            title={dark ? "Light mode" : "Dark mode"}
-          >
-            {dark ? "☀" : "☾"}
-          </button>
-        )}
-        {onToggleInspector && (
-          <button
-            className={`${styles.ctl} ${styles.appCtl}`}
-            type="button"
-            onClick={onToggleInspector}
-            data-active={inspectorOpen ? "" : undefined}
-            aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
-            aria-pressed={inspectorOpen ?? false}
-            title={inspectorOpen ? "Hide inspector" : "Show inspector"}
-          >
-            ⓘ
-          </button>
-        )}
-        {onConvSettings && (
-          <button className={`${styles.ctl} ${styles.appCtl}`} type="button" onClick={onConvSettings} aria-label="Conversation settings" title="Conversation settings">
-            💬
-          </button>
-        )}
         <button className={styles.ctl} type="button" onClick={minimize} aria-label="Minimize" title="Minimize">
           <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden>
             <rect x="1.5" y="5" width="8" height="1.2" fill="currentColor" />

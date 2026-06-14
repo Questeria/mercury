@@ -1,15 +1,16 @@
-// Automatic update notice. On launch (and every 6h for long-running tray sessions) the app checks
-// the SIGNED update manifest. If "auto-update at launch" is ON (the default, see ../updatePrefs.ts),
-// the LAUNCH check downloads + installs the signed build automatically (it applies on restart); the
-// banner then shows the progress + restart prompt — never silent about the outcome. If the setting is
-// OFF, detection still happens but installing stays a one-click action. The periodic re-check only
-// notifies (no mid-session install). The signature is verified before applying, auto or not, and it's
-// a no-op in the browser. Reuses the audited updater seam in ../updater.ts.
+// Automatic update notice. The app checks the SIGNED update manifest on launch, every 6h, AND when
+// the window is shown from the tray. That last trigger matters: with close-to-tray + single-instance
+// the process rarely restarts, so the "on launch" check almost never re-fires — the window-show check
+// is what actually catches a new build for a tray-resident app. If "auto-update" is ON (the default,
+// see ../updatePrefs.ts) any trigger downloads + installs the signed build automatically (it applies
+// on the next FULL restart — tray → Quit → reopen); the banner shows progress + the restart prompt,
+// never silent. Every outcome is recorded via recordUpdateResult so the Updates panel shows exactly
+// what happened. The signature is verified before applying, and it's a no-op in the browser.
 import { useEffect, useRef, useState } from "react";
 
 import { inTauri } from "../messaging";
 import { checkForUpdates, downloadAndInstallUpdate } from "../updater";
-import { getAutoUpdate } from "../updatePrefs";
+import { getAutoUpdate, recordUpdateResult } from "../updatePrefs";
 import styles from "../LiveMercuryApp.module.css";
 
 type Phase = "hidden" | "available" | "installing" | "installed" | "failed" | "checkfailed";
@@ -26,22 +27,36 @@ export function UpdateBanner() {
   useEffect(() => {
     if (!inTauri()) return;
     let cancelled = false;
-    // Auto-install fires only on the LAUNCH check, never on the periodic re-check — so a long tray
-    // session is never interrupted mid-use; it just gets a "newer version" banner instead.
-    let launchCheck = true;
-    const check = async () => {
+    let lastCheckAt = 0;
+
+    const runCheck = async (kind: string) => {
       if (dismissed.current) return;
+      const now = Date.now();
+      // Throttle window-show checks so foregrounding repeatedly doesn't re-hit the network.
+      if (kind === "focus" && now - lastCheckAt < 10 * 60 * 1000) return;
+      lastCheckAt = now;
+
       const r = await checkForUpdates(); // never throws
       if (cancelled) return;
+      recordUpdateResult({ at: now, kind, state: r.state, detail: r.detail, version: r.version });
+
       if (r.state === "available") {
         setVersion(r.version);
         setDetail(undefined);
-        if (launchCheck && getAutoUpdate()) {
-          // Default path: download + install the signed build automatically at launch. It applies on
-          // the next restart; the banner reports progress and the restart prompt (not silent).
-          setPhase((p) => (p === "hidden" ? "installing" : p));
+        if (getAutoUpdate()) {
+          // Auto-install on EVERY trigger — launch, the periodic re-check, AND when the window is
+          // shown from the tray. A tray app's process rarely restarts (close-to-tray + single
+          // instance), so the window-show check is the main chance to catch a newer build.
+          setPhase((p) => (p === "hidden" || p === "available" ? "installing" : p));
           const ir = await downloadAndInstallUpdate();
           if (cancelled) return;
+          recordUpdateResult({
+            at: Date.now(),
+            kind: `${kind}-install`,
+            state: ir.state,
+            detail: ir.detail,
+            version: ir.version,
+          });
           if (ir.state === "available") {
             setPhase((p) => (p === "installing" ? "installed" : p));
           } else {
@@ -49,7 +64,7 @@ export function UpdateBanner() {
             setPhase((p) => (p === "installing" ? "failed" : p));
           }
         } else {
-          // Auto-update off, or a periodic re-check — just surface the one-click banner.
+          // Auto-update off — just surface the one-click banner.
           setPhase((p) => (p === "hidden" ? "available" : p));
         }
       } else if (r.state === "dormant" || r.state === "error") {
@@ -58,13 +73,18 @@ export function UpdateBanner() {
         setDetail(r.detail);
         setPhase((p) => (p === "hidden" ? "checkfailed" : p));
       }
-      launchCheck = false;
     };
-    void check();
-    const id = window.setInterval(() => void check(), RECHECK_MS);
+
+    void runCheck("launch");
+    const id = window.setInterval(() => void runCheck("periodic"), RECHECK_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void runCheck("focus");
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -99,7 +119,9 @@ export function UpdateBanner() {
       {phase === "installing" && <span className={styles.updateBarText}>Downloading update…</span>}
       {phase === "installed" && (
         <>
-          <span className={styles.updateBarText}>Update installed — restart Mercury to finish.</span>
+          <span className={styles.updateBarText}>
+            Update installed — fully quit Mercury (tray icon → Quit) and reopen to finish.
+          </span>
           <button className={styles.updateBarLater} type="button" onClick={dismiss}>
             Dismiss
           </button>

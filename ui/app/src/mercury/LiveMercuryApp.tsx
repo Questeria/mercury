@@ -413,72 +413,61 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const tauri = inTauri();
   return (
     <div className="mercury" data-theme={dark ? "dark" : "light"}>
-      {tauri && (
-        <TitleBar
-          onSettings={() => setModal({ kind: "settings" })}
-          onTheme={() => setTheme(dark ? "light" : "dark")}
-          dark={dark}
-          onToggleInspector={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
-          inspectorOpen={mobile ? mobileInspector : panelOpen}
-          onConvSettings={active ? () => setConvMenu(true) : undefined}
-        />
-      )}
+      {tauri && <TitleBar />}
       <UpdateBanner />
+      {/* The app controls get their OWN bar, a full-width row below the title bar. The panels (rail,
+          thread, inspector) — including the inspector's "binding view" header — sit below it, so the
+          controls never float over the inspector. */}
+      <div className={styles.appBar} style={tauri ? { top: 36 } : undefined} role="toolbar" aria-label="App controls">
+        <button
+          type="button"
+          className={styles.appBtn}
+          onClick={() => setModal({ kind: "settings" })}
+          data-tip="Settings"
+          aria-label="Settings"
+        >
+          ⚙
+        </button>
+        <button
+          type="button"
+          className={styles.appBtn}
+          onClick={() => setTheme(dark ? "light" : "dark")}
+          data-tip={dark ? "Light mode" : "Dark mode"}
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {dark ? "☀" : "☾"}
+        </button>
+        <button
+          type="button"
+          className={styles.appBtn}
+          data-active={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
+          onClick={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
+          data-tip="Inspector"
+          aria-label={(mobile ? mobileInspector : panelOpen) ? "Hide inspector" : "Show inspector"}
+        >
+          ⓘ
+        </button>
+        {active && (
+          <button
+            type="button"
+            className={styles.appBtn}
+            onClick={() => setConvMenu(true)}
+            data-tip="Conversation settings"
+            aria-label="Conversation settings"
+          >
+            💬
+          </button>
+        )}
+      </div>
       <div
         className={styles.shell}
         data-mobile={mobile ? "" : undefined}
         data-tauri={tauri ? "" : undefined}
         data-view={mobileView}
         data-inspector={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
-        style={tauri ? { top: 36 } : undefined}
+        style={{ top: tauri ? 80 : 44 }}
       >
         <div className="shimmer-bg" />
-
-        {/* The controls live in the title bar on the desktop app (TitleBar above). In the browser
-            there's no title bar, so show the same controls as a small floating cluster. */}
-        {!tauri && (
-          <div className={styles.quickBar} role="toolbar" aria-label="Quick controls">
-            <button
-              type="button"
-              className={styles.quickBtn}
-              onClick={() => setModal({ kind: "settings" })}
-              data-tip="Settings"
-              aria-label="Settings"
-            >
-              ⚙
-            </button>
-            <button
-              type="button"
-              className={styles.quickBtn}
-              onClick={() => setTheme(dark ? "light" : "dark")}
-              data-tip={dark ? "Light mode" : "Dark mode"}
-              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {dark ? "☀" : "☾"}
-            </button>
-            <button
-              type="button"
-              className={styles.quickBtn}
-              data-active={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
-              onClick={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
-              data-tip="Inspector"
-              aria-label={(mobile ? mobileInspector : panelOpen) ? "Hide inspector" : "Show inspector"}
-            >
-              ⓘ
-            </button>
-            {active && (
-              <button
-                type="button"
-                className={styles.quickBtn}
-                onClick={() => setConvMenu(true)}
-                data-tip="Conversation settings"
-                aria-label="Conversation settings"
-              >
-                💬
-              </button>
-            )}
-          </div>
-        )}
 
         {/* ---------- rail ---------- */}
         <aside className={styles.rail} data-collapsed={railCollapsed ? "" : undefined}>
@@ -487,7 +476,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.41</span>
+            <span className={`${styles.version} mono`}>v0.1.42</span>
             <button
               className={styles.railToggle}
               type="button"

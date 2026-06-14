@@ -48,6 +48,48 @@
   background: var(--mc-surface-mute);
   color: var(--mc-accent);
 }
+
+/* ============ app-controls bar (its own row below the title bar) ============ */
+.appBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 0 12px;
+  background: color-mix(in srgb, var(--mc-surface) 90%, transparent);
+  border-bottom: 1px solid var(--mc-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.appBtn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  color: var(--mc-ink2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.appBtn:hover {
+  background: var(--mc-surface-mute);
+  color: var(--mc-ink);
+}
+.appBtn[data-active] {
+  background: var(--mc-surface-mute);
+  color: var(--mc-accent);
+}
 /* top-right overflow menu (inspector collapse + conversation settings) */
 .moreBackdrop {
   position: fixed;
@@ -519,13 +561,6 @@
   border-bottom: 1px solid var(--mc-border);
   background: color-mix(in srgb, var(--mc-surface) 66%, transparent);
 }
-/* Reserve room at the top-right for the floating menu button — ONLY in the browser fallback
-   (`:not([data-tauri])`), where the ⋯ floats over the content; the desktop app puts the menu in the
-   title bar so nothing floats over the headers. Also only on desktop and only when the inspector is
-   closed (the thread head then runs to the window edge under the button). */
-.shell:not([data-mobile]):not([data-tauri]):not([data-inspector]) .threadHead {
-  padding-right: 150px;
-}
 
 .threadHeadText {
   flex: 1;
@@ -669,11 +704,6 @@
   gap: 8px;
   padding: 13px 16px;
   border-bottom: 1px solid var(--mc-border);
-}
-/* Browser fallback only: the floating ⋯ sits over the inspector's top-right corner, so reserve room.
-   The desktop app keeps the menu in the title bar, so its inspector header needs no reservation. */
-.shell:not([data-mobile]):not([data-tauri]) .panelHead {
-  padding-right: 150px;
 }
 
 .panelTitle {
