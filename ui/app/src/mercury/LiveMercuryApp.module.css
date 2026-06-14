@@ -524,7 +524,7 @@
    title bar so nothing floats over the headers. Also only on desktop and only when the inspector is
    closed (the thread head then runs to the window edge under the button). */
 .shell:not([data-mobile]):not([data-tauri]):not([data-inspector]) .threadHead {
-  padding-right: 60px;
+  padding-right: 150px;
 }
 
 .threadHeadText {
@@ -673,7 +673,7 @@
 /* Browser fallback only: the floating ⋯ sits over the inspector's top-right corner, so reserve room.
    The desktop app keeps the menu in the title bar, so its inspector header needs no reservation. */
 .shell:not([data-mobile]):not([data-tauri]) .panelHead {
-  padding-right: 60px;
+  padding-right: 150px;
 }
 
 .panelTitle {

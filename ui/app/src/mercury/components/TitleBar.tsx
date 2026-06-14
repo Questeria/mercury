@@ -12,14 +12,22 @@ async function appWindow() {
 }
 
 export function TitleBar({
-  menuOpen,
-  onToggleMenu,
+  onSettings,
+  onTheme,
+  dark,
+  onToggleInspector,
+  inspectorOpen,
+  onConvSettings,
 }: {
-  /** Open state of the app menu (drives the ⋯ button highlight). */
-  menuOpen?: boolean;
-  /** Toggle the app menu. When provided, a ⋯ menu button is shown left of the window controls so the
-   *  menu lives in the fixed title bar — above every panel, never floating over the inspector. */
-  onToggleMenu?: () => void;
+  /** App controls shown left of the window buttons — visible (not collapsed into a menu), in the
+   *  fixed title bar so they never float over the inspector. Each is omitted if its handler is absent
+   *  (e.g. Conversation settings only when a conversation is open). */
+  onSettings?: () => void;
+  onTheme?: () => void;
+  dark?: boolean;
+  onToggleInspector?: () => void;
+  inspectorOpen?: boolean;
+  onConvSettings?: () => void;
 } = {}) {
   const [maximized, setMaximized] = useState(false);
 
@@ -54,18 +62,38 @@ export function TitleBar({
         <span className={`${styles.title} iris-text`}>Mercury</span>
       </div>
       <div className={styles.controls}>
-        {onToggleMenu && (
+        {onSettings && (
+          <button className={`${styles.ctl} ${styles.appCtl}`} type="button" onClick={onSettings} aria-label="Settings" title="Settings">
+            ⚙
+          </button>
+        )}
+        {onTheme && (
           <button
-            className={`${styles.ctl} ${styles.menuCtl}`}
+            className={`${styles.ctl} ${styles.appCtl}`}
             type="button"
-            onClick={onToggleMenu}
-            aria-label="Menu"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen ?? false}
-            data-active={menuOpen ? "" : undefined}
-            title="Menu"
+            onClick={onTheme}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            title={dark ? "Light mode" : "Dark mode"}
           >
-            ⋯
+            {dark ? "☀" : "☾"}
+          </button>
+        )}
+        {onToggleInspector && (
+          <button
+            className={`${styles.ctl} ${styles.appCtl}`}
+            type="button"
+            onClick={onToggleInspector}
+            data-active={inspectorOpen ? "" : undefined}
+            aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+            aria-pressed={inspectorOpen ?? false}
+            title={inspectorOpen ? "Hide inspector" : "Show inspector"}
+          >
+            ⓘ
+          </button>
+        )}
+        {onConvSettings && (
+          <button className={`${styles.ctl} ${styles.appCtl}`} type="button" onClick={onConvSettings} aria-label="Conversation settings" title="Conversation settings">
+            💬
           </button>
         )}
         <button className={styles.ctl} type="button" onClick={minimize} aria-label="Minimize" title="Minimize">

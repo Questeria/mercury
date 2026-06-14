@@ -64,13 +64,13 @@
   color: #fff;
 }
 
-/* the ⋯ app-menu button (left of the window controls) */
-.menuCtl {
-  font-size: 20px;
+/* visible app controls (Settings / Theme / Inspector / Conversation) left of the window buttons */
+.appCtl {
+  width: 38px;
+  font-size: 15px;
   line-height: 1;
-  padding-bottom: 4px;
 }
 .ctl[data-active] {
   background: var(--mc-surface-mute);
-  color: var(--mc-ink);
+  color: var(--mc-accent);
 }

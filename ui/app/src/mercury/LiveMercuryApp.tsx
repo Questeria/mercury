@@ -270,7 +270,6 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const [mobileInspector, setMobileInspector] = useState(false);
   const [modal, setModal] = useState<ModalState>(null);
   const [convMenu, setConvMenu] = useState(false);
-  const [moreMenu, setMoreMenu] = useState(false);
   const [newGroupOpen, setNewGroupOpen] = useState(false);
   const [trustState, setTrustState] = useState<TrustState>("trusted");
   const [aiState, setAiState] = useState<AiState>("absent");
@@ -414,7 +413,16 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const tauri = inTauri();
   return (
     <div className="mercury" data-theme={dark ? "dark" : "light"}>
-      {tauri && <TitleBar menuOpen={moreMenu} onToggleMenu={() => setMoreMenu((o) => !o)} />}
+      {tauri && (
+        <TitleBar
+          onSettings={() => setModal({ kind: "settings" })}
+          onTheme={() => setTheme(dark ? "light" : "dark")}
+          dark={dark}
+          onToggleInspector={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
+          inspectorOpen={mobile ? mobileInspector : panelOpen}
+          onConvSettings={active ? () => setConvMenu(true) : undefined}
+        />
+      )}
       <UpdateBanner />
       <div
         className={styles.shell}
@@ -426,91 +434,50 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
       >
         <div className="shimmer-bg" />
 
-        {/* The menu lives in the title bar on the desktop app (TitleBar above). In the browser there's
-            no title bar, so fall back to a small floating ⋯ button for the same menu. */}
+        {/* The controls live in the title bar on the desktop app (TitleBar above). In the browser
+            there's no title bar, so show the same controls as a small floating cluster. */}
         {!tauri && (
           <div className={styles.quickBar} role="toolbar" aria-label="Quick controls">
             <button
               type="button"
               className={styles.quickBtn}
-              data-active={moreMenu ? "" : undefined}
-              onClick={() => setMoreMenu((o) => !o)}
-              data-tip="Menu"
-              aria-label="Menu"
-              aria-haspopup="menu"
-              aria-expanded={moreMenu}
+              onClick={() => setModal({ kind: "settings" })}
+              data-tip="Settings"
+              aria-label="Settings"
             >
-              ⋯
+              ⚙
             </button>
-          </div>
-        )}
-
-        {/* single top-right menu: settings, theme, inspector collapse, conversation settings */}
-        {moreMenu && (
-          <>
-            <div className={styles.moreBackdrop} onClick={() => setMoreMenu(false)} />
-            {/* On desktop the trigger sits in the title bar left of the 3 window controls (3×46px),
-                so drop the menu under it; in the browser it drops under the floating ⋯ at right:12. */}
-            <div
-              className={`${styles.moreMenu} card-in`}
-              role="menu"
-              aria-label="Menu"
-              style={tauri ? { right: 138 } : undefined}
+            <button
+              type="button"
+              className={styles.quickBtn}
+              onClick={() => setTheme(dark ? "light" : "dark")}
+              data-tip={dark ? "Light mode" : "Dark mode"}
+              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             >
+              {dark ? "☀" : "☾"}
+            </button>
+            <button
+              type="button"
+              className={styles.quickBtn}
+              data-active={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
+              onClick={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
+              data-tip="Inspector"
+              aria-label={(mobile ? mobileInspector : panelOpen) ? "Hide inspector" : "Show inspector"}
+            >
+              ⓘ
+            </button>
+            {active && (
               <button
                 type="button"
-                role="menuitem"
-                className={styles.moreItem}
-                onClick={() => {
-                  setModal({ kind: "settings" });
-                  setMoreMenu(false);
-                }}
+                className={styles.quickBtn}
+                onClick={() => setConvMenu(true)}
+                data-tip="Conversation settings"
+                aria-label="Conversation settings"
               >
-                <span className={styles.moreIcon}>⚙</span>
-                Settings
+                💬
               </button>
-              <button
-                type="button"
-                role="menuitem"
-                className={styles.moreItem}
-                onClick={() => {
-                  setTheme(dark ? "light" : "dark");
-                  setMoreMenu(false);
-                }}
-              >
-                <span className={styles.moreIcon}>{dark ? "☀" : "☾"}</span>
-                {dark ? "Light mode" : "Dark mode"}
-              </button>
-              <button
-                type="button"
-                role="menuitemcheckbox"
-                aria-checked={mobile ? mobileInspector : panelOpen}
-                className={styles.moreItem}
-                onClick={() => {
-                  if (mobile) setMobileInspector((o) => !o);
-                  else setPanelOpen((o) => !o);
-                  setMoreMenu(false);
-                }}
-              >
-                <span className={styles.moreIcon}>ⓘ</span>
-                {(mobile ? mobileInspector : panelOpen) ? "Hide inspector" : "Show inspector"}
-              </button>
-              {active && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.moreItem}
-                  onClick={() => {
-                    setConvMenu(true);
-                    setMoreMenu(false);
-                  }}
-                >
-                  <span className={styles.moreIcon}>💬</span>
-                  Conversation settings
-                </button>
-              )}
-            </div>
-          </>
+            )}
+          </div>
         )}
 
         {/* ---------- rail ---------- */}
@@ -520,7 +487,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.40</span>
+            <span className={`${styles.version} mono`}>v0.1.41</span>
             <button
               className={styles.railToggle}
               type="button"
