@@ -270,6 +270,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const [mobileInspector, setMobileInspector] = useState(false);
   const [modal, setModal] = useState<ModalState>(null);
   const [convMenu, setConvMenu] = useState(false);
+  const [moreMenu, setMoreMenu] = useState(false);
   const [newGroupOpen, setNewGroupOpen] = useState(false);
   const [trustState, setTrustState] = useState<TrustState>("trusted");
   const [aiState, setAiState] = useState<AiState>("absent");
@@ -438,23 +439,62 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
           <button
             type="button"
             className={styles.quickBtn}
-            data-active={(mobile ? mobileInspector : panelOpen) ? "" : undefined}
-            onClick={() => (mobile ? setMobileInspector((o) => !o) : setPanelOpen((o) => !o))}
-            data-tip="Inspector"
-            aria-label="Toggle inspector"
-          >
-            ⓘ
-          </button>
-          <button
-            type="button"
-            className={styles.quickBtn}
             onClick={() => setTheme(dark ? "light" : "dark")}
             data-tip={dark ? "Light mode" : "Dark mode"}
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
           >
             {dark ? "☀" : "☾"}
           </button>
+          <button
+            type="button"
+            className={styles.quickBtn}
+            data-active={moreMenu ? "" : undefined}
+            onClick={() => setMoreMenu((o) => !o)}
+            data-tip="More"
+            aria-label="More options"
+            aria-haspopup="menu"
+            aria-expanded={moreMenu}
+          >
+            ⋯
+          </button>
         </div>
+
+        {/* top-right overflow menu: inspector collapse + conversation settings */}
+        {moreMenu && (
+          <>
+            <div className={styles.moreBackdrop} onClick={() => setMoreMenu(false)} />
+            <div className={`${styles.moreMenu} card-in`} role="menu" aria-label="More options">
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={mobile ? mobileInspector : panelOpen}
+                className={styles.moreItem}
+                onClick={() => {
+                  if (mobile) setMobileInspector((o) => !o);
+                  else setPanelOpen((o) => !o);
+                  setMoreMenu(false);
+                }}
+              >
+                <span className={styles.moreIcon}>ⓘ</span>
+                {(mobile ? mobileInspector : panelOpen) ? "Hide inspector" : "Show inspector"}
+              </button>
+              {active && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.moreItem}
+                  onClick={() => {
+                    setConvMenu(true);
+                    setMoreMenu(false);
+                  }}
+                >
+                  <span className={styles.moreIcon}>⚙</span>
+                  Conversation settings
+                </button>
+              )}
+            </div>
+          </>
+        )}
 
         {/* ---------- rail ---------- */}
         <aside className={styles.rail} data-collapsed={railCollapsed ? "" : undefined}>
@@ -463,7 +503,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               <MercuryLogo size={46} />
             </span>
             <span className={`${styles.wordmark} iris-text`}>Mercury</span>
-            <span className={`${styles.version} mono`}>v0.1.37</span>
+            <span className={`${styles.version} mono`}>v0.1.38</span>
             <button
               className={styles.railToggle}
               type="button"
@@ -731,15 +771,6 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                   )}
                 </div>
                 <span className={`${styles.dot} ${styles[state.status]}`} data-tip={state.status} />
-                <button
-                  className={styles.infoBtn}
-                  type="button"
-                  onClick={() => setConvMenu(true)}
-                  aria-label="Conversation settings"
-                  title="Conversation settings"
-                >
-                  ⋯
-                </button>
               </header>
 
               <DataStrip
@@ -916,7 +947,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                   k="disappearing"
                   v={fmtDisappear(state.disappearing[active.peer] ?? 0)}
                   tone={(state.disappearing[active.peer] ?? 0) > 0 ? "irid" : undefined}
-                  tip="When on, messages auto-delete on both sides after this long. Set it from the ⋯ menu."
+                  tip="When on, messages auto-delete on both sides after this long. Set it from Conversation settings (the ⋯ menu, top-right)."
                 />
                 <Row
                   k="pinned"
@@ -926,7 +957,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                 <Row
                   k="notifications"
                   v={state.muted.includes(active.peer) ? "muted" : "on"}
-                  tip="Whether this chat can notify you. Mute or unmute from the ⋯ menu."
+                  tip="Whether this chat can notify you. Mute or unmute from Conversation settings (the ⋯ menu, top-right)."
                 />
                 <Row
                   k="shared files"

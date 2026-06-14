@@ -190,17 +190,23 @@
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  /* STATIC rainbow ring. The per-frame conic-gradient angle spin was a constant GPU paint on every
-     avatar / send button / AI message; the ring still renders, it just no longer rotates. */
+  /* Gradual rainbow drift via the @property start-angle (geometry stays put — the prototype warns:
+     never rotate the box). `contain: paint` isolates each ring's repaint so it can't force the
+     blurred panel it sits on to re-raster; the long period keeps per-frame work to a tiny masked
+     conic on a small box. The global prefers-reduced-motion rule freezes it for low-power / a11y. */
+  animation: mc-iris-angle 22s linear infinite;
+  contain: paint;
   pointer-events: none;
 }
 
 .mercury .iris-text {
   background: var(--mc-irid-text);
-  background-size: 100% 100%;
-  /* STATIC. This is the always-visible "Mercury" wordmark + AI labels; the old 60fps gradient slide
-     repainted them (inside the blurred rail) on every frame — continuous GPU work. The gradient text
-     still renders; it no longer animates. */
+  /* Gradual colour drift. The gradient loops (same colour at 0% and 100%) so sliding the position
+     cycles seamlessly. Only a few small instances (the wordmark + AI labels), and a foreground
+     child repaint does NOT re-sample the backdrop-filter behind it — so unlike the full-screen
+     aurora this stays cheap. Long period = minimal per-frame work; prefers-reduced-motion freezes it. */
+  background-size: 280% 100%;
+  animation: mc-irid 17s linear infinite;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
