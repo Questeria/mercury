@@ -355,7 +355,12 @@ export function createLiveConversations(messaging: MercuryMessaging): LiveConver
       if (polling) return; // M3: don't stack polls while one is still in flight.
       polling = true;
       try {
-        const { messages: incoming, updated } = await messaging.poll();
+        const { messages: rawIncoming, updated } = await messaging.poll();
+        // Blocked contacts: the relay still DELIVERS their messages, but the block promise shown in
+        // the UI is that they are "received then discarded on your device — never shown or notified".
+        // Enforce it HERE, before any routing / unread bump / notification, so the promise is real and
+        // not just copy. (Unblocking restores delivery: a later poll surfaces them via history.)
+        const incoming = rawIncoming.filter((m) => !state.blocked.includes(m.peer));
         // Conversations whose EXISTING messages changed (a delivery receipt landed, a pending
         // send was accepted, a group roster moved): refresh their history silently — no unread
         // bump, no notification.

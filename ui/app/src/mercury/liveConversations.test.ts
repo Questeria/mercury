@@ -367,6 +367,29 @@ describe("live conversations controller", () => {
     expect(c.getState().activePeer).toBe(B); // unchanged
   });
 
+  it("discards incoming from a blocked contact — never surfaced or counted", async () => {
+    const fake = new FakeMessaging();
+    const c = createLiveConversations(fake);
+    await c.start();
+    await c.addPeer(B); // active = B, an unrelated open chat
+    await c.block(C);
+    fake.inject(C, "spam while blocked");
+    await c.poll();
+    // The block promise is ENFORCED, not just stated: a blocked contact's message is received by the
+    // relay then discarded on-device — no conversation row, nothing counted (and so nothing notified,
+    // since the same filter runs before the notification path). Contrast the test above, where an
+    // UNblocked first-time sender C creates a conversation with unread 1.
+    expect(c.getState().conversations.find((x) => x.peer === C)).toBeUndefined();
+
+    // Unblocking restores delivery: a later poll surfaces the blocked peer again (via history).
+    await c.unblock(C);
+    fake.inject(C, "after unblock");
+    await c.poll();
+    const conv = c.getState().conversations.find((x) => x.peer === C);
+    expect(conv?.messages.map((m) => m.text)).toContain("after unblock");
+    expect(conv?.unread).toBe(1);
+  });
+
   it("setActive clears unread", async () => {
     const fake = new FakeMessaging();
     const c = createLiveConversations(fake);
