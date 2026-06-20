@@ -140,3 +140,26 @@ jobs:
       # Helix artifacts gate merges (Track 0a).
       - name: Run Helix policy proofs
         run: bash tools/run_helix_checks.sh "$GITHUB_WORKSPACE/third_party/helix"
+
+  audit:
+    name: Dependency advisories (cargo-audit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@cargo-audit
+
+      # Reads .cargo/audit.toml. The three off-by-default `xwing`/libcrux advisories
+      # (RUSTSEC-2026-0073/0124/0075 — panic-class, NOT compiled into the default build) are
+      # tracked-and-ignored there. This gate FAILS on any NEW advisory in the locked dependency
+      # tree. It also surfaces a STALE-IGNORE warning the moment libcrux is patched and the provider
+      # bumped — which is the cue that the PQ X-Wing group ciphersuite can be safely enabled
+      # (see the Mercury security posture: groups are classical-by-default pending that fix).
+      - name: cargo audit
+        run: cargo audit
