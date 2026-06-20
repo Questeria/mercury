@@ -16,14 +16,28 @@ source bytes / vectors / mirrors are what was reviewed"* — a tamper-evident co
 
 The new semantic layer. For each policy it typechecks the source with the pinned compiler (the same
 `--no-stdlib` mode CI uses) and emits a canonical, tamper-evident manifest
-(`helixc.backend.proof_manifest`, Stage 122) recording, **per function**, the compiler-verified
-effect set, purity flag, and parameter count — bound to the normalized **source hash** and the
-**pinned compiler version**. It then **fails closed** if any policy function carries an effect.
+(`helixc.backend.proof_manifest`, Stage 122) recording, **per function**, the effect set, purity
+flag, and parameter count — bound to the normalized **source hash** and the **pinned compiler
+version**. Side-effect-freeness is then enforced by **two distinct checks**, because the manifest's
+recorded effects come from the type system's *declared* attributes (`@effect`/`@pure`), not from
+analyzing each body:
+
+1. **Declared-effect gate** — no function may *declare* an effect (the manifest's recorded `effects`
+   are all empty).
+2. **Body-effect gate** — `gen_proof_manifests.py` also runs the compiler's body-level effect-check
+   (`--emit-proof-obligations --strict`, the pass that *infers* effects from each body and traps on
+   a violation) and fails closed, so an effectful body that merely *omits* the annotation is caught.
+   This is the same pass `run_helix_checks.sh` runs and the purity negative fixture
+   (`helix/tests/regression/purity_violation.hx`) locks.
+
+Only (1)+(2) together establish side-effect-freeness; the manifest alone records *declared* effects.
+(An adversarial review caught that the manifest's own field is declaration-derived — gate (2) is the
+fix that makes the guarantee real rather than decorative.)
 
 So Layer 2 upgrades the claim from *"these source bytes"* to:
 
 > *"these source bytes typecheck, under compiler version `vX`, to N functions that are ALL
-> compiler-verified side-effect-free (no I/O, FFI, mutation, arena, or trap)."*
+> side-effect-free — no declared AND no body-inferred I/O, FFI, mutation, arena, or trap."*
 
 That is the property a security-policy decision must have — deterministic and side-effect-free — now
 **machine-checked and recorded**, not assumed. Each manifest's hash is folded into
@@ -56,6 +70,26 @@ same `--check`, and `run_helix_checks.sh` regenerates + verifies it before the a
 - **Not yet verified in-app.** The app's `proofManifestShort` badge currently *displays* the manifest
   hash; it does not yet re-derive + verify the manifest against the running policy. Replacing the
   cosmetic source-hash badge with an in-app `verify_manifest_hash` is a follow-up.
+
+## Considered and rejected: refinement types
+
+A natural question is "why not refinement types / `requires`/`ensures` contracts on the deciders to
+*prove* the policy invariants?" They were evaluated against the pinned compiler and **not adopted**,
+honestly:
+
+- The pinned helixc's refinement support discharges only compile-time **constant** predicates (e.g.
+  `let a: Approvers = 2` is checked; a runtime value yields `unproven` → a hard error). It **cannot
+  express the relational invariants** a policy decision needs — e.g. *"if room is high-security and
+  the grant is accepted then approver_count ≥ 2"* (`self`-only predicates; no cross-field, no boolean
+  refinements; the Presburger solver is confined to tensor/size generics, not policy values).
+- Typing a decider's *computed* return as a refined type would just make it `unproven` and fail to
+  compile. Bolting constant-only refinements onto the scalar deciders would be **cargo-cult** — it
+  would add `refinement`-flavored syntax that proves nothing the manifests/differential don't already
+  cover.
+
+The relational behavior is instead delivered by the **exhaustive differential** (full-domain
+agreement with the spec) — so refinements here are *unnecessary*, not merely unavailable. If the
+compiler's deferred SMT path ever lands, revisit.
 
 ## IFC data-egress contract (demonstrator — `helix/demonstrators/ai_egress_ifc.hx`)
 

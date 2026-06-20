@@ -3,14 +3,24 @@
 attestation that complements the source-hash attestation in gen_policy_attestations.py.
 
 For each of the 12 policies this typechecks the Helix source with the PINNED compiler (the same
-`--no-stdlib` mode CI uses) and records, per function, the compiler-VERIFIED effect set + purity,
+`--no-stdlib` mode CI uses) and records, per function, the type-system's effect set + purity flag,
 bound to the normalized source hash and the pinned compiler version, under a canonical tamper-evident
-SHA-256 (helixc.backend.proof_manifest, Stage 122). It then ASSERTS the load-bearing property that
-every policy function is side-effect-free (effects == []), failing closed otherwise.
+SHA-256 (helixc.backend.proof_manifest, Stage 122).
+
+IMPORTANT — two distinct effect checks, because the manifest's recorded `effects` come from the
+type-system's DECLARED attributes (@effect/@pure), NOT from analyzing each body:
+  (1) MANIFEST gate: every function's RECORDED effect set is empty (no function DECLARES an effect).
+  (2) BODY gate: `assert_body_side_effect_free` runs the compiler's BODY-LEVEL effect-check
+      (`--emit-proof-obligations --strict`, the IR pass that INFERS effects from the body, trap
+      19001) and fails closed — so an effectful body that merely OMITS the @effect annotation is
+      caught. This is the same pass run_helix_checks.sh runs + the purity negative fixture locks.
+Only (1)+(2) together establish "every policy function is side-effect-free"; (1) alone would be
+decorative. The manifest itself is the DECLARED-attribute receipt; the body gate is the real
+inference.
 
 This upgrades the evidence trail from "these source bytes" (gen_policy_attestations) to "these source
-bytes typecheck, under compiler version V, to N functions that are ALL compiler-verified
-side-effect-free" — a semantic receipt, not just a content hash.
+bytes typecheck, under compiler version V, to N functions that are all side-effect-free (no declared
+AND no body-inferred effect)" — a semantic receipt, not just a content hash.
 
 HONEST SCOPE (carried verbatim into docs/HELIX_EVIDENCE_TRAIL.md):
   * UNSIGNED. The manifest is tamper-EVIDENT (a canonical SHA-256 that detects accidental edits), not
@@ -27,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -82,9 +93,31 @@ def helix_version() -> str:
             return "unknown"
 
 
+def assert_body_side_effect_free(policy_rel: str) -> None:
+    """Run the compiler's BODY-LEVEL effect-check (the IR pass `--emit-proof-obligations --strict`
+    triggers, which INFERS effects from each function body and traps 19001 on a violation) and fail
+    closed on any non-zero exit. The proof manifest only records DECLARED effects, so this is what
+    actually catches an effectful body that omits the @effect annotation — the gap a skeptic found.
+    Same pass run_helix_checks.sh runs + the purity negative fixture locks; doing it here makes the
+    manifest gate self-contained rather than relying on the runner to run it separately."""
+    env = dict(os.environ, PYTHONPATH=str(ROOT / "third_party" / "helix"))
+    result = subprocess.run(
+        [sys.executable, "-m", "helixc.check", policy_rel,
+         "--no-stdlib", "--emit-proof-obligations", "--strict"],
+        cwd=str(ROOT), env=env, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        tail = (result.stdout + result.stderr)[-600:]
+        raise SystemExit(
+            f"{policy_rel}: body-level effect-check FAILED — a function has a body-inferred side "
+            f"effect (the manifest's declared-effect check would miss this):\n{tail}"
+        )
+
+
 def build_manifest_json(name: str, version: str) -> str:
-    """Typecheck a policy and emit its canonical proof-manifest JSON. Fails closed if any function
-    carries an effect (the deterministic / side-effect-free guarantee a policy decision must have)."""
+    """Typecheck a policy + emit its canonical proof-manifest JSON, and fail closed unless every
+    function is side-effect-free both by DECLARATION (the manifest's recorded effects) and by BODY
+    (the inferred effect-check). A policy decision must be deterministic + side-effect-free."""
     policy_path = ROOT / "helix" / "policy" / f"{name}.hx"
     raw = _normalize_newlines(policy_path.read_bytes())
     src = raw.decode("utf-8")
@@ -92,6 +125,9 @@ def build_manifest_json(name: str, version: str) -> str:
     prog = parse(src, include_stdlib=False)
     tc = TypeChecker(prog)
     tc.check()
+    # BODY gate: catch an effectful body that omits the @effect annotation (the manifest below only
+    # records DECLARED effects). Run on the relative path the same way the runner does.
+    assert_body_side_effect_free(rel(policy_path))
 
     source_sha = as_sha256_hex(hashlib.sha256(raw).hexdigest())
     manifest = emit_manifest(
@@ -105,8 +141,9 @@ def build_manifest_json(name: str, version: str) -> str:
         raise SystemExit(f"{name}: emitted manifest fails its own canonical hash check")
 
     data = manifest.to_dict()
-    # FAIL-CLOSED gate: every policy function must be compiler-verified side-effect-free. A function
-    # that prints / does FFI / mutates / traps would carry a non-empty effect set here and abort.
+    # DECLARED-effect gate: no function may DECLARE an effect (@effect attribute). This is the
+    # manifest's own recorded view; the body-inferred effects are caught by assert_body_side_effect_free
+    # above. Both together = side-effect-free.
     with_effects = sorted(f["name"] for f in data["functions"] if f.get("effects"))
     if with_effects:
         raise SystemExit(
