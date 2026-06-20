@@ -325,28 +325,32 @@ impl MlsEngine {
         })
     }
 
-    /// Remove the member whose BasicCredential identity equals
-    /// `member_identity` (the app only knows identities, never signature
-    /// keys), merge the commit locally, and return the serialized commit for
-    /// the remaining members. The epoch rotates, so the removed member loses
-    /// access to subsequent messages -- forward secrecy on membership change.
-    /// [`MlsError::MemberNotFound`] if no leaf carries that identity.
+    /// Remove EVERY member whose BasicCredential identity equals `member_identity` (the app removes by
+    /// IDENTITY -- it never knows signature keys -- and MLS permits two leaves to carry the SAME
+    /// identity, e.g. a second device or a relay re-presenting a KeyPackage). Removing only the first
+    /// matching leaf would leave the duplicate a full member of the rotated epoch, still able to
+    /// decrypt -- silently breaking membership forward secrecy. So all matching leaves are removed in
+    /// ONE commit. Merge locally + return the serialized commit for the remaining members.
+    /// [`MlsError::MemberNotFound`] if NO leaf carries that identity.
     pub fn remove_member(
         &self,
         group_id: &[u8; 32],
         member_identity: &[u8],
     ) -> Result<Vec<u8>, MlsError> {
         let mut group = self.load_group(group_id)?;
-        let index = group
+        let indices: Vec<_> = group
             .members()
-            .find(|member| {
+            .filter(|member| {
                 BasicCredential::try_from(member.credential.clone())
                     .is_ok_and(|credential| credential.identity() == member_identity)
             })
             .map(|member| member.index)
-            .ok_or(MlsError::MemberNotFound)?;
+            .collect();
+        if indices.is_empty() {
+            return Err(MlsError::MemberNotFound);
+        }
         let (commit, _welcome, _group_info) = group
-            .remove_members(&self.provider, &self.signer, &[index])
+            .remove_members(&self.provider, &self.signer, &indices)
             .map_err(|_| MlsError::RemoveMember)?;
         group
             .merge_pending_commit(&self.provider)
@@ -871,6 +875,68 @@ mod tests {
         assert_eq!(
             a.receive(&group_id, &wire).unwrap(),
             (BOB.to_vec(), b"alive after restart".to_vec())
+        );
+    }
+
+    #[test]
+    fn remove_member_removes_all_leaves_sharing_an_identity() {
+        // MLS permits two leaves with the SAME BasicCredential identity (a second device, or a relay
+        // re-presenting a KeyPackage). The app removes by IDENTITY, so "remove bob" MUST evict EVERY
+        // bob leaf -- removing only the first would leave the duplicate a full member of the rotated
+        // epoch, still able to decrypt (a silent membership-forward-secrecy break).
+        let group_id = [0x5b; 32];
+        let a = engine(ALICE);
+        let b1 = engine(BOB);
+        let b2 = engine(BOB); // a SECOND, independent engine carrying the SAME identity bytes
+        a.create_group(&group_id).unwrap();
+
+        let add_b1 = a
+            .add_member(&group_id, &b1.fresh_key_package().unwrap())
+            .unwrap();
+        assert_eq!(b1.join_from_welcome(&add_b1.welcome_wire).unwrap(), group_id);
+        let add_b2 = a
+            .add_member(&group_id, &b2.fresh_key_package().unwrap())
+            .unwrap();
+        b1.apply_commit(&group_id, &add_b2.commit_wire).unwrap();
+        assert_eq!(b2.join_from_welcome(&add_b2.welcome_wire).unwrap(), group_id);
+
+        // Two leaves, both BOB: the roster carries BOB twice, and a baseline send reaches both.
+        assert_eq!(
+            a.roster(&group_id)
+                .unwrap()
+                .into_iter()
+                .filter(|id| id.as_slice() == BOB)
+                .count(),
+            2,
+            "two BOB leaves exist before removal"
+        );
+        let pre = a.send(&group_id, b"before removal").unwrap();
+        assert_eq!(b1.receive(&group_id, &pre).unwrap().1, b"before removal");
+        assert_eq!(b2.receive(&group_id, &pre).unwrap().1, b"before removal");
+
+        // Remove BOB: with the fix, BOTH leaves go in one commit -> no BOB remains on A's roster.
+        let remove_commit = a.remove_member(&group_id, BOB).unwrap();
+        assert_eq!(
+            a.roster(&group_id)
+                .unwrap()
+                .into_iter()
+                .filter(|id| id.as_slice() == BOB)
+                .count(),
+            0,
+            "every BOB leaf removed (removing only the first would leave the duplicate a full member)"
+        );
+
+        // End-to-end: a post-removal send reaches NEITHER bob engine -- even the duplicate is evicted.
+        let _ = b1.apply_commit(&group_id, &remove_commit);
+        let _ = b2.apply_commit(&group_id, &remove_commit);
+        let post = a.send(&group_id, b"after removal").unwrap();
+        assert!(
+            b1.receive(&group_id, &post).is_err(),
+            "the first bob leaf is removed"
+        );
+        assert!(
+            b2.receive(&group_id, &post).is_err(),
+            "the duplicate bob leaf is removed too"
         );
     }
 
