@@ -205,7 +205,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // split-view resistance still requires those witnesses to be DEPLOYED + submitting cosignatures
     // (see docs/WITNESSING.md) — this only configures whose cosignatures the relay accepts + serves.
     let kt_state = match std::env::var("MERCURY_KT_WITNESSES") {
-        Ok(spec) => {
+        Ok(spec) if !spec.trim().is_empty() => {
             let witnesses =
                 parse_witnesses(&spec).map_err(|e| format!("MERCURY_KT_WITNESSES: {e}"))?;
             eprintln!(
@@ -214,7 +214,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             kt_state.with_witnesses(witnesses)
         }
-        Err(_) => kt_state,
+        // Unset OR empty (e.g. an unfilled compose `${MERCURY_KT_WITNESSES:-}`) = witnessing off.
+        _ => kt_state,
     };
 
     // Optional KT auditor (MERCURY_KT_AUDITOR = a single hex Ed25519 public key). The auditor signs
@@ -222,7 +223,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // any non-Invalid client verdict, so without it the quorum gate stays Invalid. A real auditor must
     // be DEPLOYED and checking append-only consistency before it signs — this only configures the key.
     let kt_state = match std::env::var("MERCURY_KT_AUDITOR") {
-        Ok(hexkey) => {
+        Ok(hexkey) if !hexkey.trim().is_empty() => {
             let key_bytes: [u8; 32] = hex::decode(hexkey.trim())
                 .ok()
                 .and_then(|b| <[u8; 32]>::try_from(b.as_slice()).ok())
@@ -232,7 +233,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             eprintln!("mercury-relay-server: pinned a KT auditor for cosignature serving");
             kt_state.with_auditor(auditor)
         }
-        Err(_) => kt_state,
+        // Unset OR empty (e.g. an unfilled compose `${MERCURY_KT_AUDITOR:-}`) = no auditor.
+        _ => kt_state,
     };
 
     let state = RelayState::new(Arc::clone(&store), push);

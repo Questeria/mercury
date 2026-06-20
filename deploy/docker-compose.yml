@@ -23,6 +23,12 @@ services:
       # Stable Key-Transparency VRF key. REQUIRED here (fail-closed): an unset seed would make the
       # KT directory identity ephemeral and reset on every restart. Generate with `openssl rand -hex 32`.
       MERCURY_KT_VRF_SEED: "${MERCURY_KT_VRF_SEED:?missing - put 64 hex chars in deploy/.env via openssl rand -hex 32}"
+      # OPTIONAL split-view detection (off when empty). Pin INDEPENDENT-operator witness keys + a
+      # distinct auditor key (the index order here is the canonical witness_index clients pin
+      # out-of-band). Real protection needs those witnesses + auditor actually DEPLOYED and submitting
+      # — see docs/WITNESSING.md and docs/WITNESS-OPERATORS.md. Leaving these blank disables witnessing.
+      MERCURY_KT_WITNESSES: "${MERCURY_KT_WITNESSES:-}"
+      MERCURY_KT_AUDITOR: "${MERCURY_KT_AUDITOR:-}"
       # Behind Caddy (the single trusted proxy below), key the flood limiter on the REAL client via
       # the right-most X-Forwarded-For hop instead of Caddy's shared IP — otherwise every client
       # collapses into one bucket. Safe ONLY because Caddy is the sole front door and sets/appends
