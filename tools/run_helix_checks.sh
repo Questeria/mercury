@@ -100,4 +100,28 @@ if [ "$pv_code" -eq 0 ]; then
 fi
 echo "purity gate: OK (impure @pure decider correctly rejected, exit $pv_code)"
 
-echo "All Helix policies + tests passed (typecheck + hash + proof obligations + proof manifests + ELF execution + exhaustive differential + purity gate)."
+# IFC data-egress contract (demonstrator): Helix information-flow types enforce the data-leak
+# guardrail invariant. The demonstrator MUST compile + run (exit 42 == the gated declassify works);
+# the leak fixture (confidential data -> the public remote sink with NO declassify) MUST FAIL to
+# compile. If IFC enforcement ever regresses, the leak fixture compiles clean and this catches it.
+echo "== IFC data-egress contract =="
+"$PY" -m helixc.check helix/demonstrators/ai_egress_ifc.hx --no-stdlib --check-only --strict --hash
+"$PY" -m helixc.check helix/demonstrators/ai_egress_ifc.hx --no-stdlib -O1 -o "$OUT_DIR/ai_egress_ifc.bin"
+chmod +x "$OUT_DIR/ai_egress_ifc.bin"
+set +e
+"$OUT_DIR/ai_egress_ifc.bin"
+ifc_code=$?
+"$PY" -m helixc.check helix/tests/regression/ai_egress_leak.hx --no-stdlib --check-only --strict >/dev/null 2>&1
+leak_code=$?
+set -e
+if [ "$ifc_code" -ne 42 ]; then
+  echo "error: IFC demonstrator expected exit 42 (gated declassify), got $ifc_code" >&2
+  exit 1
+fi
+if [ "$leak_code" -eq 0 ]; then
+  echo "error: IFC contract REGRESSED — confidential data reached the public sink with no declassify (leak fixture compiled clean)" >&2
+  exit 1
+fi
+echo "IFC data-egress contract: OK (demonstrator exit 42; leak rejected, exit $leak_code)"
+
+echo "All Helix policies + tests passed (typecheck + hash + proof obligations + proof manifests + ELF execution + exhaustive differential + purity gate + IFC contract)."

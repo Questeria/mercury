@@ -57,6 +57,22 @@ same `--check`, and `run_helix_checks.sh` regenerates + verifies it before the a
   hash; it does not yet re-derive + verify the manifest against the running policy. Replacing the
   cosmetic source-hash badge with an in-app `verify_manifest_hash` is a follow-up.
 
+## IFC data-egress contract (demonstrator — `helix/demonstrators/ai_egress_ifc.hx`)
+
+A separate capability: Helix's **information-flow types** can express and *compile-enforce* the
+data-leak guardrail's core invariant. Context data labelled `Confidential<T>` can reach a remote AI
+provider (a plain-typed "public" sink) **only** through an explicit, audit-greppable `__declassify`,
+and only inside a valid-grant branch. The demonstrator compiles + runs (the gated release works);
+the negative fixture `helix/tests/regression/ai_egress_leak.hx` — confidential data flowing directly
+to the public sink with no declassify — **fails to compile** (`arg expects i32, got
+Confidential<i32>`), and `run_helix_checks.sh` asserts that failure.
+
+This is a **demonstrator**, not production enforcement (Mercury's runtime egress is enforced in
+Rust). It proves DIRECT-flow non-leakage at the type level — no value path from a labelled source to
+the public sink without an explicit declassify. It does **not** model implicit/covert channels; same
+honest framing as the guardrail wedge (provably enforce + audit the egress points, not claim
+completeness).
+
 ## Roadmap (each a separate, honest increment)
 
 1. Capture + hash the `--emit-proof-obligations` artifact (today emitted then discarded) into the
