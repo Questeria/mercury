@@ -246,6 +246,18 @@ function useOnline(): boolean {
   );
 }
 
+/** Close an open dialog on the Escape key (the near-universal expectation; without it keyboard users
+ *  are forced to tab to the ✕). Listens on document while the dialog is mounted; cleans up on close. */
+function useEscapeToClose(onClose: () => void): void {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+}
+
 // Viewport width. Starts at a desktop default and corrects in an effect (so render stays pure —
 // no `window` read during render).
 function useViewport(): number {
@@ -1890,6 +1902,7 @@ function ModalHost({
   setProfile: (p: Profile) => void;
   onClose: () => void;
 }) {
+  useEscapeToClose(onClose);
   const [copied, setCopied] = useState(false);
   const copy = async (v: string | null) => {
     if (!v) return;
@@ -1917,9 +1930,10 @@ function ModalHost({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="mercury-modal-title"
       >
         <div className={styles.modalHead}>
-          <span className={styles.modalTitle}>{title}</span>
+          <span className={styles.modalTitle} id="mercury-modal-title">{title}</span>
           <button className={styles.modalClose} type="button" onClick={onClose} aria-label="Close">
             ✕
           </button>
@@ -2348,6 +2362,7 @@ function SettingsHub({
   setAi: (v: AiState) => void;
   openPanel: (panel: PanelId | LiveFeatureKind) => void;
 }) {
+  useEscapeToClose(onClose);
   const [section, setSection] = useState<HubSection>("profile");
   const [hubQuery, setHubQuery] = useState("");
   const hubQ = hubQuery.trim().toLowerCase();
@@ -2390,9 +2405,10 @@ function SettingsHub({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="mercury-settings-title"
       >
         <div className={styles.modalHead}>
-          <span className={styles.modalTitle}>Settings</span>
+          <span className={styles.modalTitle} id="mercury-settings-title">Settings</span>
           <button className={styles.modalClose} type="button" onClick={onClose} aria-label="Close">
             ✕
           </button>
