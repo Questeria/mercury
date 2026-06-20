@@ -331,6 +331,14 @@ pub fn verify_lookup_witness_quorum(
     ) else {
         return KeyTransparencyWitnessStatus::Invalid;
     };
+    // INDEPENDENCE, code-enforced: the auditor must be a DISTINCT party from every witness. A pin
+    // that reused a witness key as the auditor would let one signer satisfy both roles, silently
+    // collapsing the intended ">= 2 operators + an independent auditor" down a notch — reject it
+    // fail-closed rather than count a non-independent auditor. (The relay-side serving cannot enforce
+    // this — only the client pinning the keys knows them; this is the client's gate, so it does.)
+    if witnesses.iter().any(|w| &w.key_bytes() == auditor_key) {
+        return KeyTransparencyWitnessStatus::Invalid;
+    }
     verify_witnessed_tree_head(
         sth,
         &log_vk,
@@ -502,6 +510,23 @@ mod tests {
                 &sign(&log, &sth),
                 &[0xff; 32],
                 &sign(&auditor, &sth),
+                &witnesses,
+                &cosigs,
+                2,
+            ),
+            KeyTransparencyWitnessStatus::Invalid,
+        );
+
+        // INDEPENDENCE: pinning a WITNESS key as the auditor is rejected — otherwise w1's holder
+        // would satisfy BOTH a witness slot AND the auditor role. Even with two operators' cosigs
+        // and a genuine auditor signature (by w1's key), the reused auditor fails CLOSED to Invalid.
+        assert_eq!(
+            verify_lookup_witness_quorum(
+                &log.verifying_key().to_bytes(),
+                &sth,
+                &sign(&log, &sth),
+                &w1.verifying_key().to_bytes(),
+                &sign(&w1, &sth),
                 &witnesses,
                 &cosigs,
                 2,
