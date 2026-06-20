@@ -15,6 +15,7 @@ import {
   type ConversationsState,
   type LiveConversations,
 } from "./liveConversations";
+import { previewText } from "./conversationPreview";
 import { inviteActionId } from "./invite";
 import { inTauri } from "./messaging";
 import type { ChatMessage, MercuryMessaging } from "./messaging";
@@ -201,7 +202,7 @@ export function useLiveConversations(messaging: MercuryMessaging): LiveConversat
       person: personFor(c.peer, state.aliases[c.peer], state.groups[c.peer]?.name),
       unread: c.unread,
       connected: c.connected,
-      lastText: c.messages.length ? c.messages[c.messages.length - 1].text : "",
+      lastText: c.messages.length ? previewText(c.messages[c.messages.length - 1]) : "",
       count: c.messages.length,
       pinned: state.pinned.includes(c.peer),
     }));
