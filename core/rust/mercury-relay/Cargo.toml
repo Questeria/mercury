@@ -37,6 +37,9 @@ getrandom = "0.2"
 [dev-dependencies]
 # Restart-survival tests open a redb file at a temp path, drop, and reopen it.
 tempfile = "3"
+# Witness-serving test: mint a witness Ed25519 keypair + co-sign a tree head the way a deployed
+# witness would, then verify the served bundle client-side.
+ed25519-dalek = "2"
 tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }

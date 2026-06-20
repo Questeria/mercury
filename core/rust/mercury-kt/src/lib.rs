@@ -46,7 +46,7 @@ pub use mercury_core::{
 mod witness;
 pub use witness::{
     SignedTreeHead, Witness, WitnessCosignature, WitnessVerification, verify_signed_tree_head,
-    verify_witnessed_tree_head,
+    verify_witness_cosignature, verify_witnessed_tree_head,
 };
 
 // (`verify_against_signed_head` below is the head-authenticating client capstone.)

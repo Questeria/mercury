@@ -29,7 +29,10 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use mercury_kt::{AppendOnlyProof, HistoryProof, KtDirectory, LookupProof};
+use mercury_kt::{
+    AppendOnlyProof, HistoryProof, KtDirectory, LookupProof, SignedTreeHead, Witness,
+    WitnessCosignature, verify_witness_cosignature,
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
@@ -51,6 +54,28 @@ pub struct KtState {
     /// Ed25519 proof-of-possession AND advances an AKD epoch + signs a new tree head (and holds
     /// the registry mutex across that publish), so it is far more expensive than a read.
     claim_limiter: Arc<RateLimiter>,
+    /// Pinned witness co-signing allow-list (operator-tagged). The INDEX into this slice is the
+    /// canonical `witness_index` clients also pin out-of-band. EMPTY = witnessing disabled: the
+    /// witnessed-head endpoint still serves the head + log signature, just with NO cosignatures, and
+    /// every cosignature submission is refused. Real split-view resistance requires these witnesses
+    /// to actually be DEPLOYED and submitting — the relay only provides the rails.
+    witnesses: Arc<Vec<Witness>>,
+    /// The current PUBLISHED signed tree head: held STABLE per epoch (a fixed timestamp, refreshed at
+    /// most every `KT_STH_REFRESH_S`) so independent witnesses all co-sign the SAME canonical bytes.
+    /// Carries its log signature + the valid cosignatures collected for exactly those bytes.
+    /// (Re)published lazily by the witnessed-head read path; submissions attach to it. In-memory only
+    /// — cosignatures are ephemeral by nature (witnesses re-cosign after any restart or refresh).
+    published: Arc<Mutex<Option<PublishedHead>>>,
+    /// Tight per-IP limiter for witness cosignature submissions.
+    witness_limiter: Arc<RateLimiter>,
+}
+
+/// The relay's current published head + its log signature + the witness cosignatures gathered for
+/// EXACTLY these bytes. Replaced when the epoch advances or the head is refreshed.
+struct PublishedHead {
+    sth: SignedTreeHead,
+    log_signature: [u8; 64],
+    cosignatures: Vec<WitnessCosignature>,
 }
 
 /// Per-IP flood caps for the KT/username router. The router was previously merged into the app
@@ -62,6 +87,14 @@ const KT_READ_MAX_PER_WINDOW: u32 = 120;
 const KT_READ_WINDOW_S: i64 = 60;
 const KT_CLAIM_MAX_PER_WINDOW: u32 = 8;
 const KT_CLAIM_WINDOW_S: i64 = 60;
+/// Witness cosignature submissions: a witness re-cosigns only when the head changes / refreshes, so
+/// a modest cap (with headroom for retries + a few witnesses behind one proxy IP) is plenty.
+const KT_WITNESS_MAX_PER_WINDOW: u32 = 30;
+const KT_WITNESS_WINDOW_S: i64 = 60;
+/// The published head is re-signed (fresh timestamp, cosignatures reset) at most this often even if
+/// the epoch has not advanced, so freshness does not decay indefinitely on a low-churn directory
+/// while still giving witnesses a stable window to co-sign a common head.
+const KT_STH_REFRESH_S: i64 = 3600;
 
 impl KtState {
     /// Host an existing directory with a fresh, empty username registry.
@@ -79,7 +112,21 @@ impl KtState {
             usernames: Arc::new(Mutex::new(usernames)),
             read_limiter: Arc::new(RateLimiter::new(KT_READ_MAX_PER_WINDOW, KT_READ_WINDOW_S)),
             claim_limiter: Arc::new(RateLimiter::new(KT_CLAIM_MAX_PER_WINDOW, KT_CLAIM_WINDOW_S)),
+            witnesses: Arc::new(Vec::new()),
+            published: Arc::new(Mutex::new(None)),
+            witness_limiter: Arc::new(RateLimiter::new(
+                KT_WITNESS_MAX_PER_WINDOW,
+                KT_WITNESS_WINDOW_S,
+            )),
         }
+    }
+
+    /// Configure the pinned witness co-signing allow-list (the boot path parses MERCURY_KT_WITNESSES
+    /// into this). The slice ORDER is the canonical `witness_index` clients must also pin out-of-band.
+    /// Replaces any existing set.
+    pub fn with_witnesses(mut self, witnesses: Vec<Witness>) -> Self {
+        self.witnesses = Arc::new(witnesses);
+        self
     }
 }
 
@@ -102,6 +149,19 @@ async fn kt_claim_rate_limit(
     next: Next,
 ) -> Response {
     if !state.claim_limiter.check(&crate::http::client_key(&request)) {
+        return StatusCode::TOO_MANY_REQUESTS.into_response();
+    }
+    next.run(request).await
+}
+
+/// Tight flood limiter for `POST /kt/witness/cosign` — each submission verifies an Ed25519
+/// cosignature against the published head, so cap it per source like the claim path.
+async fn kt_witness_rate_limit(
+    State(state): State<KtState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if !state.witness_limiter.check(&crate::http::client_key(&request)) {
         return StatusCode::TOO_MANY_REQUESTS.into_response();
     }
     next.run(request).await
@@ -164,6 +224,63 @@ pub struct SignedTreeHeadResponse {
     pub timestamp_s: i64,
     /// Hex-encoded 64-byte Ed25519 log signature over the canonical head bytes.
     pub log_signature: String,
+}
+
+/// `GET /kt/sth/witnessed` body: the relay's current PUBLISHED head + its log signature + the
+/// witness cosignatures collected for EXACTLY these bytes, plus the relay's pinned witness set (for
+/// transparency — a client still verifies cosignatures against the witnesses IT pinned out-of-band,
+/// by `witness_index`). The client reconstructs the `SignedTreeHead`, then calls
+/// `mercury_kt::verify_witnessed_tree_head` with its pinned log/witness keys and the head its own
+/// proofs are bound to. Serving this is NOT itself trusted: the relay cannot forge a cosignature for
+/// a witness key it does not hold, and a head that does not match the client's proof head is
+/// rejected by the verifier.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WitnessedSthResponse {
+    pub tree_size: u64,
+    /// Hex-encoded 32-byte AKD root hash (length-check before use).
+    pub root_hash: String,
+    pub timestamp_s: i64,
+    /// Hex-encoded 64-byte Ed25519 LOG signature over the canonical head bytes.
+    pub log_signature: String,
+    /// The witness cosignatures gathered for this exact head.
+    pub cosignatures: Vec<WitnessCosignatureJson>,
+    /// The relay's pinned witness allow-list (operator id + hex public key) in `witness_index`
+    /// order. Informational: clients verify against their OWN pinned set.
+    pub witnesses: Vec<WitnessJson>,
+}
+
+/// One witness cosignature in a [`WitnessedSthResponse`].
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WitnessCosignatureJson {
+    /// Index into the pinned witness allow-list (whose key signed).
+    pub witness_index: usize,
+    /// Hex-encoded 64-byte Ed25519 cosignature over the head's canonical bytes.
+    pub signature: String,
+}
+
+/// One pinned witness in a [`WitnessedSthResponse`] (transparency only).
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WitnessJson {
+    pub operator_id: u32,
+    /// Hex-encoded 32-byte Ed25519 witness public key.
+    pub public_key: String,
+}
+
+/// `POST /kt/witness/cosign` request: a witness submits its cosignature over the relay's CURRENT
+/// published head. The relay verifies the `(tree_size, root_hash, timestamp_s)` match the head it
+/// published AND that `signature` is the pinned witness at `witness_index`'s genuine Ed25519
+/// signature over the canonical bytes, before storing it. A mismatched / stale head is rejected
+/// (409) so the witness re-fetches `GET /kt/sth/witnessed` and re-cosigns the current bytes.
+#[derive(Debug, Deserialize)]
+pub struct WitnessCosignRequest {
+    pub tree_size: u64,
+    /// Hex-encoded 32-byte root hash of the head being cosigned.
+    pub root_hash: String,
+    pub timestamp_s: i64,
+    /// Index into the relay's pinned witness allow-list.
+    pub witness_index: usize,
+    /// Hex-encoded 64-byte Ed25519 cosignature over the head's canonical bytes.
+    pub signature: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -232,16 +349,20 @@ pub struct VrfKeyResponse {
 ///   valid epoch-0 head; 404 only on a genuine directory error).
 pub fn kt_router(state: KtState) -> Router {
     // Per-IP flood limiters (previously the KT router carried NONE). Reads share one cap; the
-    // epoch-advancing claim gets a much tighter one. Applied OUTSIDE the handler so a flood is
-    // rejected (429) before any AKD proof generation / Ed25519 verify / epoch advance.
+    // epoch-advancing claim + the cosignature-verifying witness submission each get a tighter one.
+    // Applied OUTSIDE the handler so a flood is rejected (429) before any AKD proof generation /
+    // Ed25519 verify / epoch advance.
     let read_limited = middleware::from_fn_with_state(state.clone(), kt_read_rate_limit);
     let claim_limited = middleware::from_fn_with_state(state.clone(), kt_claim_rate_limit);
+    let witness_limited = middleware::from_fn_with_state(state.clone(), kt_witness_rate_limit);
     Router::new()
         .route("/kt/inclusion/{label}", get(inclusion).layer(read_limited.clone()))
         .route("/kt/consistency", get(consistency).layer(read_limited.clone()))
         .route("/kt/history/{label}", get(key_history).layer(read_limited.clone()))
         .route("/kt/sth", get(signed_tree_head).layer(read_limited.clone()))
+        .route("/kt/sth/witnessed", get(witnessed_sth).layer(read_limited.clone()))
         .route("/kt/vrf-key", get(vrf_key).layer(read_limited.clone()))
+        .route("/kt/witness/cosign", post(witness_cosign).layer(witness_limited))
         .route("/username/claim", post(username_claim).layer(claim_limited))
         .route("/username/{name}", get(username_lookup).layer(read_limited))
         .with_state(state)
@@ -307,6 +428,117 @@ async fn signed_tree_head(State(state): State<KtState>) -> Response {
         // genuine directory/storage error -> opaque 404.
         Err(_) => StatusCode::NOT_FOUND.into_response(),
     }
+}
+
+/// `GET /kt/sth/witnessed` — serve the relay's current PUBLISHED head (held stable per epoch so
+/// independent witnesses co-sign a COMMON head), its log signature, and the cosignatures gathered
+/// for exactly those bytes. (Re)publishes a fresh head — resetting cosignatures — when the epoch has
+/// advanced or the head has aged past `KT_STH_REFRESH_S`. Serving this confers no trust: a client
+/// verifies the log signature + each cosignature against the keys IT pinned and binds the head to
+/// its own proofs (`mercury_kt::verify_witnessed_tree_head`).
+async fn witnessed_sth(State(state): State<KtState>) -> Response {
+    let now = now_unix_seconds();
+    let dir = state.dir.lock().await;
+    let (cur_sth, cur_sig) = match dir.signed_tree_head(now).await {
+        Ok(v) => v,
+        Err(_) => return StatusCode::NOT_FOUND.into_response(),
+    };
+    // `dir` is held across the `published` lock: this is the ONLY path that takes both, always in
+    // this order (the submission path takes only `published`), so no lock cycle is possible.
+    let mut published = state.published.lock().await;
+    let stale = match published.as_ref() {
+        None => true,
+        Some(ph) => {
+            ph.sth.tree_size != cur_sth.tree_size
+                || ph.sth.root_hash != cur_sth.root_hash
+                || now.saturating_sub(ph.sth.timestamp_s) > KT_STH_REFRESH_S
+        }
+    };
+    if stale {
+        // Publish the current head with a fresh timestamp + reset cosignatures (the prior head's
+        // cosignatures are over different bytes; witnesses re-cosign the new head).
+        *published = Some(PublishedHead {
+            sth: cur_sth,
+            log_signature: cur_sig,
+            cosignatures: Vec::new(),
+        });
+    }
+    let ph = published.as_ref().expect("published head just ensured present");
+    Json(WitnessedSthResponse {
+        tree_size: ph.sth.tree_size,
+        root_hash: hex::encode(&ph.sth.root_hash),
+        timestamp_s: ph.sth.timestamp_s,
+        log_signature: hex::encode(&ph.log_signature),
+        cosignatures: ph
+            .cosignatures
+            .iter()
+            .map(|c| WitnessCosignatureJson {
+                witness_index: c.witness_index,
+                signature: hex::encode(&c.signature),
+            })
+            .collect(),
+        witnesses: state
+            .witnesses
+            .iter()
+            .map(|w| WitnessJson {
+                operator_id: w.operator_id,
+                public_key: hex::encode(&w.key_bytes()),
+            })
+            .collect(),
+    })
+    .into_response()
+}
+
+/// `POST /kt/witness/cosign` — a pinned witness submits its cosignature over the relay's CURRENT
+/// published head. Fail-closed: the submission must name a configured witness index, match the
+/// published head EXACTLY (tree_size + root_hash + timestamp), and carry that witness's genuine
+/// Ed25519 signature over the canonical bytes. Anything else is rejected and nothing is stored.
+async fn witness_cosign(
+    State(state): State<KtState>,
+    Json(req): Json<WitnessCosignRequest>,
+) -> Response {
+    // Decode the head root + signature; a bad length/hex is a 400 (never trusted into a fixed buffer).
+    let Some(root_hash) = hex::decode(&req.root_hash)
+        .ok()
+        .and_then(|b| <[u8; 32]>::try_from(b.as_slice()).ok())
+    else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    let Some(signature) = hex::decode(&req.signature)
+        .ok()
+        .and_then(|b| <[u8; 64]>::try_from(b.as_slice()).ok())
+    else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    // The witness must be in the pinned allow-list at the claimed index.
+    let Some(witness) = state.witnesses.get(req.witness_index) else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+
+    let mut published = state.published.lock().await;
+    let Some(ph) = published.as_mut() else {
+        // No head published yet — the witness must GET /kt/sth/witnessed first.
+        return StatusCode::CONFLICT.into_response();
+    };
+    // The cosignature must be over the EXACT currently-published head, else it is over different
+    // bytes than clients will fetch -> useless. Tell the witness to re-fetch + re-cosign.
+    if ph.sth.tree_size != req.tree_size
+        || ph.sth.root_hash != root_hash
+        || ph.sth.timestamp_s != req.timestamp_s
+    {
+        return StatusCode::CONFLICT.into_response();
+    }
+    // Verify it really is this witness's signature over the head's canonical bytes (verify_strict).
+    if !verify_witness_cosignature(witness, &ph.sth, &signature) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    // Store, de-duplicating by witness_index (a re-submission by the same witness replaces).
+    ph.cosignatures.retain(|c| c.witness_index != req.witness_index);
+    ph.cosignatures.push(WitnessCosignature {
+        witness_index: req.witness_index,
+        signature,
+    });
+    StatusCode::OK.into_response()
 }
 
 /// `GET /kt/vrf-key` — serve the directory's VRF + log public keys for trust-on-first-use bootstrap.

@@ -41,12 +41,41 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use mercury_kt::KtDirectory;
+use mercury_kt::{KtDirectory, Witness};
 use mercury_relay::{
     DurableUsernameStore, InMemoryQueueStore, InProcessWaker, KtState, RelayState,
     UsernameRegistry, hex, kt_router, kt_username_label, router, spawn_sweeper,
 };
 use tokio::sync::Mutex;
+
+/// Parse `MERCURY_KT_WITNESSES = "operatorId:hexEd25519PubKey, ..."` into the pinned witness
+/// allow-list. The ORDER defines the canonical `witness_index` clients also pin out-of-band.
+/// FAIL-CLOSED on any malformed entry (a bad operator id, a non-32-byte key, or an invalid Ed25519
+/// key) so a typo cannot silently drop a witness from the quorum a client expects.
+fn parse_witnesses(spec: &str) -> Result<Vec<Witness>, String> {
+    let mut out = Vec::new();
+    for (i, raw) in spec.split(',').enumerate() {
+        let entry = raw.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        let (op_s, key_s) = entry
+            .split_once(':')
+            .ok_or_else(|| format!("entry {i} '{entry}' is not operatorId:hexKey"))?;
+        let operator_id: u32 = op_s
+            .trim()
+            .parse()
+            .map_err(|_| format!("entry {i}: operator id '{op_s}' is not a u32"))?;
+        let key_bytes: [u8; 32] = hex::decode(key_s.trim())
+            .ok()
+            .and_then(|b| <[u8; 32]>::try_from(b.as_slice()).ok())
+            .ok_or_else(|| format!("entry {i}: key is not 32-byte hex"))?;
+        let witness = Witness::from_ed25519_bytes(operator_id, &key_bytes)
+            .ok_or_else(|| format!("entry {i}: not a valid Ed25519 public key"))?;
+        out.push(witness);
+    }
+    Ok(out)
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -169,6 +198,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             KtState::with_registry(kt_dir, registry)
         }
         Err(_) => KtState::new(kt_dir),
+    };
+
+    // Optional KT witness allow-list (MERCURY_KT_WITNESSES = "operatorId:hexKey,..."). Enables the
+    // witnessed-head serving endpoints; the ORDER is the canonical witness_index clients pin. Real
+    // split-view resistance still requires those witnesses to be DEPLOYED + submitting cosignatures
+    // (see docs/WITNESSING.md) — this only configures whose cosignatures the relay accepts + serves.
+    let kt_state = match std::env::var("MERCURY_KT_WITNESSES") {
+        Ok(spec) => {
+            let witnesses =
+                parse_witnesses(&spec).map_err(|e| format!("MERCURY_KT_WITNESSES: {e}"))?;
+            eprintln!(
+                "mercury-relay-server: pinned {} KT witness(es) for cosignature serving",
+                witnesses.len()
+            );
+            kt_state.with_witnesses(witnesses)
+        }
+        Err(_) => kt_state,
     };
 
     let state = RelayState::new(Arc::clone(&store), push);

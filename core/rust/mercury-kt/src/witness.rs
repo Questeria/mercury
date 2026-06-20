@@ -83,6 +83,22 @@ pub struct Witness {
     pub operator_id: u32,
 }
 
+impl Witness {
+    /// Build a witness from its operator id + raw 32-byte Ed25519 public key. Returns `None` if the
+    /// bytes are not a valid Ed25519 verifying key — so a relay's witness allow-list cannot be
+    /// configured with a junk key that would silently never verify.
+    pub fn from_ed25519_bytes(operator_id: u32, key_bytes: &[u8; 32]) -> Option<Self> {
+        VerifyingKey::from_bytes(key_bytes)
+            .ok()
+            .map(|key| Self { key, operator_id })
+    }
+
+    /// The pinned verifying key's raw 32 bytes (for serving / display).
+    pub fn key_bytes(&self) -> [u8; 32] {
+        self.key.to_bytes()
+    }
+}
+
 /// One witness co-signature over a signed tree head: which pinned witness signed
 /// (index into the client's pinned witness set) and the raw Ed25519 signature.
 #[derive(Clone, Copy, Debug)]
@@ -115,6 +131,18 @@ fn verify_sig(key: &VerifyingKey, message: &[u8], signature: &[u8; 64]) -> bool 
     // the secure choice for cosigning.
     key.verify_strict(message, &Signature::from_bytes(signature))
         .is_ok()
+}
+
+/// Verify ONE witness co-signature over a signed tree head — the relay's per-submission check when
+/// collecting cosignatures to serve. Uses the same strict Ed25519 verification (`verify_strict`,
+/// rejecting small-order / non-canonical inputs) as the full bundle verifier, over the STH's
+/// canonical signing bytes. Returns true iff `signature` is `witness`'s genuine signature of `sth`.
+pub fn verify_witness_cosignature(
+    witness: &Witness,
+    sth: &SignedTreeHead,
+    signature: &[u8; 64],
+) -> bool {
+    verify_sig(&witness.key, &sth.signing_bytes(), signature)
 }
 
 /// Verify a witnessed signed tree head into pure, relay-independent facts.
