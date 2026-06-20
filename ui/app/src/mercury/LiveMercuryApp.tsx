@@ -459,17 +459,28 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const activeGroup = active ? state.groups[active.peer] ?? null : null;
 
   // READ watermark (1:1 only): when the active conversation changes, and again whenever the window
-  // regains focus while it stays open, tell the backend the user is LOOKING at it. markRead is
-  // silent best-effort and the backend only emits a receipt when the privacy toggle allows; groups
-  // never get one (the backend has no group read receipts). Never fires with no active peer.
+  // regains focus OR visibility while it stays open, tell the backend the user is LOOKING at it.
+  // markRead is silent best-effort and the backend only emits a receipt when the privacy toggle
+  // allows; groups never get one (the backend has no group read receipts). Never fires with no peer.
   const activePeerId = active?.peer ?? null;
   const activeIsGroup = activeGroup != null;
   useEffect(() => {
     if (!activePeerId || activeIsGroup) return;
     void controller.markRead(activePeerId);
     const onFocus = () => void controller.markRead(activePeerId);
+    // Restoring from the tray / re-showing a backgrounded tab can fire `visibilitychange` WITHOUT a
+    // window `focus` event in some window managers, which would leave the read receipt lagging until
+    // the next genuine focus. The poll loop already treats visibility as the canonical "user is back"
+    // signal — keep the read watermark consistent with it.
+    const onVisible = () => {
+      if (!document.hidden) void controller.markRead(activePeerId);
+    };
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [activePeerId, activeIsGroup, controller]);
 
   const tauri = inTauri();
