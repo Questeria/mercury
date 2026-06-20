@@ -1948,6 +1948,7 @@ name = "mercury-witness"
 version = "0.1.0"
 dependencies = [
  "ed25519-dalek",
+ "getrandom 0.2.17",
  "mercury-kt",
  "serde",
  "serde_json",

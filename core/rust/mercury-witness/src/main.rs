@@ -331,8 +331,42 @@ fn load_signing_key(path: &str) -> Result<SigningKey, String> {
     Ok(key)
 }
 
+/// Draw a fresh Ed25519 keypair from the OS CSPRNG: (32-byte signing seed, 32-byte public key).
+fn fresh_keypair() -> Result<([u8; 32], [u8; 32]), String> {
+    let mut seed = [0u8; 32];
+    getrandom::getrandom(&mut seed).map_err(|e| format!("OS RNG unavailable: {e}"))?;
+    let key = SigningKey::from_bytes(&seed);
+    let public = key.verifying_key().to_bytes();
+    Ok((seed, public))
+}
+
+/// `mercury-kt-witness keygen` — generate a witness/auditor keypair. The SIGNING key goes to stdout
+/// (redirect to a `0600` file and pass as `--key-file`); the PUBLIC key + guidance go to stderr, so
+/// `keygen > witness.key` captures exactly the signing key the binary later reads back.
+fn keygen() -> ExitCode {
+    let (mut seed, public) = match fresh_keypair() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("mercury-kt-witness: keygen: {e}");
+            return ExitCode::from(70);
+        }
+    };
+    println!("{}", hex_encode(&seed)); // signing key -> stdout (e.g. `keygen > witness.key`)
+    seed.zeroize();
+    eprintln!("mercury-kt-witness keygen: wrote the signing key to stdout (redirect to a 0600 file,");
+    eprintln!("  pass it as --key-file, and NEVER share it). The PUBLIC key to give the relay operator");
+    eprintln!("  (for MERCURY_KT_WITNESSES or MERCURY_KT_AUDITOR) is:");
+    eprintln!("  {}", hex_encode(&public));
+    ExitCode::SUCCESS
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> ExitCode {
+    // `keygen` subcommand: print a fresh witness keypair and exit (no relay contact). Operators get
+    // keys in the exact format the binary + relay expect, instead of hand-rolling Ed25519.
+    if std::env::args().nth(1).as_deref() == Some("keygen") {
+        return keygen();
+    }
     let cfg = match parse_args() {
         Ok(c) => c,
         Err(e) => {
@@ -438,5 +472,18 @@ mod tests {
             serde_json::from_str(&cosign_body(&head, 2, &sig, true)).unwrap();
         assert!(a.get("witness_index").is_none(), "the auditor body carries no witness_index");
         assert_eq!(a["timestamp_s"], 42);
+    }
+
+    #[test]
+    fn keygen_produces_distinct_consistent_keypairs() {
+        let (s1, p1) = fresh_keypair().unwrap();
+        let (s2, _) = fresh_keypair().unwrap();
+        assert_ne!(s1, s2, "each keypair draws fresh OS randomness");
+        // The advertised public key must be the genuine Ed25519 public key for the signing seed,
+        // so the relay operator pins a key that actually verifies this witness's cosignatures.
+        let rederived = ed25519_dalek::SigningKey::from_bytes(&s1)
+            .verifying_key()
+            .to_bytes();
+        assert_eq!(p1, rederived, "public key matches the signing seed");
     }
 }
