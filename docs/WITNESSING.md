@@ -55,6 +55,27 @@ are refused.
 3. `POST /kt/witness/cosign` with `{tree_size, root_hash, timestamp_s, witness_index, signature}`.
 4. Re-cosign when the head changes (a new claim) or refreshes (hourly), i.e. on a `409`.
 
+### Reference implementation
+
+`mercury-kt-witness` (the `mercury-witness` crate) is a deployable, single-shot implementation of
+exactly this protocol. Its co-sign decision is `mercury_kt::evaluate_head` — fail-closed: it co-signs
+only a validly log-signed head that is a verified append-only extension of what it last co-signed, and
+**refuses** (non-zero exit) on a rollback, a same-epoch fork, or an inconsistent extension (the
+split-view signals — exit 3, alert-worthy), a more-than-one-epoch gap it cannot bridge (exit 4,
+re-bootstrap), or a bad log signature. It persists the head it last co-signed and only advances that
+commitment **after** the relay accepts the cosignature.
+
+```
+mercury-kt-witness --relay https://relay.example.com --key-file ./witness.key --index 0 \
+    [--auditor] [--state ./witness-state.json] [--log-key <64-hex-log-pubkey>]
+```
+
+Run it on a timer (cron / systemd) from a host **independent** of the relay operator — that
+independence is the protection; the binary only makes the witness honest, not independent. `--log-key`
+pins the relay's log key out-of-band (strongest; without it the witness trusts-on-first-use the served
+key and warns). `--auditor` submits to `/kt/auditor/cosign` instead, with the same fail-closed
+decision — so the auditor role above is runnable today, not just specified.
+
 ## What this does NOT give you yet (honest residuals)
 
 - **Witnesses must actually be deployed and independent.** Code alone adds **zero** equivocation
@@ -70,10 +91,12 @@ are refused.
   non-`Invalid` verdict. The relay now exposes **`POST /kt/auditor/cosign`** and carries
   `auditor_signature` + `auditor_public_key` in the witnessed bundle (the auditor key is configured
   via `MERCURY_KT_AUDITOR`), so the end-to-end quorum gate is **reachable** — a relay test drives
-  2 witnesses across 2 independent operators + an auditor to `QuorumSatisfied`. What the relay still
-  **cannot manufacture** is a real auditor *process* that verifies **append-only consistency before
-  it signs**; a blind auditor adds nothing. The value is that consistency check, which must be a
-  deployed, independent process (the same caveat as the witnesses).
+  2 witnesses across 2 independent operators + an auditor to `QuorumSatisfied`. The auditor *process*
+  that verifies **append-only consistency before it signs** now exists too — `mercury-kt-witness
+  --auditor` (above) does exactly that, fail-closed. What no code can manufacture is the one thing
+  that matters: **deploying it independently** of the relay operator and running it on a timer. A
+  blind or operator-controlled auditor adds nothing; the value is an independent process actually
+  checking consistency (the same caveat as the witnesses).
 - **Cosignatures are in-memory.** They are ephemeral by design — witnesses re-cosign after any relay
   restart or head refresh. Nothing is persisted.
 

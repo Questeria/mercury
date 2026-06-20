@@ -1,0 +1,31 @@
+[package]
+name = "mercury-witness"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+# A deployable KT WITNESS / AUDITOR daemon. It fetches the relay's published tree head, REFUSES to
+# co-sign anything that is not a verified append-only extension of what it last vouched for
+# (mercury_kt::evaluate_head), signs the verified head with its Ed25519 key, and submits the
+# cosignature. Run it on a timer from a host INDEPENDENT of the relay operator — that independence
+# IS the protection. Single-shot by design (one round per run) so an operator schedules it with cron
+# / systemd timer and gets a clean per-run exit code (0 = co-signed / up to date; non-zero = refused
+# or error, which for the equivocation refusals is a SECURITY signal worth alerting on).
+
+[[bin]]
+name = "mercury-kt-witness"
+path = "src/main.rs"
+
+[dependencies]
+# The verified co-sign decision + the signed-head / proof types. This is the ONLY trust-bearing
+# dependency: all the verification lives in mercury-kt and is unit-tested there.
+mercury-kt = { path = "../mercury-kt" }
+ed25519-dalek = { version = "2", features = ["zeroize"] }
+# Blocking HTTP client (same one the mercury-client relay transport uses); `tls` reaches a real
+# TLS-terminated relay. No `json` feature — bodies are (de)serialized with serde_json explicitly.
+ureq = { version = "2", default-features = false, features = ["tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zeroize = "1"
+# evaluate_head is async (AKD's append-only verify is async); a current-thread runtime drives it.
+tokio = { version = "1", features = ["rt", "macros"] }

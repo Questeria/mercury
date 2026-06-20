@@ -21,6 +21,7 @@ members = [
     "core/rust/mercury-session",
     "core/rust/mercury-store",
     "core/rust/mercury-ui-bridge",
+    "core/rust/mercury-witness",
 ]
 # The cargo-fuzz crate is its own workspace (needs nightly + libFuzzer); the Tauri desktop crate
 # pulls a platform webview toolchain. Keep both out of the main workspace so `cargo build/test
