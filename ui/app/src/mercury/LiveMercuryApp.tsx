@@ -6,7 +6,7 @@
 // does not expose per-message decisions to the UI, so those areas show only real session FACTS
 // (account ids, crypto posture, message flow). The UI never holds keys or ciphertext.
 
-import { Fragment, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { CSSProperties, FormEvent } from "react";
 
 import { Avatar } from "./components/Avatar";
@@ -15,6 +15,7 @@ import { ConversationMenu } from "./components/ConversationMenu";
 import { NewGroupModal } from "./components/NewGroupModal";
 import { ConnectionPanel } from "./components/panels/ConnectionPanel";
 import { getConnectionPrefs, type ConnectionPrefs } from "./connectionPrefs";
+import { isAtBottom } from "./scroll";
 import { MercuryLogo } from "./components/MercuryLogo";
 import { QrCode } from "./components/QrCode";
 import { TitleBar } from "./components/TitleBar";
@@ -288,6 +289,29 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   const connTone = linkDown ? "connecting" : state.status;
   const connTip = linkDown ? (!online ? "offline" : "reconnecting") : state.status;
   const connLabel = !online ? "Offline" : "Reconnecting…";
+
+  // Keep the message list pinned to the newest message: auto-scroll on a new message ONLY when the
+  // user is already at the bottom (never yank them out of history they scrolled up to read), and
+  // always jump to the bottom when switching into a conversation. Ports the proven demo Thread.tsx
+  // pattern that the live list rewrite dropped; the threshold predicate is unit-tested in scroll.test.
+  const listRef = useRef<HTMLDivElement>(null);
+  const atBottom = useRef(true);
+  const lastPeer = useRef(state.activePeer);
+  const onListScroll = () => {
+    const el = listRef.current;
+    if (el) atBottom.current = isAtBottom(el.scrollHeight, el.scrollTop, el.clientHeight);
+  };
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const switched = lastPeer.current !== state.activePeer;
+    lastPeer.current = state.activePeer;
+    if (switched) atBottom.current = true; // a freshly-opened conversation starts at its newest message
+    if (atBottom.current) {
+      el.scrollTo({ top: el.scrollHeight, behavior: switched ? "auto" : "smooth" });
+    }
+  }, [messages.length, state.activePeer]);
+
   const [peerInput, setPeerInput] = useState("");
   // Connection-method prefs (Settings → Connections), kept live so the rail add-box reflects toggles.
   const [connPrefs, setConnPrefs] = useState(getConnectionPrefs);
@@ -814,6 +838,8 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
               )}
 
               <div
+                ref={listRef}
+                onScroll={onListScroll}
                 className={styles.list}
                 role="log"
                 aria-live="polite"
