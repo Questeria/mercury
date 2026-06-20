@@ -508,6 +508,97 @@ pub async fn verify_consistency(
     }
 }
 
+/// A KT witness's (or auditor's) decision over a freshly-fetched published head, given the head it
+/// last vouched for. The whole point of a witness is to NEVER co-sign a head that is not an
+/// append-only extension of what it already endorsed — so every non-`Cosign` outcome is a fail-closed
+/// refusal that a deployed witness must surface (and stop co-signing) rather than paper over.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WitnessDecision {
+    /// The head is safe to co-sign: a validly log-signed first head (trust-on-first-use), the same
+    /// head refreshed, or a verified single-epoch append-only extension.
+    Cosign,
+    /// Do NOT co-sign. The reason distinguishes a benign gap from an actual equivocation signal.
+    Refuse(WitnessRefusal),
+}
+
+/// Why a witness refused to co-sign a head. [`WitnessRefusal::InconsistentExtension`] and
+/// [`WitnessRefusal::SameEpochFork`] / [`WitnessRefusal::EpochRegressed`] are the equivocation
+/// signals; [`WitnessRefusal::UnverifiableGap`] is a benign "I fell too far behind to verify".
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WitnessRefusal {
+    /// The head is not validly signed by the pinned log key — not a head at all.
+    BadLogSignature,
+    /// The head's epoch is BELOW the last one this witness co-signed: a rollback.
+    EpochRegressed,
+    /// Same epoch as last co-signed, but a DIFFERENT root: the relay forked this epoch (equivocation).
+    SameEpochFork,
+    /// The head advanced by more than one epoch, so the single append-only proof the witness can
+    /// obtain (its own last root + the new root) cannot bridge the gap — it lacks the intermediate
+    /// checkpoints AKD's `audit_verify` requires. Fail-closed: re-bootstrap (re-pin the current head)
+    /// rather than co-sign an unverifiable span. (A witness that polls faster than claims arrive sees
+    /// only single-epoch steps; this is the honest residual when it falls behind.)
+    UnverifiableGap,
+    /// The single-epoch advance FAILED its append-only consistency proof against what the witness last
+    /// vouched for: the new head is not a consistent successor — the split-view signal. Refuse hard.
+    InconsistentExtension,
+}
+
+/// Decide whether a witness should co-sign `head`, fail-closed.
+///
+/// `last_seen` is the `(epoch, root)` the witness most recently co-signed (None on first contact).
+/// `single_step_proof` is the relay's append-only proof for `last_seen.epoch -> head.tree_size`,
+/// which the caller fetches and supplies ONLY when the head advanced by exactly one epoch (the only
+/// span a witness holding just the two endpoint roots can verify — see [`WitnessRefusal::UnverifiableGap`]).
+///
+/// The head is authenticated FIRST (a forged head is not a head); then the epoch relationship to
+/// `last_seen` is classified; a single-epoch advance is gated on the append-only proof binding the
+/// witness's OWN last root to the new root. Nothing here trusts the relay: the proof is verified
+/// against the witness's pinned `log_public_key` and its own remembered root.
+pub async fn evaluate_head(
+    log_public_key: &[u8; 32],
+    last_seen: Option<(u64, [u8; 32])>,
+    head: &SignedTreeHead,
+    log_signature: &[u8; 64],
+    single_step_proof: Option<AppendOnlyProof>,
+) -> WitnessDecision {
+    if !verify_signed_tree_head(log_public_key, head, log_signature) {
+        return WitnessDecision::Refuse(WitnessRefusal::BadLogSignature);
+    }
+    let Some((last_epoch, last_root)) = last_seen else {
+        // First head this witness sees: trust-on-first-use, like a client's initial pin.
+        return WitnessDecision::Cosign;
+    };
+    match head.tree_size.cmp(&last_epoch) {
+        std::cmp::Ordering::Less => WitnessDecision::Refuse(WitnessRefusal::EpochRegressed),
+        std::cmp::Ordering::Equal => {
+            if head.root_hash == last_root {
+                // Same head, re-published with a fresh timestamp — safe to re-cosign.
+                WitnessDecision::Cosign
+            } else {
+                WitnessDecision::Refuse(WitnessRefusal::SameEpochFork)
+            }
+        }
+        std::cmp::Ordering::Greater => {
+            // The witness can only verify a SINGLE-epoch step from what it holds.
+            if head.tree_size != last_epoch + 1 {
+                return WitnessDecision::Refuse(WitnessRefusal::UnverifiableGap);
+            }
+            let Some(proof) = single_step_proof else {
+                return WitnessDecision::Refuse(WitnessRefusal::UnverifiableGap);
+            };
+            // Bind the proof to the witness's OWN last root + the new head root.
+            let checkpoints = [
+                EpochHash(last_epoch, last_root),
+                EpochHash(head.tree_size, head.root_hash),
+            ];
+            match verify_consistency(&checkpoints, proof).await {
+                KeyTransparencyProofStatus::Verified => WitnessDecision::Cosign,
+                _ => WitnessDecision::Refuse(WitnessRefusal::InconsistentExtension),
+            }
+        }
+    }
+}
+
 /// Client-side: verify a KEY-HISTORY proof against a pinned `public_key` and the
 /// `checkpoint` it is anchored to, returning the gate's proof status. `Verified`
 /// iff EVERY update proof in the rotation chain checks out against the pinned
