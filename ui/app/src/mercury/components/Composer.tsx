@@ -197,8 +197,13 @@ export function Composer({ thread, mobile, onOpenPanel, onAttach }: ComposerProp
           <span style={{ color: toneVar("bad") }}>no persistence</span>
         )}
         {thread.draftMentionsAi && <span style={{ color: toneVar("ai") }}>@ai to scoped context</span>}
-        {attaching && <span>attaching…</span>}
-        {attachErr && <span style={{ color: toneVar("bad") }}>{attachErr}</span>}
+        {/* Persistent live region so a screen reader announces attach progress + a rejection
+            (e.g. "file is 6.2 MiB…") instead of the attach silently failing. Polite: queues behind
+            the user's own typing. The region must exist before its content changes to announce. */}
+        <span role="status" aria-live="polite">
+          {attaching && <span>attaching…</span>}
+          {attachErr && <span style={{ color: toneVar("bad") }}>{attachErr}</span>}
+        </span>
         <span className={styles.sendHint}>Enter send</span>
       </div>
     </div>

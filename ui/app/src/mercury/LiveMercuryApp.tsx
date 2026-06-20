@@ -801,7 +801,13 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                 </div>
               )}
 
-              <div className={styles.list}>
+              <div
+                className={styles.list}
+                role="log"
+                aria-live="polite"
+                aria-relevant="additions"
+                aria-label="Conversation messages"
+              >
                 {messages.length === 0 && (
                   <div className={styles.empty}>
                     No messages yet — say hello. This thread is sealed end-to-end.
