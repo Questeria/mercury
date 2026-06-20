@@ -197,6 +197,40 @@ async fn unknown_username_is_404() {
 // to one shared key — so the cap applies across these requests. The limiter runs as a layer BEFORE
 // the handler, so it counts every request (each here 400s on a deliberately-bad body) and rejects
 // over the cap with 429 before any Ed25519 verify / AKD epoch advance.
+// C2: claiming through the REAL router with a PERSISTENT directory writes a KT snapshot, and a
+// simulated restart (a fresh directory restored from that snapshot) resumes with the claim's epoch
+// intact — proving the claim handler's register->snapshot wiring + cross-restart continuity end to
+// end, not just at the KtDirectory unit level.
+#[tokio::test]
+async fn claim_snapshots_and_survives_a_restart() {
+    let dir_path = std::env::temp_dir().join("mercury_kt_relay_claim_persist");
+    let _ = std::fs::remove_dir_all(&dir_path);
+    std::fs::create_dir_all(&dir_path).unwrap();
+    let snap = dir_path.join("akd_state.json");
+    const SEED: [u8; 32] = [9u8; 32];
+
+    // A persistent directory behind the live router.
+    let (dir, restored) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    assert!(!restored, "first boot: no snapshot yet");
+    let app = kt_router(KtState::new(dir));
+
+    // Claim "alice" through the real HTTP handler (register -> snapshot, all in the handler).
+    let alice = IdentityKeyPair::generate();
+    let (status, _) =
+        post_json(app.clone(), "/username/claim", claim_body(&alice, "alice")).await;
+    assert!(status == StatusCode::OK || status == StatusCode::CREATED);
+    assert!(snap.exists(), "the claim handler persisted the new epoch to a snapshot");
+
+    // Simulate a relay restart: a fresh directory restored from that snapshot carries alice's epoch
+    // (the old in-memory-rebuild path would have reset to a fresh epoch-0 with no history).
+    let (dir2, restored2) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    assert!(restored2, "the snapshot is restored on the next boot");
+    assert!(
+        dir2.prove_inclusion("username:alice").await.is_ok(),
+        "alice's claim epoch survived the restart"
+    );
+}
+
 #[tokio::test]
 async fn kt_username_claim_is_flood_limited_per_source() {
     let app = build().await;

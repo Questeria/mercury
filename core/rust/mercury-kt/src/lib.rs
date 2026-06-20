@@ -266,6 +266,35 @@ impl KtDirectory {
         Ok(())
     }
 
+    /// Boot-time reconciliation against the authoritative durable bindings: re-publish every
+    /// `(label, value)` that is ABSENT from this (just-restored) directory, then snapshot. This is
+    /// the crash catch-up direction — a binding the durable username store recorded but whose AKD
+    /// epoch never reached the snapshot. With the claim path's snapshot-before-durable-put ordering
+    /// the snapshot is normally >= the store, so this usually finds nothing; it also doubles as the
+    /// first-run rebuild (against a fresh directory every binding is "absent"). Orphan labels
+    /// already in the directory with NO listed binding are LEFT ALONE (tolerated — lookups gate
+    /// through the registry, so an orphan is unreachable). Returns the count re-published.
+    ///
+    /// Presence is checked per binding via [`prove_inclusion`](Self::prove_inclusion) — no "list all
+    /// labels" API is needed (akd exposes none), and orphan labels are simply never visited.
+    pub async fn reconcile(&mut self, bindings: &[(String, Vec<u8>)]) -> Result<usize, KtPersistError> {
+        let mut missing: Vec<(String, Vec<u8>)> = Vec::new();
+        for (label, value) in bindings {
+            if self.prove_inclusion(label).await.is_err() {
+                missing.push((label.clone(), value.clone()));
+            }
+        }
+        if missing.is_empty() {
+            return Ok(0);
+        }
+        let n = missing.len();
+        self.register_batch(&missing)
+            .await
+            .map_err(|e| KtPersistError::Akd(format!("reconcile re-publish of {n} binding(s): {e:?}")))?;
+        self.snapshot().await?;
+        Ok(n)
+    }
+
     /// Publish (or rotate) a device's key under `label`. Returns the new
     /// `(epoch, root_hash)` checkpoint.
     pub async fn register(

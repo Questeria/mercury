@@ -74,14 +74,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Host the key-transparency directory. Production sets MERCURY_KT_VRF_SEED to
     // a persisted 32-byte key so the pinnable public key is stable across
     // restarts; without it we generate an EPHEMERAL key (dev only).
-    let mut kt_dir = match std::env::var("MERCURY_KT_VRF_SEED") {
+    // MERCURY_KT_SNAPSHOT names a file the KT log's full AKD state is persisted to, so epoch history
+    // (hence cross-restart consistency proofs) survives a restart instead of resetting to one epoch.
+    // It REQUIRES a stable VRF seed — a restored snapshot's proofs only verify under the seed that
+    // produced them. `kt_restored` is true iff an existing snapshot was loaded.
+    let kt_snapshot_path = std::env::var("MERCURY_KT_SNAPSHOT").ok();
+    let (mut kt_dir, kt_restored) = match std::env::var("MERCURY_KT_VRF_SEED") {
         Ok(seed_hex) => {
             let seed: [u8; 32] = hex::decode(&seed_hex)
                 .map_err(|_| "MERCURY_KT_VRF_SEED must be hex")?
                 .as_slice()
                 .try_into()
                 .map_err(|_| "MERCURY_KT_VRF_SEED must be 32 bytes (64 hex chars)")?;
-            KtDirectory::with_vrf_seed(seed).await?
+            match &kt_snapshot_path {
+                // FAIL CLOSED on a corrupt / unreadable / structurally-invalid snapshot — never
+                // silently rebuild (that would reset epoch history, the bug persistence fixes, and
+                // could mask on-disk tamper). An ABSENT file is the first-run/migration path (false).
+                Some(path) => KtDirectory::with_vrf_seed_persistent(seed, path)
+                    .await
+                    .map_err(|e| format!("restoring KT snapshot '{path}': {e}"))?,
+                None => (KtDirectory::with_vrf_seed(seed).await?, false),
+            }
         }
         Err(_) => {
             // Durable usernames (MERCURY_USERNAME_DB) imply a PRODUCTION deployment. An ephemeral
@@ -90,16 +103,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if std::env::var("MERCURY_USERNAME_DB").is_ok() {
                 return Err("MERCURY_USERNAME_DB is set (durable/production usernames) but MERCURY_KT_VRF_SEED is unset — refusing to start with an ephemeral VRF key that would break pinned clients across restarts. Set MERCURY_KT_VRF_SEED to a persisted 32-byte hex key (openssl rand -hex 32).".into());
             }
+            if kt_snapshot_path.is_some() {
+                return Err("MERCURY_KT_SNAPSHOT is set (KT persistence) but MERCURY_KT_VRF_SEED is unset — a restored snapshot's proofs only verify under the seed that produced them. Set MERCURY_KT_VRF_SEED to a persisted 32-byte hex key.".into());
+            }
             eprintln!(
                 "warning: MERCURY_KT_VRF_SEED unset — using an EPHEMERAL VRF key (pinned proofs will not verify across restarts; set it in production)"
             );
-            KtDirectory::new().await?
+            (KtDirectory::new().await?, false)
         }
     };
     // Durable username registry if MERCURY_USERNAME_DB names a redb file path: claimed handles
-    // survive a restart. The persisted bindings are re-registered into the fresh KT directory in
-    // ONE epoch (the AKD log itself is in-memory and rebuilt at boot; proofs remain verifiable
-    // because the VRF key is stable, but epoch history resets — see docs/USERNAMES.md).
+    // survive a restart. With MERCURY_KT_SNAPSHOT the KT log's epoch history survives too (restored
+    // above); without it the log is rebuilt from the durable bindings into one epoch at boot (proofs
+    // stay verifiable under the stable VRF key, but epoch history resets — see docs/USERNAMES.md).
     let kt_state = match std::env::var("MERCURY_USERNAME_DB") {
         Ok(path) => {
             let store = DurableUsernameStore::open(&path)
@@ -107,22 +123,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let bindings = store
                 .load_all()
                 .map_err(|e| format!("loading MERCURY_USERNAME_DB '{path}': {e}"))?;
-            if !bindings.is_empty() {
-                // Re-commit every restored binding into the fresh log in a SINGLE epoch
-                // (register_batch rejects an empty batch, hence the guard).
-                let updates: Vec<(String, Vec<u8>)> = bindings
-                    .iter()
-                    .map(|(name, id)| (kt_username_label(name), id.to_vec()))
-                    .collect();
-                kt_dir
-                    .register_batch(&updates)
+            // The durable store is authoritative; map each binding to its KT label once.
+            let labeled: Vec<(String, Vec<u8>)> = bindings
+                .iter()
+                .map(|(name, id)| (kt_username_label(name), id.to_vec()))
+                .collect();
+            if kt_restored {
+                // Restored a KT snapshot (epoch history intact). RECONCILE the authoritative bindings
+                // against it: re-publish only any the snapshot lacks — the crash catch-up for a
+                // `claim` whose username put landed but whose KT epoch never reached disk. With the
+                // claim path's snapshot-before-put ordering this is normally empty; orphan KT labels
+                // (in the AKD, no binding) are tolerated. Re-snapshots iff it caught anything up.
+                let n = kt_dir
+                    .reconcile(&labeled)
                     .await
-                    .map_err(|e| format!("re-registering persisted usernames into KT: {e}"))?;
+                    .map_err(|e| format!("reconciling usernames against the restored KT snapshot: {e}"))?;
+                eprintln!(
+                    "mercury-relay-server: restored KT snapshot '{}' — {} binding(s) present, reconciled {n} missing",
+                    kt_snapshot_path.as_deref().unwrap_or("?"),
+                    bindings.len()
+                );
+            } else {
+                // No snapshot (first run / migration / persistence off): rebuild the whole log from
+                // the durable bindings in ONE epoch (register_batch rejects an empty batch, hence the
+                // guard), then write the initial snapshot to establish the file (a no-op when
+                // persistence is off). Prior behavior + the initial snapshot.
+                if !labeled.is_empty() {
+                    kt_dir
+                        .register_batch(&labeled)
+                        .await
+                        .map_err(|e| format!("re-registering persisted usernames into KT: {e}"))?;
+                }
+                kt_dir
+                    .snapshot()
+                    .await
+                    .map_err(|e| format!("writing the initial KT snapshot: {e}"))?;
+                eprintln!(
+                    "mercury-relay-server: durable username store at {path} — rebuilt {} binding(s) into the KT log{}",
+                    bindings.len(),
+                    if kt_snapshot_path.is_some() { " + wrote initial snapshot" } else { "" }
+                );
             }
-            eprintln!(
-                "mercury-relay-server: durable username store at {path} — restored {} binding(s) into the KT log",
-                bindings.len()
-            );
             let registry = UsernameRegistry::with_durable(store)
                 .map_err(|e| format!("building username registry from '{path}': {e}"))?;
             KtState::with_registry(kt_dir, registry)

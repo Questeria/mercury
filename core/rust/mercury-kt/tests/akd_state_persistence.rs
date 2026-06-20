@@ -77,3 +77,57 @@ async fn an_absent_snapshot_is_the_migration_path_not_an_error() {
     let (_dir, restored) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
     assert!(!restored, "no snapshot file -> a fresh directory (migration), not an error");
 }
+
+#[tokio::test]
+async fn reconcile_republishes_only_the_bindings_absent_from_the_restored_snapshot() {
+    let snap = scratch("reconcile");
+
+    // Pre-restart: alice is registered AND snapshotted (her epoch reaches disk).
+    let (mut dir1, _) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    dir1.register("username:alice", b"id-alice").await.unwrap();
+    dir1.snapshot().await.unwrap();
+    drop(dir1);
+
+    // Restart. The restored snapshot has alice but NOT bob — modelling the crash residual where the
+    // durable username store recorded bob (his `claim` landed) but the relay died before bob's KT
+    // epoch was snapshotted. Boot then reconciles against the authoritative store = [alice, bob].
+    let (mut dir2, restored) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    assert!(restored);
+    assert!(dir2.prove_inclusion("username:alice").await.is_ok(), "alice survived the restart");
+    assert!(dir2.prove_inclusion("username:bob").await.is_err(), "bob was not in the snapshot");
+
+    let bindings = vec![
+        ("username:alice".to_string(), b"id-alice".to_vec()),
+        ("username:bob".to_string(), b"id-bob".to_vec()),
+    ];
+    let republished = dir2.reconcile(&bindings).await.unwrap();
+    assert_eq!(republished, 1, "only bob (absent) is re-published; alice is already present");
+    assert!(dir2.prove_inclusion("username:bob").await.is_ok(), "bob is provable after reconcile");
+
+    // Reconcile is idempotent + persists: a second pass finds nothing, and the catch-up was
+    // snapshotted (a fresh restore sees bob without needing to reconcile again).
+    assert_eq!(dir2.reconcile(&bindings).await.unwrap(), 0, "second reconcile is a no-op");
+    drop(dir2);
+    let (dir3, _) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    assert!(dir3.prove_inclusion("username:bob").await.is_ok(), "the catch-up was persisted");
+}
+
+#[tokio::test]
+async fn reconcile_leaves_orphan_akd_labels_alone() {
+    let snap = scratch("orphan");
+
+    // The AKD has carol, but the authoritative store does NOT list her (an orphan label — e.g. a
+    // claim whose KT register + snapshot landed but whose durable username put failed). Reconcile
+    // against a store WITHOUT carol must NOT touch her and must re-publish nothing.
+    let (mut dir, _) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    dir.register("username:carol", b"id-carol").await.unwrap();
+    dir.snapshot().await.unwrap();
+
+    let store_without_carol: Vec<(String, Vec<u8>)> = vec![];
+    assert_eq!(
+        dir.reconcile(&store_without_carol).await.unwrap(),
+        0,
+        "an orphan AKD label is tolerated, never re-published or pruned"
+    );
+    assert!(dir.prove_inclusion("username:carol").await.is_ok(), "the orphan label is untouched");
+}

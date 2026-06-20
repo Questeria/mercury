@@ -379,7 +379,12 @@ async fn username_claim(
             if users.len() >= crate::username::MAX_USERNAMES {
                 return StatusCode::SERVICE_UNAVAILABLE.into_response();
             }
-            // Commit to the KT log FIRST (so a failure leaves no orphaned guard binding).
+            // Advance the KT log AND persist the new epoch atomically — both under the dir lock, so
+            // a concurrent reader never sees (and a client never pins) a tree head at an epoch that
+            // is not yet durable. Snapshotting BEFORE the durable username put below keeps the
+            // on-disk AKD >= the username store, so the only crash residual is a tolerated orphan KT
+            // label (handled below + reconciled-around on boot), never a username binding the
+            // restored AKD lacks. snapshot() is a no-op unless MERCURY_KT_SNAPSHOT enabled persistence.
             {
                 let mut dir = state.dir.lock().await;
                 if dir
@@ -387,6 +392,15 @@ async fn username_claim(
                     .await
                     .is_err()
                 {
+                    return StatusCode::SERVICE_UNAVAILABLE.into_response();
+                }
+                if let Err(e) = dir.snapshot().await {
+                    // The epoch advanced in memory but did NOT reach disk. Do not make the binding
+                    // durable in the username store (that would expose an epoch a restart would
+                    // lose); fail closed with a retryable 503. On restart the prior snapshot is
+                    // restored, so the prior epoch is the basis again and a retry re-registers
+                    // cleanly; the un-persisted in-memory epoch is discarded on the next boot.
+                    eprintln!("mercury-relay: KT snapshot after register failed: {e}");
                     return StatusCode::SERVICE_UNAVAILABLE.into_response();
                 }
             }
