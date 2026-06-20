@@ -30,8 +30,10 @@ use mercury_client::{
     UsernameClaimOutcome, open_blob, seal_blob,
 };
 use mercury_core::{
-    ClientBootstrapDecision, ClientBootstrapReason, ClientReceiveDecision, ClientReceiveReason,
-    OutboundSendDecision, OutboundSendReason, PlatformDecisionView,
+    AccountRecoveryInput, AccountRecoveryMethod, ClientBootstrapDecision, ClientBootstrapReason,
+    ClientReceiveDecision, ClientReceiveReason, OutboundSendDecision, OutboundSendReason,
+    PlatformDecisionView, SecureBackupRestoreEnvelopeSuite, SecureBackupRestoreInput,
+    SecureBackupRestoreReason, SecureBackupRestoreScope, SecureBackupRestoreTransport,
 };
 use mercury_mls::MlsEngine;
 use serde::{Deserialize, Serialize};
@@ -168,6 +170,202 @@ const BACKUP_ARGON2_MAX_LANES: u32 = 16;
 const BACKUP_KDF_ITERATIONS: u32 = 210_000;
 /// Minimum backup passphrase length, in characters. The backup file's security IS the passphrase.
 pub const MIN_BACKUP_PASSPHRASE_CHARS: usize = 9;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AppBackupKdf {
+    Argon2id,
+    Pbkdf2HmacSha512,
+}
+
+impl AppBackupKdf {
+    const fn code(self) -> u8 {
+        match self {
+            Self::Argon2id => BACKUP_KDF_ARGON2ID,
+            Self::Pbkdf2HmacSha512 => 0,
+        }
+    }
+
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Argon2id => "argon2id",
+            Self::Pbkdf2HmacSha512 => "pbkdf2-hmac-sha512",
+        }
+    }
+}
+
+/// Non-secret restore plan for a passphrase-sealed app backup.
+///
+/// This is intentionally separate from `mercury-backup`'s recovery-code archive plan:
+/// arbitrary user passphrases are not represented as 192-bit recovery codes. The
+/// `high_assurance_gate_*` fields expose that boundary without changing the legacy
+/// desktop backup format.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AppBackupRestorePlan {
+    pub format_version: u8,
+    pub kdf_algorithm_code: u8,
+    pub kdf_algorithm_label: &'static str,
+    pub kdf_memory_mib: u32,
+    pub kdf_iterations: u32,
+    pub kdf_parallelism: u32,
+    pub stores_explicit_kdf_profile: bool,
+    pub uses_current_kdf_profile: bool,
+    pub legacy_format: bool,
+    pub reseal_recommended: bool,
+    pub sealed_snapshot_len: usize,
+    pub restore_allowed: bool,
+    pub reason_label: &'static str,
+    pub high_assurance_gate_accepted: bool,
+    pub high_assurance_gate_reason: SecureBackupRestoreReason,
+    pub high_assurance_gate_reason_label: &'static str,
+}
+
+struct ParsedAppBackup<'a> {
+    plan: AppBackupRestorePlan,
+    kdf: AppBackupKdf,
+    salt: [u8; 16],
+    sealed: &'a [u8],
+}
+
+fn passphrase_restore_gate_reason(kdf_memory_mib: u32, kdf_iterations: u32) -> SecureBackupRestoreReason {
+    let account_recovery = AccountRecoveryInput {
+        recovery_requested: true,
+        method: AccountRecoveryMethod::HighEntropyRecoveryKey,
+        high_security_account: false,
+        recovery_key_entropy_bits: 0,
+        recovery_key_digest_len: 0,
+        threshold_shares: 0,
+        threshold_required: 0,
+        threshold_approvals: 0,
+        device_approval_present: false,
+        server_authenticated: false,
+        server_rate_limited: false,
+        backup_encrypted: true,
+        plaintext_backup_fields: 0,
+        rotates_device_secret: true,
+        audit_digest_len: 32,
+    }
+    .evaluate();
+    let decision = SecureBackupRestoreInput {
+        account_recovery,
+        scope: SecureBackupRestoreScope::AccountAndMlsState,
+        transport: SecureBackupRestoreTransport::UserRecoveryKeyArchive,
+        envelope_suite: SecureBackupRestoreEnvelopeSuite::XChaCha20Poly1305Blake3,
+        high_security_account: false,
+        backup_key_entropy_bits: 0,
+        backup_key_digest_len: 0,
+        kdf_memory_cost_mib: kdf_memory_mib as i32,
+        kdf_iterations: kdf_iterations as i32,
+        device_approval_present: false,
+        threshold_shares: 0,
+        threshold_required: 0,
+        threshold_approvals: 0,
+        server_authenticated: false,
+        server_rate_limited: false,
+        opaque_account_identifier: true,
+        backup_encrypted: true,
+        plaintext_export_fields: 0,
+        os_plaintext_backup_excluded: true,
+        mls_state_included: true,
+        mls_state_sealed: true,
+        mls_epoch_bound: true,
+        restore_rotates_device_secret: true,
+        restore_rekeys_groups: true,
+        archive_manifest_authenticated: true,
+        replay_nonce_len: 24,
+        audit_digest_len: 32,
+        retention_days: 30,
+        max_retention_days: 90,
+    }
+    .evaluate();
+    decision.reason
+}
+
+fn parse_app_backup(backup: &[u8]) -> Result<ParsedAppBackup<'_>, AppError> {
+    if let Some(rest) = backup.strip_prefix(BACKUP_MAGIC_V2) {
+        if rest.len() < 29 || rest[0] != BACKUP_KDF_ARGON2ID {
+            return Err(AppError::BackupInvalid);
+        }
+        let mem_kib = u32::from_le_bytes([rest[1], rest[2], rest[3], rest[4]]);
+        let iters = u32::from_le_bytes([rest[5], rest[6], rest[7], rest[8]]);
+        let lanes = u32::from_le_bytes([rest[9], rest[10], rest[11], rest[12]]);
+        if mem_kib > BACKUP_ARGON2_MAX_MEM_KIB
+            || !(1..=BACKUP_ARGON2_MAX_ITERS).contains(&iters)
+            || !(1..=BACKUP_ARGON2_MAX_LANES).contains(&lanes)
+        {
+            return Err(AppError::BackupInvalid);
+        }
+        let salt: [u8; 16] = rest[13..29]
+            .try_into()
+            .map_err(|_| AppError::BackupInvalid)?;
+        let sealed = &rest[29..];
+        let kdf = AppBackupKdf::Argon2id;
+        let kdf_memory_mib = mem_kib / 1024;
+        let high_assurance_gate_reason = passphrase_restore_gate_reason(kdf_memory_mib, iters);
+        let uses_current_kdf_profile = mem_kib == BACKUP_ARGON2_MEM_KIB
+            && iters == BACKUP_ARGON2_ITERS
+            && lanes == BACKUP_ARGON2_LANES;
+        return Ok(ParsedAppBackup {
+            plan: AppBackupRestorePlan {
+                format_version: 2,
+                kdf_algorithm_code: kdf.code(),
+                kdf_algorithm_label: kdf.label(),
+                kdf_memory_mib,
+                kdf_iterations: iters,
+                kdf_parallelism: lanes,
+                stores_explicit_kdf_profile: true,
+                uses_current_kdf_profile,
+                legacy_format: false,
+                reseal_recommended: !uses_current_kdf_profile,
+                sealed_snapshot_len: sealed.len(),
+                restore_allowed: true,
+                reason_label: "ACCEPTED_COMPATIBILITY_RESTORE",
+                high_assurance_gate_accepted: high_assurance_gate_reason
+                    == SecureBackupRestoreReason::Accepted,
+                high_assurance_gate_reason,
+                high_assurance_gate_reason_label: high_assurance_gate_reason.label(),
+            },
+            kdf,
+            salt,
+            sealed,
+        });
+    }
+
+    if let Some(rest) = backup.strip_prefix(BACKUP_MAGIC) {
+        if rest.len() < 16 {
+            return Err(AppError::BackupInvalid);
+        }
+        let (salt, sealed) = rest.split_at(16);
+        let salt: [u8; 16] = salt.try_into().map_err(|_| AppError::BackupInvalid)?;
+        let kdf = AppBackupKdf::Pbkdf2HmacSha512;
+        let high_assurance_gate_reason = passphrase_restore_gate_reason(0, BACKUP_KDF_ITERATIONS);
+        return Ok(ParsedAppBackup {
+            plan: AppBackupRestorePlan {
+                format_version: 1,
+                kdf_algorithm_code: kdf.code(),
+                kdf_algorithm_label: kdf.label(),
+                kdf_memory_mib: 0,
+                kdf_iterations: BACKUP_KDF_ITERATIONS,
+                kdf_parallelism: 1,
+                stores_explicit_kdf_profile: false,
+                uses_current_kdf_profile: false,
+                legacy_format: true,
+                reseal_recommended: true,
+                sealed_snapshot_len: sealed.len(),
+                restore_allowed: true,
+                reason_label: "ACCEPTED_LEGACY_RESEAL_RECOMMENDED",
+                high_assurance_gate_accepted: high_assurance_gate_reason
+                    == SecureBackupRestoreReason::Accepted,
+                high_assurance_gate_reason,
+                high_assurance_gate_reason_label: high_assurance_gate_reason.label(),
+            },
+            kdf,
+            salt,
+            sealed,
+        });
+    }
+
+    Err(AppError::BackupInvalid)
+}
 
 /// Stretch a passphrase into the 32-byte seal key with the CURRENT KDF: memory-hard Argon2id
 /// (audited RustCrypto `argon2`), domain-separated by the per-export random salt. Bad parameters
@@ -3020,6 +3218,180 @@ mod tests {
             "strict order preserved"
         );
         let _ = first_blob;
+    }
+
+    /// A fault-injecting test transport that models the relay's REAL single-slot mailbox + transient
+    /// network failures, so the store-and-forward error arms in `dispatch()` / `drain_outbox()`
+    /// (which the multi-slot, infallible `InMemoryTransport` never triggers) are exercised end to end
+    /// rather than simulated by poking `outbox`. The opaque prekey directory (publish/fetch a contact
+    /// card) is delegated to a real `InMemoryTransport`; only `submit`/`poll` are intercepted.
+    #[derive(Clone)]
+    struct FaultTransport {
+        dir: mercury_client::InMemoryTransport,
+        st: std::sync::Arc<std::sync::Mutex<FaultState>>,
+    }
+
+    struct FaultState {
+        /// ONE undelivered blob per route — the relay's single-slot mailbox.
+        slot: std::collections::HashMap<[u8; 32], Vec<u8>>,
+        /// While true, `submit` returns a transient `Network` error (relay briefly unreachable).
+        fail_submit: bool,
+    }
+
+    impl FaultTransport {
+        fn new() -> Self {
+            Self {
+                dir: mercury_client::InMemoryTransport::new(),
+                st: std::sync::Arc::new(std::sync::Mutex::new(FaultState {
+                    slot: std::collections::HashMap::new(),
+                    fail_submit: false,
+                })),
+            }
+        }
+        fn set_fail_submit(&self, v: bool) {
+            self.st.lock().unwrap().fail_submit = v;
+        }
+    }
+
+    impl Transport for FaultTransport {
+        fn submit(&self, route: &[u8; 32], blob: &[u8]) -> Result<(), TransportError> {
+            let mut s = self.st.lock().unwrap();
+            if s.fail_submit {
+                return Err(TransportError::Network("relay unreachable".to_string()));
+            }
+            if s.slot.contains_key(route) {
+                // The recipient hasn't drained their single slot yet — the relay's real reason.
+                return Err(TransportError::Rejected("item_already_pending".to_string()));
+            }
+            s.slot.insert(*route, blob.to_vec());
+            Ok(())
+        }
+        fn poll(
+            &self,
+            route: &[u8; 32],
+            _auth: &PollAuth,
+        ) -> Result<Option<Vec<u8>>, TransportError> {
+            Ok(self.st.lock().unwrap().slot.remove(route))
+        }
+        fn publish_card(
+            &self,
+            identity_pub: &[u8; 32],
+            card: &[u8],
+            pop_sig: &[u8; 64],
+        ) -> Result<(), TransportError> {
+            self.dir.publish_card(identity_pub, card, pop_sig)
+        }
+        fn fetch_card(&self, account_id: &[u8; 32]) -> Result<Option<Vec<u8>>, TransportError> {
+            self.dir.fetch_card(account_id)
+        }
+    }
+
+    #[test]
+    fn full_mailbox_rejection_queues_then_drains_over_a_single_slot_transport() {
+        // Drive the REAL dispatch() item_already_pending arm end to end (not by poking the outbox):
+        // a single-slot relay rejects the 2nd send to an undrained route, so it queues + drains.
+        let transport = FaultTransport::new();
+        let mut alice = AppController::new(transport.clone());
+        let mut bob = AppController::new(transport.clone());
+        bob.publish_self().unwrap();
+        let bob_id = bob.account_id();
+        alice.add_contact(&bob_id).unwrap();
+
+        // First send fills Bob's single slot.
+        alice.send(&bob_id, "A").unwrap();
+        // Second send hits item_already_pending → dispatch queues it (never errors, never lost).
+        alice.send(&bob_id, "B").unwrap();
+        assert_eq!(alice.outbox.len(), 1, "B queued behind the undrained A");
+        assert!(
+            alice.history(&bob_id).last().unwrap().pending,
+            "the queued send shows pending, not an error"
+        );
+
+        // Bob drains A (frees the slot); Alice's next poll flushes B in order.
+        let got_a: Vec<String> = bob.poll().unwrap().iter().map(|m| m.text.clone()).collect();
+        assert_eq!(got_a, vec!["A"]);
+        alice.poll().unwrap();
+        assert!(alice.outbox.is_empty(), "outbox drained once the slot freed");
+        assert!(
+            alice.history(&bob_id).iter().all(|m| !m.pending),
+            "nothing pending after the drain"
+        );
+        let got_b: Vec<String> = bob.poll().unwrap().iter().map(|m| m.text.clone()).collect();
+        assert_eq!(got_b, vec!["B"]);
+    }
+
+    #[test]
+    fn a_transient_network_error_on_send_queues_and_later_drains() {
+        // The relay being briefly unreachable on send must NOT drop or error the message — it queues
+        // (pending) and drains on the next poll once the relay returns. Drives dispatch()'s Network
+        // enqueue arm directly.
+        let transport = FaultTransport::new();
+        let mut alice = AppController::new(transport.clone());
+        let mut bob = AppController::new(transport.clone());
+        bob.publish_self().unwrap();
+        let bob_id = bob.account_id();
+        alice.add_contact(&bob_id).unwrap();
+
+        transport.set_fail_submit(true);
+        alice.send(&bob_id, "during the blip").unwrap();
+        assert_eq!(
+            alice.outbox.len(),
+            1,
+            "a transient network error queues the send, never loses it"
+        );
+        assert!(
+            alice.history(&bob_id).last().unwrap().pending,
+            "shows pending, not a scary error"
+        );
+
+        transport.set_fail_submit(false);
+        alice.poll().unwrap();
+        assert!(alice.outbox.is_empty(), "the queued send drained after recovery");
+        let got: Vec<String> = bob.poll().unwrap().iter().map(|m| m.text.clone()).collect();
+        assert_eq!(got, vec!["during the blip"]);
+    }
+
+    #[test]
+    fn a_queued_send_survives_a_snapshot_restart() {
+        // The single most user-visible durability promise: a message "sent" while offline survives an
+        // app close/crash and is delivered after restart. Exercises AppSnapshot.outbox + post-restore
+        // drain (the existing round-trip test never carries a NON-empty outbox).
+        let key = [9u8; 32];
+        let transport = FaultTransport::new();
+        let mut alice = AppController::new(transport.clone());
+        let mut bob = AppController::new(transport.clone());
+        bob.publish_self().unwrap();
+        let bob_id = bob.account_id();
+        alice.add_contact(&bob_id).unwrap();
+
+        // Relay unreachable → the send queues in the outbox (the user "sent" it while offline).
+        transport.set_fail_submit(true);
+        alice.send(&bob_id, "queued while offline").unwrap();
+        assert_eq!(alice.outbox.len(), 1);
+
+        // App closes with the unsent message: seal a snapshot, drop, restore a fresh controller.
+        let blob = alice.to_encrypted_snapshot(&key);
+        drop(alice);
+        let mut restored =
+            AppController::from_encrypted_snapshot(transport.clone(), &blob, &key).unwrap();
+
+        // The queued send SURVIVED the restart.
+        assert_eq!(
+            restored.outbox.len(),
+            1,
+            "the queued send survived the snapshot round-trip"
+        );
+        assert!(
+            restored.history(&bob_id).last().unwrap().pending,
+            "still pending after restore"
+        );
+
+        // Relay recovers → a poll drains the RESTORED outbox; Bob receives the message.
+        transport.set_fail_submit(false);
+        restored.poll().unwrap();
+        assert!(restored.outbox.is_empty(), "the restored outbox drains after recovery");
+        let got: Vec<String> = bob.poll().unwrap().iter().map(|m| m.text.clone()).collect();
+        assert_eq!(got, vec!["queued while offline"]);
     }
 
     #[test]
