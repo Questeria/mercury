@@ -25,8 +25,9 @@ rand_core = { version = "0.6", features = ["getrandom"] }
 zeroize = { version = "1", features = ["derive"] }
 # Domain-separated KDF deriving the directory's log signing key from its seed.
 sha2 = "0.10"
+# Serialize the AKD record set for at-rest persistence (the snapshot that survives a relay restart
+# so epoch history is continuous) AND to deserialize hostile JSON proofs in tests.
+serde_json = "1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-# Crash-resistance test: deserialize hostile JSON proofs (the malicious-relay path).
-serde_json = "1"

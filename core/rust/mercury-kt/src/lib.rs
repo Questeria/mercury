@@ -22,8 +22,12 @@
 //! drops in without changing callers.
 
 use akd::ecvrf::{VRFKeyStorage, VrfError};
-use akd::storage::StorageManager;
 use akd::storage::memory::AsyncInMemoryDatabase;
+use akd::storage::types::DbRecord;
+// `Database` (batch_set) + `StorageUtil` (batch_get_all_direct) drive snapshot/restore; the inner
+// db's records are dumped/reloaded directly because StorageManager::get_db is test-cfg-gated.
+use akd::storage::{Database, DbSetState, StorageManager, StorageUtil};
+use std::path::{Path, PathBuf};
 use akd::{
     AkdLabel, AkdValue, AzksParallelismConfig, Directory, HistoryParams, HistoryVerificationParams,
 };
@@ -82,11 +86,49 @@ impl VRFKeyStorage for DirectoryVrf {
 /// tests self-contained.
 pub struct KtDirectory {
     dir: AkdDirectory,
+    /// A SHARED handle (the akd in-memory db is `Arc<DashMap>`-backed and `Clone`, so this clone
+    /// points at the SAME records the `dir` reads/writes) used to dump the full record set for
+    /// at-rest persistence. `StorageManager::get_db()` is test-cfg-gated, so KtDirectory keeps its
+    /// own clone instead of reaching back through the manager.
+    db: AsyncInMemoryDatabase,
     /// The LOG's Ed25519 key for signing tree heads. Distinct from the VRF key
     /// (different purpose), derived from the same persisted seed so it is stable
     /// across restarts. Clients pin its public half to verify served heads.
     log_key: SigningKey,
+    /// When `Some`, [`KtDirectory::snapshot`] persists the AKD state here (set only by
+    /// [`KtDirectory::with_vrf_seed_persistent`]); `None` for ephemeral / test directories.
+    snapshot_path: Option<PathBuf>,
 }
+
+/// Why restoring (or first reading) a persisted AKD snapshot failed. The relay boot path treats
+/// EVERY variant as FAIL-CLOSED — refuse to start. A corrupt/tampered/unreadable KT snapshot must
+/// never be silently papered over by rebuilding from the username bindings, because that would
+/// reset the epoch history (the exact bug persistence exists to fix) and could mask on-disk tamper.
+/// Only a genuinely ABSENT snapshot file is the (non-error) first-run / migration path.
+#[derive(Debug)]
+pub enum KtPersistError {
+    /// Reading or writing the snapshot file failed.
+    Io(std::io::Error),
+    /// The snapshot bytes did not deserialize to an AKD record set.
+    Deserialize(serde_json::Error),
+    /// An akd storage/directory operation failed (stringified, since the akd traits surface both
+    /// `StorageError` and `AkdError`).
+    Akd(String),
+    /// The records deserialized but are not a usable AKD state (e.g. not exactly one Azks record).
+    CorruptSnapshot(String),
+}
+
+impl std::fmt::Display for KtPersistError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KtPersistError::Io(e) => write!(f, "KT snapshot I/O error: {e}"),
+            KtPersistError::Deserialize(e) => write!(f, "KT snapshot deserialize error: {e}"),
+            KtPersistError::Akd(m) => write!(f, "KT snapshot akd error: {m}"),
+            KtPersistError::CorruptSnapshot(m) => write!(f, "KT snapshot corrupt: {m}"),
+        }
+    }
+}
+impl std::error::Error for KtPersistError {}
 
 /// Domain separator for deriving the log signing key from the directory seed.
 const LOG_KEY_DOMAIN: &[u8] = b"mercury/kt/log-key/v1";
@@ -125,16 +167,103 @@ impl KtDirectory {
     /// public key is STABLE across restarts (regenerating it would invalidate
     /// every proof clients pinned against the old key).
     pub async fn with_vrf_seed(vrf_private_key: [u8; 32]) -> Result<Self, akd::errors::AkdError> {
+        Self::from_db(AsyncInMemoryDatabase::new(), vrf_private_key, None).await
+    }
+
+    /// Production boot entry: the same VRF seed, plus a `snapshot_path`. If a snapshot file exists
+    /// there it is RESTORED — the directory resumes its exact epoch history, so consistency proofs
+    /// span the restart. If it does NOT exist, this is the first-run / migration path (a fresh
+    /// empty directory the caller then rebuilds from the durable username bindings). Returns
+    /// `(directory, restored)` where `restored` is true iff a snapshot was loaded.
+    ///
+    /// FAIL-CLOSED: an unreadable / undeserializable / structurally-corrupt snapshot, or a restore
+    /// failure, is returned as [`KtPersistError`] — the caller MUST refuse to start, never silently
+    /// rebuild (which would reset epoch history, the bug this fixes, and could mask on-disk tamper).
+    pub async fn with_vrf_seed_persistent(
+        vrf_private_key: [u8; 32],
+        snapshot_path: impl AsRef<Path>,
+    ) -> Result<(Self, bool), KtPersistError> {
+        let path = snapshot_path.as_ref().to_path_buf();
         let db = AsyncInMemoryDatabase::new();
-        let storage = StorageManager::new_no_cache(db);
+        let restored = if path.exists() {
+            let bytes = std::fs::read(&path).map_err(KtPersistError::Io)?;
+            let records: Vec<DbRecord> =
+                serde_json::from_slice(&bytes).map_err(KtPersistError::Deserialize)?;
+            if records.is_empty() {
+                return Err(KtPersistError::CorruptSnapshot("empty record set".into()));
+            }
+            // A valid AKD state has exactly ONE Azks (the tree root + epoch counter). Anything else
+            // is a truncated / duplicated / tampered dump — fail closed rather than load it.
+            let azks_count = records.iter().filter(|r| matches!(r, DbRecord::Azks(_))).count();
+            if azks_count != 1 {
+                return Err(KtPersistError::CorruptSnapshot(format!(
+                    "expected exactly 1 Azks record, found {azks_count}"
+                )));
+            }
+            db.batch_set(records, DbSetState::General)
+                .await
+                .map_err(|e| KtPersistError::CorruptSnapshot(format!("batch_set failed: {e:?}")))?;
+            true
+        } else {
+            false
+        };
+        let me = Self::from_db(db, vrf_private_key, Some(path))
+            .await
+            .map_err(|e| KtPersistError::Akd(format!("{e:?}")))?;
+        Ok((me, restored))
+    }
+
+    /// Wrap an (already restored, or empty) in-memory db in a Directory, keeping a shared handle to
+    /// the db for snapshotting. `Directory::new` reuses an existing Azks from storage when present,
+    /// so a restored db resumes its epoch history instead of minting a fresh epoch 0.
+    async fn from_db(
+        db: AsyncInMemoryDatabase,
+        vrf_private_key: [u8; 32],
+        snapshot_path: Option<PathBuf>,
+    ) -> Result<Self, akd::errors::AkdError> {
+        let storage = StorageManager::new_no_cache(db.clone());
         let vrf = DirectoryVrf {
             private_key: vrf_private_key,
         };
         let dir = Directory::new(storage, vrf, AzksParallelismConfig::default()).await?;
         Ok(Self {
             dir,
+            db,
             log_key: derive_log_key(&vrf_private_key),
+            snapshot_path,
         })
+    }
+
+    /// Atomically persist the FULL AKD record set to the configured snapshot path (a no-op when
+    /// none is set, e.g. ephemeral / test directories). The relay calls this after every
+    /// epoch-advancing publish — inside the registry critical section, AFTER the durable username
+    /// write — so the on-disk AKD never lags a recorded binding. Crash-atomic: tmp-write + fsync +
+    /// atomic rename, plus a best-effort parent-dir fsync on Unix so the rename itself is durable.
+    pub async fn snapshot(&self) -> Result<(), KtPersistError> {
+        let Some(path) = &self.snapshot_path else {
+            return Ok(());
+        };
+        let records: Vec<DbRecord> = self
+            .db
+            .batch_get_all_direct()
+            .await
+            .map_err(|e| KtPersistError::Akd(format!("dump failed: {e:?}")))?;
+        let bytes = serde_json::to_vec(&records).map_err(KtPersistError::Deserialize)?;
+        let tmp = path.with_extension("tmp");
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&tmp).map_err(KtPersistError::Io)?;
+            f.write_all(&bytes).map_err(KtPersistError::Io)?;
+            f.sync_all().map_err(KtPersistError::Io)?;
+        }
+        std::fs::rename(&tmp, path).map_err(KtPersistError::Io)?;
+        #[cfg(unix)]
+        if let Some(dir) = path.parent() {
+            if let Ok(d) = std::fs::File::open(dir) {
+                let _ = d.sync_all();
+            }
+        }
+        Ok(())
     }
 
     /// Publish (or rotate) a device's key under `label`. Returns the new
