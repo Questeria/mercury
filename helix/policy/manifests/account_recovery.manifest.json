@@ -1,0 +1,100 @@
+{
+  "artifact_path": "helix/policy/account_recovery.hx",
+  "artifact_sha256": "91bc5e26b3e41b5660583eb1fe224c751b0bb177577c6373d951206786f0527d",
+  "format_version": "v2.0-stage122-substrate",
+  "function_count": 11,
+  "functions": [
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": false,
+      "name": "main",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_acc",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_pack",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_reason",
+      "param_count": 4
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_rotation",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_rua",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_server",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_stage_a",
+      "param_count": 4
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_stage_b",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_stage_c",
+      "param_count": 4
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ar_stage_d",
+      "param_count": 3
+    }
+  ],
+  "helix_version": "v3.1.0-403-g2d02d92e",
+  "manifest_sha256": "5f4a722c4fa5b196caa098e173f197e2bbaab579ff606cbc6bde59d201ccf16d",
+  "signature": null,
+  "signature_format": "ed25519-or-rsa-pss-sha256-DEFERRED"
+}

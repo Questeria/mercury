@@ -1,0 +1,252 @@
+{
+  "artifact_path": "helix/policy/envelope.hx",
+  "artifact_sha256": "e3e6a00847f0f7befdd92e47b7e03b529d542bdd59fb60a206ac0d30033f9881",
+  "format_version": "v2.0-stage122-substrate",
+  "function_count": 30,
+  "functions": [
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": false,
+      "name": "main",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_accept",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_audit_accepted_message",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_audit_class_for_reason",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_audit_downgrade_attempt",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_audit_none",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_audit_policy_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_audit_size_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_bad_conversation_id_len",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_bad_epoch",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_bad_message_kind",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_bad_sender_account_id_len",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_bad_sender_device_id_len",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_bad_sequence",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_bad_version",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_downgraded_suite",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_first_reject",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_known_critical_flags",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_known_message_kind",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_payload_too_large",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_reserved_ai_kind",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_supported_suite",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_supported_version",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_unknown_critical_flag",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_unsupported_suite",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_valid_id_len",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_valid_payload_len",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_validate_content_v1",
+      "param_count": 5
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_validate_identity_v1",
+      "param_count": 6
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_validate_order_v1",
+      "param_count": 4
+    }
+  ],
+  "helix_version": "v3.1.0-403-g2d02d92e",
+  "manifest_sha256": "5ce436849c5ffe53ed3dd0ff729b6944ed720fb311a908ceb4630f9b165ca648",
+  "signature": null,
+  "signature_format": "ed25519-or-rsa-pss-sha256-DEFERRED"
+}

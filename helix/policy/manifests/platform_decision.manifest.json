@@ -1,0 +1,132 @@
+{
+  "artifact_path": "helix/policy/platform_decision.hx",
+  "artifact_sha256": "290c81e3eb1be02aa0fcc417632672800cf5c1fe39f338c8a8b1d882fb9f910d",
+  "format_version": "v2.0-stage122-substrate",
+  "function_count": 15,
+  "functions": [
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": false,
+      "name": "main",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_accepted",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_bs_no_user_action",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_bs_recovery",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_bs_sync_capable",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_can_open_message_ui",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_can_persist_ciphertext",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_can_receive",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_can_send",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_can_start_sync",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_pack",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_requires_client_retry",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_requires_recovery",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_requires_sync",
+      "param_count": 2
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_pd_requires_user_action",
+      "param_count": 3
+    }
+  ],
+  "helix_version": "v3.1.0-403-g2d02d92e",
+  "manifest_sha256": "a8144d23889464ff614949d0e5dd168f1abdc0eee54eb799386ffdb653499584",
+  "signature": null,
+  "signature_format": "ed25519-or-rsa-pss-sha256-DEFERRED"
+}

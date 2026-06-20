@@ -1,0 +1,252 @@
+{
+  "artifact_path": "helix/policy/room_epoch.hx",
+  "artifact_sha256": "4a9eb8922b07c97c6c233bc83e748ea1a76b234206c1964d2c3b71db4cbaee33",
+  "format_version": "v2.0-stage122-substrate",
+  "function_count": 30,
+  "functions": [
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": false,
+      "name": "main",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_accept",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_ai_device_blocked_room",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_audit_accepted",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_audit_ai_policy_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_audit_class_for_reason",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_audit_highsec_rotation_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_audit_membership_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_audit_policy_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_audit_replay_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_bad_access_kind",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_bad_device_kind",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_bad_device_state",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_bad_epoch",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_bad_revoked_at_epoch",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_bad_room_mode",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_bad_version",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_device_compromised",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_device_removed",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_first_reject",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_future_epoch",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_highsec_epoch_rotation_required",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_stale_epoch",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_validate_device_access",
+      "param_count": 4
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_validate_device_state",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_validate_device_v1",
+      "param_count": 5
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_validate_epoch_tail",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_validate_epoch_v1",
+      "param_count": 5
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_validate_highsec_rotation",
+      "param_count": 4
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_room_epoch_validate_highsec_v1",
+      "param_count": 6
+    }
+  ],
+  "helix_version": "v3.1.0-403-g2d02d92e",
+  "manifest_sha256": "ca9c400b2c537677e4580e4017827c7c59705054e79e99258e12f761ea19c456",
+  "signature": null,
+  "signature_format": "ed25519-or-rsa-pss-sha256-DEFERRED"
+}

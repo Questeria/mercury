@@ -1,0 +1,316 @@
+{
+  "artifact_path": "helix/policy/ai_grant.hx",
+  "artifact_sha256": "4ce57f56d4f3564ab9af8b1fcf938ddbe5e9c9b45fe558f126f1f71d810e966d",
+  "format_version": "v2.0-stage122-substrate",
+  "function_count": 38,
+  "functions": [
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": false,
+      "name": "main",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_accept",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_ai_blocked_room",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_audit_accepted",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_audit_class_for_reason",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_audit_highsec_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_audit_policy_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_audit_privacy_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_audit_retention_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_audit_tool_reject",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_ai_mode",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_principal_kind",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_read_scope",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_retention_mode",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_tool_scope",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_ttl",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_version",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_bad_write_scope",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_first_reject",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_highsec_confirm_send_required",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_highsec_local_only",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_highsec_tools_forbidden",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_insufficient_approvers",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_prompt_store_forbidden",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_read_scope_too_broad",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_remote_provider_forbidden",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_tool_scope_too_broad",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_training_forbidden",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_ttl_too_long",
+      "param_count": 0
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_valid_ai_mode",
+      "param_count": 1
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_validate_highsec_v1",
+      "param_count": 6
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_validate_scopes_retention",
+      "param_count": 3
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_validate_scopes_tool",
+      "param_count": 4
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_validate_scopes_v1",
+      "param_count": 6
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_validate_scopes_write",
+      "param_count": 5
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_validate_subject_tail",
+      "param_count": 4
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_validate_subject_v1",
+      "param_count": 6
+    },
+    {
+      "effects": [],
+      "enclave_tag": null,
+      "has_enclave_param": false,
+      "is_pure": true,
+      "name": "mercury_ai_grant_write_scope_too_broad",
+      "param_count": 0
+    }
+  ],
+  "helix_version": "v3.1.0-403-g2d02d92e",
+  "manifest_sha256": "387c773928605614a92827ffbf1567ea1ec7789fd2b58dbd87c26dc8c0bf87f7",
+  "signature": null,
+  "signature_format": "ed25519-or-rsa-pss-sha256-DEFERRED"
+}

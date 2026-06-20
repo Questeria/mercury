@@ -12,11 +12,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/account_recovery_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "7ba67a532e8d",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "account recovery gate",
@@ -39,11 +41,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/ai_grant_policy_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "8a02b7169eeb",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "AI principal scope gate",
@@ -65,11 +69,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/ai_grant_lifecycle_policy_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "b753284d2f32",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "AI grant expiry and revoke gate",
@@ -91,11 +97,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/bootstrap_decide_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "bae770ef16f2",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "client bootstrap and startup gate",
@@ -118,11 +126,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/envelope_policy_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "7a63f83aa809",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "message envelope and downgrade gate",
@@ -144,11 +154,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/inbound_sync_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "a9b41e4f5567",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "client inbound sync gate",
@@ -171,11 +183,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/outbound_decide_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "d361d9b65f96",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "client outbound send gate",
@@ -198,11 +212,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/platform_decision_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "301d47917618",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "capability view projection",
@@ -229,11 +245,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/policy_pipeline_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "c5484ee3bacf",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "component policy composition",
@@ -256,11 +274,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/receive_decide_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "b7128ed3e6ad",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "client receive gate",
@@ -283,11 +303,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/relay_submit_policy_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "81236528a222",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "opaque relay submission gate",
@@ -310,11 +332,13 @@ export const POLICY_ATTESTATIONS = {
     ],
     "policyJson": "policy/room_epoch_policy_v1.json",
     "productionRuntime": "rust_mirror",
+    "proofManifestShort": "18f69a49209c",
     "requiredGates": [
       "python_vector_check",
       "rust_vector_or_exhaustive_test",
       "helix_hash",
       "helix_proof_obligations",
+      "helix_proof_manifest",
       "helix_elf_exit_42"
     ],
     "role": "room epoch and membership state gate",

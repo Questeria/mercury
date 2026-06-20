@@ -32,6 +32,11 @@ mkdir -p "$OUT_DIR"
 
 policies=(envelope ai_grant ai_grant_lifecycle room_epoch policy_pipeline relay_submit platform_decision outbound_decide receive_decide bootstrap_decide inbound_sync account_recovery)
 
+# Per-policy proof manifests (compiler-verified per-function effect/purity attestation) MUST be
+# current first — the attestation manifest folds each one's hash in, so a stale manifest would
+# otherwise surface only as attestation drift. This also fails closed if any policy function is not
+# side-effect-free.
+"$PY" tools/gen_proof_manifests.py --check
 "$PY" tools/gen_policy_attestations.py --check
 
 for p in "${policies[@]}"; do

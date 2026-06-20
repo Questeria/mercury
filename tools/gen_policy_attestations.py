@@ -3,7 +3,7 @@
 
 The manifest is intentionally Mercury-local. It hashes Helix policy sources,
 tests, vector corpora, policy JSON files, and Rust mirror tests without writing
-to or depending on the external Helix checkout.
+to or depending on the external Kovostov-Native checkout.
 """
 
 from __future__ import annotations
@@ -18,6 +18,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "helix" / "policy" / "attestation.json"
 TS_PATH = ROOT / "ui" / "app" / "src" / "mercury" / "policyAttestation.generated.ts"
+# Per-policy proof manifests (tools/gen_proof_manifests.py): the compiler-verified per-function
+# effect/purity attestation. We fold each manifest's canonical hash in here so the SEMANTIC receipt
+# (not just the source bytes) is drift-gated and surfaced to the app.
+PROOF_MANIFEST_DIR = ROOT / "helix" / "policy" / "manifests"
 
 POLICIES: list[dict[str, Any]] = [
     {
@@ -217,11 +221,13 @@ def build_manifest() -> dict[str, Any]:
         vectors_path = ROOT / policy["vectors"]
         policy_json_path = ROOT / policy["policy_json"]
         python_check_path = ROOT / policy["python_vector_check"]
+        proof_manifest_path = PROOF_MANIFEST_DIR / f"{name}.manifest.json"
         require(policy_path)
         require(test_path)
         require(vectors_path)
         require(policy_json_path)
         require(python_check_path)
+        require(proof_manifest_path)
         for test in policy["rust_mirror_tests"]:
             require(ROOT / test)
 
@@ -236,6 +242,10 @@ def build_manifest() -> dict[str, Any]:
             "helix_policy_sha256": file_sha256(policy_path),
             "helix_test": rel(test_path),
             "helix_test_sha256": file_sha256(test_path),
+            # The compiler-verified per-function effect/purity manifest (gen_proof_manifests.py): a
+            # semantic receipt bound to the normalized source + pinned compiler version.
+            "helix_proof_manifest": rel(proof_manifest_path),
+            "helix_proof_manifest_sha256": file_sha256(proof_manifest_path),
             "policy_json": rel(policy_json_path),
             "policy_json_sha256": file_sha256(policy_json_path),
             "vectors": rel(vectors_path),
@@ -248,6 +258,7 @@ def build_manifest() -> dict[str, Any]:
                 "rust_vector_or_exhaustive_test",
                 "helix_hash",
                 "helix_proof_obligations",
+                "helix_proof_manifest",
                 "helix_elf_exit_42",
             ],
             "optional_gates": ["from_raw_k1_elf_exit_42"],
@@ -292,6 +303,10 @@ def compact_policy(entry: dict[str, Any]) -> dict[str, Any]:
         "role": entry["role"],
         "sourceHash": entry["helix_policy_sha256"],
         "sourceHashShort": entry["helix_policy_sha256"][:12],
+        # The semantic proof-manifest hash (compiler-verified per-function effect/purity attestation).
+        # Distinct from sourceHash: it certifies the source TYPECHECKS to all-side-effect-free
+        # functions under the pinned compiler, not merely that the bytes match.
+        "proofManifestShort": entry["helix_proof_manifest_sha256"][:12],
         "testHashShort": entry["helix_test_sha256"][:12],
         "vectorHashShort": entry["vectors_sha256"][:12],
         "vectorFileCount": entry["vector_file_count"],
