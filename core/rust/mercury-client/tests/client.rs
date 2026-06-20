@@ -175,6 +175,49 @@ fn a_client_survives_an_encrypted_pickle() {
     assert!(MercuryClient::from_encrypted_pickle(b"x", &key).is_err());
 }
 
+#[test]
+fn a_client_restores_every_peer_session_from_one_pickle() {
+    // D holds CONCURRENT sessions with THREE peers; one encrypted pickle must restore them ALL — each
+    // ratchet session AND its matching peer_device entry — not just the first. The single-peer test
+    // above cannot catch a restore that truncates to one or mismatches the device keys; the normal,
+    // multi-peer case (what a user actually has after a few conversations) was previously untested.
+    let mut d = MercuryClient::new();
+    let d_id = d.account_id();
+
+    let mut peers: Vec<(MercuryClient, [u8; 32])> = Vec::new();
+    for _ in 0..3 {
+        let mut p = MercuryClient::new();
+        let p_id = p.account_id();
+        let card = p.publish_card();
+        // D initiates to P; P receives the first flight -> both hold the session, and D records P's
+        // sealed-sender device key (peer_device[P]) from the card.
+        let (_route, flight) = d.initiate(&card, b"hello").unwrap();
+        assert_eq!(p.receive(&flight).unwrap().1, b"hello");
+        assert!(d.has_session(&p_id), "D holds this peer's session pre-pickle");
+        peers.push((p, p_id));
+    }
+
+    // One pickle, drop, restore.
+    let key = [0x22u8; 32];
+    let blob = d.to_encrypted_pickle(&key);
+    drop(d);
+    let mut d2 = MercuryClient::from_encrypted_pickle(&blob, &key).expect("restore D");
+    assert_eq!(d2.account_id(), d_id);
+
+    // EVERY peer survived the restore: has_session holds, a send succeeds (a lost peer_device entry
+    // would be Err(UnknownPeer) even WITH the session present), the peer decrypts it, and its reply
+    // decrypts back on D2 — proving both halves of the per-peer state restored, for all three.
+    for (p, p_id) in peers.iter_mut() {
+        assert!(d2.has_session(p_id), "restored D2 still holds this peer's session");
+        let m = d2
+            .send(p_id, b"after restart")
+            .expect("send to a restored peer (session + peer_device both survived)");
+        assert_eq!(p.receive(&m).unwrap().1, b"after restart");
+        let r = p.send(&d_id, b"reply").unwrap();
+        assert_eq!(d2.receive(&r).unwrap().1, b"reply");
+    }
+}
+
 struct Rng(u64);
 impl Rng {
     fn next(&mut self) -> u64 {
