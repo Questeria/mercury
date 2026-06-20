@@ -5,7 +5,9 @@
 //! structurally-invalid snapshot must NEVER silently rebuild (that would reset history + mask
 //! tamper); only a genuinely absent file is the first-run / migration path.
 
-use mercury_kt::{KeyTransparencyProofStatus as Status, KtDirectory, verify_consistency};
+use mercury_kt::{
+    KeyTransparencyProofStatus as Status, KtDirectory, verify_consistency, verify_inclusion,
+};
 use std::path::PathBuf;
 
 const SEED: [u8; 32] = [7u8; 32];
@@ -130,4 +132,32 @@ async fn reconcile_leaves_orphan_akd_labels_alone() {
         "an orphan AKD label is tolerated, never re-published or pruned"
     );
     assert!(dir.prove_inclusion("username:carol").await.is_ok(), "the orphan label is untouched");
+}
+
+#[tokio::test]
+async fn reconcile_is_value_aware_and_republishes_a_divergent_binding() {
+    let snap = scratch("value_aware");
+
+    // The restored snapshot proves alice -> OLD id.
+    let (mut dir1, _) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    dir1.register("username:alice", b"id-alice-OLD").await.unwrap();
+    dir1.snapshot().await.unwrap();
+    drop(dir1);
+
+    // Restart. The AUTHORITATIVE store says alice -> NEW — a value divergence a presence-only check
+    // would silently miss (it would keep proving the stale OLD id). Value-aware reconcile re-publishes.
+    let (mut dir2, _) = KtDirectory::with_vrf_seed_persistent(SEED, &snap).await.unwrap();
+    let bindings = vec![("username:alice".to_string(), b"id-alice-NEW".to_vec())];
+    assert_eq!(dir2.reconcile(&bindings).await.unwrap(), 1, "the divergent binding is re-published");
+
+    // The directory now proves alice -> NEW, verified client-side under the VRF key.
+    let vrf = dir2.public_key().await.unwrap();
+    let (proof, head) = dir2.prove_inclusion("username:alice").await.unwrap();
+    assert_eq!(
+        verify_inclusion(&vrf, &head, "username:alice", b"id-alice-NEW", proof),
+        Status::Verified,
+        "the directory proves the authoritative NEW value after reconcile"
+    );
+    // A matching binding is now a no-op (idempotent).
+    assert_eq!(dir2.reconcile(&bindings).await.unwrap(), 0, "no re-publish when the value already matches");
 }

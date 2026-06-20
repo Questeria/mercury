@@ -234,11 +234,17 @@ impl KtDirectory {
         })
     }
 
-    /// Atomically persist the FULL AKD record set to the configured snapshot path (a no-op when
-    /// none is set, e.g. ephemeral / test directories). The relay calls this after every
-    /// epoch-advancing publish — inside the registry critical section, AFTER the durable username
-    /// write — so the on-disk AKD never lags a recorded binding. Crash-atomic: tmp-write + fsync +
-    /// atomic rename, plus a best-effort parent-dir fsync on Unix so the rename itself is durable.
+    /// Atomically persist the FULL AKD record set to the configured snapshot path (a no-op when none
+    /// is set, e.g. ephemeral / test directories). The relay calls this on the claim path right
+    /// after the epoch-advancing publish and BEFORE the durable username write — both under the
+    /// directory lock — so the on-disk AKD is always >= the username store (the only crash residual
+    /// is a tolerated orphan label, never a binding the AKD lacks) and no reader can observe a head
+    /// at an epoch not yet on disk. Crash-atomic: tmp-write + fsync + atomic rename, plus a
+    /// best-effort parent-dir fsync on Unix so the rename itself is durable.
+    ///
+    /// Uses blocking `std::fs` deliberately (not `spawn_blocking`): claims are rate-limited and a
+    /// small directory snapshots in sub-millisecond time, so holding the executor thread + dir lock
+    /// across the write is acceptable here; revisit with `spawn_blocking` if the directory grows large.
     pub async fn snapshot(&self) -> Result<(), KtPersistError> {
         let Some(path) = &self.snapshot_path else {
             return Ok(());
@@ -275,20 +281,36 @@ impl KtDirectory {
     /// already in the directory with NO listed binding are LEFT ALONE (tolerated — lookups gate
     /// through the registry, so an orphan is unreachable). Returns the count re-published.
     ///
-    /// Presence is checked per binding via [`prove_inclusion`](Self::prove_inclusion) — no "list all
-    /// labels" API is needed (akd exposes none), and orphan labels are simply never visited.
+    /// VALUE-AWARE: a binding counts as present only if the directory proves `label -> value` for
+    /// the EXPECTED value, verified with [`verify_inclusion`] under our own VRF key — not merely that
+    /// the label exists. This catches a label bound to a DIFFERENT value (a stale / divergent
+    /// snapshot) as well as an absent one, so the "on-disk AKD matches the authoritative username
+    /// store" invariant is enforced LOCALLY here rather than only assumed from the claim path's
+    /// write ordering. No "list all labels" API is needed (akd exposes none) — orphan labels are
+    /// never visited.
     pub async fn reconcile(&mut self, bindings: &[(String, Vec<u8>)]) -> Result<usize, KtPersistError> {
-        let mut missing: Vec<(String, Vec<u8>)> = Vec::new();
+        let vrf_pub = self
+            .public_key()
+            .await
+            .map_err(|e| KtPersistError::Akd(format!("reading VRF public key for reconcile: {e:?}")))?;
+        let mut stale: Vec<(String, Vec<u8>)> = Vec::new();
         for (label, value) in bindings {
-            if self.prove_inclusion(label).await.is_err() {
-                missing.push((label.clone(), value.clone()));
+            let already_proves_this_value = match self.prove_inclusion(label).await {
+                Ok((proof, head)) => {
+                    verify_inclusion(&vrf_pub, &head, label, value, proof)
+                        == KeyTransparencyProofStatus::Verified
+                }
+                Err(_) => false, // absent or un-provable -> (re)publish
+            };
+            if !already_proves_this_value {
+                stale.push((label.clone(), value.clone()));
             }
         }
-        if missing.is_empty() {
+        if stale.is_empty() {
             return Ok(0);
         }
-        let n = missing.len();
-        self.register_batch(&missing)
+        let n = stale.len();
+        self.register_batch(&stale)
             .await
             .map_err(|e| KtPersistError::Akd(format!("reconcile re-publish of {n} binding(s): {e:?}")))?;
         self.snapshot().await?;
