@@ -1,11 +1,23 @@
 #!/usr/bin/env bash
 #
-# Linux/CI runner for the Helix policy proofs (Track 0a). Equivalent to
+# Linux/CI runner for the Helix policy gate (Track 0a). Equivalent to
 # tools/run_helix_checks.ps1, but runs the emitted ELF NATIVELY (no WSL) and so
-# is what GitHub Actions executes. For each of the twelve policies it:
-#   1. typechecks the policy + emits a per-function hash (--check-only --hash)
-#   2. emits proof obligations (--emit-proof-obligations --strict)
-#   3. typechecks the test, compiles it to an ELF (-O1), runs it (exit 42 == ok)
+# is what GitHub Actions executes. It combines compile-time PROOFS with
+# differential TESTING — kept distinct on purpose (see docs/HELIX_EVIDENCE_TRAIL.md):
+#
+#   PROVEN at compile time by the pinned helixc type system:
+#     - typecheck + totality (every branch covered)
+#     - effects/purity: every policy function is side-effect-free (proof manifests,
+#       gen_proof_manifests.py; locked by the purity negative fixture)
+#     - information-flow non-leakage: the IFC data-egress contract (demonstrator)
+#   TESTED differentially (the COMPILED Helix vs the Rust/Python spec):
+#     - per-policy golden vectors -> ELF exit 42 (the covering set)
+#     - the EXHAUSTIVE differential -> ELF exit 42 over the FULL input domain
+#       (small-domain policies; gen_exhaustive_helix_diff.py)
+#
+# NB: "proof obligations" (--emit-proof-obligations) are emitted but trivial for
+# these plain-scalar policies (no refinement types); the load-bearing evidence is
+# the manifests + the differential, not that flag's (empty) artifact.
 #
 # Usage:  tools/run_helix_checks.sh [HELIX_ROOT]
 #   HELIX_ROOT defaults to third_party/helix (the pinned submodule) or the

@@ -134,11 +134,14 @@ jobs:
       - name: Check account_recovery vectors+test match spec
         run: python3 tools/gen_account_recovery_vectors.py --check
 
-      # Typecheck + hash each Helix policy, emit proof obligations, compile the
-      # test ELFs, and EXECUTE them natively (Linux runs the emitted ELF directly
-      # -- no WSL needed). Fails CI on any Helix policy/proof regression so the
-      # Helix artifacts gate merges (Track 0a).
-      - name: Run Helix policy proofs
+      # The Helix policy gate (Track 0a) — compile-time PROOFS (typecheck + totality,
+      # per-function effects/purity via the proof manifests + the purity negative
+      # fixture, and IFC non-leakage via the data-egress contract) PLUS differential
+      # TESTING (the compiled Helix ELF vs the Rust/Python spec over the golden
+      # vectors AND, for small-domain policies, the FULL input domain). Runs the
+      # emitted ELF natively (no WSL). Any regression fails CI. See
+      # docs/HELIX_EVIDENCE_TRAIL.md for what is proven vs tested.
+      - name: Run Helix policy proofs + differential
         run: bash tools/run_helix_checks.sh "$GITHUB_WORKSPACE/third_party/helix"
 
   audit:

@@ -117,6 +117,7 @@ function AttestationBlock({ source, policy }: { source: DecisionSource; policy: 
         <Kv k="Role" v={attestation.role} />
         <Kv k="Runtime" v={attestation.productionRuntime} />
         <Kv k="Source" v={<span className="mono">{attestation.sourceHashShort}</span>} />
+        <Kv k="Manifest" v={<span className="mono">{attestation.proofManifestShort}</span>} />
         <Kv k="Vectors" v={`${attestation.vectorFileCount} files / ${attestation.vectorHashShort}`} />
       </div>
       {components.length > 0 && (
