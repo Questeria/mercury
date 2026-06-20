@@ -61,6 +61,14 @@ const KDF_MEMORY_MIB: i32 = 64;
 const KDF_ITERATIONS: u32 = 3;
 const KDF_PARALLELISM: u32 = 1;
 
+/// The Argon2id floor an archive's OWN KDF profile must meet for [`open_backup`] to touch it — the
+/// same floor the restore gate (`mercury_core::evaluate_secure_backup_restore`) enforces. A weaker
+/// profile is brute-forceable, so a self-consistent-but-weak archive is REFUSED rather than silently
+/// opened. The honest producer always meets it (`create_backup` hard-codes `CURRENT_V2`); only a
+/// forked / downgraded producer's archive trips this.
+const MIN_KDF_MEMORY_MIB: u32 = 64;
+const MIN_KDF_ITERATIONS: u32 = 3;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
 enum BackupKdfAlgorithm {
@@ -308,6 +316,9 @@ pub enum BackupError {
     WrongRecoveryCode,
     /// AEAD opening failed: wrong key, tampering, or corruption.
     OpenFailed,
+    /// The archive's own KDF profile is below the Argon2id floor (memory < 64 MiB or iterations < 3),
+    /// so it is brute-forceable; refused even though its manifest is internally consistent.
+    WeakKdf,
 }
 
 impl fmt::Display for BackupError {
@@ -318,6 +329,9 @@ impl fmt::Display for BackupError {
             BackupError::Malformed => f.write_str("malformed sealed backup"),
             BackupError::WrongRecoveryCode => f.write_str("wrong recovery code"),
             BackupError::OpenFailed => f.write_str("backup opening failed"),
+            BackupError::WeakKdf => {
+                f.write_str("backup KDF profile is below the minimum work factor")
+            }
         }
     }
 }
@@ -696,6 +710,12 @@ fn create_backup_with_profile(
 /// audit digest, then AEAD-opens. Fails closed on a wrong code, tampering, or
 /// malformed framing.
 pub fn open_backup(code: &RecoveryCode, sealed: &SealedBackup) -> Result<Vec<u8>, BackupError> {
+    // Enforce the KDF FLOOR before any work: a weak-Argon2id archive (a forked/downgraded producer
+    // could mint one whose manifest is internally consistent) is brute-forceable. Refuse it here so
+    // restore safety does not depend on the caller having run the restore gate (`plan_restore`) first.
+    if sealed.kdf.memory_mib < MIN_KDF_MEMORY_MIB || sealed.kdf.iterations < MIN_KDF_ITERATIONS {
+        return Err(BackupError::WeakKdf);
+    }
     let mut backup_key = derive_backup_key(code, &sealed.salt, sealed.kdf)?;
     let derived_digest: [u8; DIGEST_LEN] = *blake3::hash(&backup_key).as_bytes();
     if !digests_match(&derived_digest, &sealed.backup_key_digest) {
@@ -790,6 +810,45 @@ mod tests {
         assert_eq!(
             open_backup(&created.recovery_code, &reparsed).unwrap(),
             archive
+        );
+    }
+
+    #[test]
+    fn open_backup_refuses_a_sub_floor_kdf_archive() {
+        // A forked/downgraded producer could mint a self-consistent archive with a WEAK Argon2id
+        // profile. open_backup must REFUSE it (brute-forceable) -- not rely on the caller having run
+        // the restore gate first. (The honest create_backup can't produce this; it hard-codes the
+        // strong CURRENT_V2 profile.)
+        let weak = BackupKdfParams {
+            algorithm: BackupKdfAlgorithm::Argon2id,
+            memory_mib: 8, // below the 64 MiB floor
+            iterations: 1, // below the 3-iteration floor
+            parallelism: 1,
+        };
+        let created = create_backup_with_profile(
+            b"a brute-forceable archive",
+            SCOPE,
+            TRANSPORT,
+            &BackupDeploymentAttestation::user_recovery_archive(),
+            30,
+            90,
+            VERSION_V2,
+            weak,
+        )
+        .expect("the weak producer can still seal it");
+        assert!(
+            matches!(
+                open_backup(&created.recovery_code, &created.sealed),
+                Err(BackupError::WeakKdf)
+            ),
+            "a sub-floor archive is refused before any key derivation"
+        );
+
+        // A normal (CURRENT_V2) archive is unaffected -- it still opens + round-trips exactly.
+        let ok = create(b"a strong archive");
+        assert_eq!(
+            open_backup(&ok.recovery_code, &ok.sealed).unwrap(),
+            b"a strong archive"
         );
     }
 
