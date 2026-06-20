@@ -402,8 +402,9 @@ fn epoch_as_tree_size(epoch: u64) -> i64 {
 /// On `current` AUTHENTICATION: this function takes `current` (the tail of
 /// `pinned_chain`) as given. For an end-to-end check that first authenticates the
 /// head via the log's signature, call [`verify_against_signed_head`], which wraps
-/// this. The `proof_age_s` freshness window remains caller-supplied (a fuller
-/// integration would derive it from the signed tree head's timestamp).
+/// this and now DERIVES the `proof_age_s` freshness window from the signed tree
+/// head's authenticated timestamp (a future-dated or stale head is rejected). This
+/// lower-level entry still takes `proof_age_s` directly.
 #[allow(clippy::too_many_arguments)]
 pub async fn verify_transparency_bundle(
     public_key: &[u8],
@@ -478,9 +479,14 @@ pub async fn verify_against_signed_head(
     bundle: TransparencyBundle,
     witness: KeyTransparencyWitnessStatus,
     require_witness: bool,
-    proof_age_s: i64,
+    now_s: i64,
     max_proof_age_s: i64,
 ) -> KeyTransparencyProofInput {
+    // Freshness is DERIVED from the head's OWN signed timestamp (authenticated by the signature
+    // check below), not caller-asserted: a future-dated head yields a negative age the gate
+    // rejects as BadFreshnessWindow, and a stale head exceeds `max_proof_age_s`.
+    let proof_age_s = now_s.saturating_sub(signed_tree_head.timestamp_s);
+
     // Authenticate the head FIRST: a forged/unsigned head is not a head, so the
     // proofs hanging off it cannot be trusted either.
     if !verify_signed_tree_head(log_public_key, signed_tree_head, log_signature) {

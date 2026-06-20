@@ -390,7 +390,7 @@ async fn end_to_end_against_signed_head_accepts() {
         },
         Witness::NotRequired,
         false,
-        30,
+        1_030, // now_s: head timestamp (1_000) + 30s -> the proof is 30s old (fresh)
         300,
     )
     .await;
@@ -435,7 +435,7 @@ async fn end_to_end_rejects_a_forged_head_signature() {
         },
         Witness::NotRequired,
         false,
-        30,
+        1_030, // now_s: head timestamp (1_000) + 30s (irrelevant here — the forged head fails closed)
         300,
     )
     .await;
@@ -445,5 +445,56 @@ async fn end_to_end_rejects_a_forged_head_signature() {
     assert_eq!(input.key_history, Status::Invalid);
     let decision = evaluate_key_transparency(input);
     assert_eq!(decision.state, KeyTransparencyState::Inconsistent);
+    assert!(decision.requires_user_action);
+}
+
+#[tokio::test]
+async fn end_to_end_rejects_a_future_dated_head() {
+    // Freshness is now DERIVED from the head's OWN signed timestamp. A head dated in the FUTURE
+    // relative to `now_s` yields a negative age the gate rejects (BadFreshnessWindow). Previously
+    // the age was caller-supplied, so a future-dated head could be passed off as fresh -- this
+    // locks the fix (a skewed or malicious "now" can no longer mask a future-dated head).
+    let mut dir = KtDirectory::new().await.unwrap();
+    let ep1 = dir.register(LABEL, KEY_V1).await.unwrap();
+    dir.register(LABEL, KEY_V2).await.unwrap();
+    let vrf_pk = dir.public_key().await.unwrap();
+    let log_pk = dir.log_public_key();
+    let (sth, log_sig) = dir.signed_tree_head(1_000).await.unwrap(); // head dated t=1_000
+
+    let (inclusion, _) = dir.prove_inclusion(LABEL).await.unwrap();
+    let (key_history, _) = dir.prove_key_history(LABEL).await.unwrap();
+    let consistency = dir.prove_consistency(1, 2).await.unwrap();
+
+    let input = verify_against_signed_head(
+        &vrf_pk,
+        &log_pk,
+        &sth,
+        &log_sig,
+        &ep1,
+        LABEL,
+        KEY_V2,
+        TransparencyBundle {
+            inclusion,
+            consistency,
+            key_history,
+        },
+        Witness::NotRequired,
+        false,
+        900, // now_s is BEFORE the head's signed timestamp (1_000) -> negative derived age
+        300,
+    )
+    .await;
+
+    assert!(
+        input.proof_age_s < 0,
+        "a future-dated head must yield a negative derived age, got {}",
+        input.proof_age_s
+    );
+    let decision = evaluate_key_transparency(input);
+    assert_ne!(
+        decision.state,
+        KeyTransparencyState::Consistent,
+        "a future-dated head must NOT be accepted as consistent"
+    );
     assert!(decision.requires_user_action);
 }
