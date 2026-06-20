@@ -44,3 +44,5 @@ zeroize = "1"
 mercury-relay = { path = "../mercury-relay" }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "time"] }
 axum = "0.8"
+# Sign real witness/auditor/log cosignatures in the witness-quorum gate tests.
+ed25519-dalek = "2"

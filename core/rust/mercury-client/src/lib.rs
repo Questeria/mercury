@@ -113,6 +113,11 @@ pub enum ClientError {
     /// A username lookup could not be verified because no directory VRF key was available to check
     /// the proof against (neither pinned nor served). Fails closed rather than trust unverified.
     UsernameUnverifiable,
+    /// A username lookup's key-transparency head did NOT carry the independent witness quorum this
+    /// client's [`WitnessQuorumPolicy`] requires (missing/insufficient witness or auditor
+    /// cosignatures, or a head the witnesses did not vouch for). Fails closed — the binding could
+    /// have been served only to this client (equivocation), so it is not trusted.
+    WitnessQuorumUnsatisfied,
 }
 
 impl core::fmt::Display for ClientError {
@@ -136,6 +141,9 @@ impl core::fmt::Display for ClientError {
             }
             ClientError::UsernameUnverifiable => {
                 f.write_str("no directory key to verify the username proof")
+            }
+            ClientError::WitnessQuorumUnsatisfied => {
+                f.write_str("username head lacks the required independent witness quorum")
             }
         }
     }
@@ -309,6 +317,39 @@ fn open_with(device: &DeviceKeyPair, blob: &[u8]) -> Result<Vec<u8>, ClientError
     Ok(open_message(device, &sealed, &seal_context())?)
 }
 
+/// An OPT-IN policy requiring an independent witness quorum on the key-transparency head a username
+/// lookup resolves against. With it set, [`MercuryClient::resolve_username`] additionally fetches the
+/// relay's witnessed head and REJECTS the lookup unless `required_witnesses` pinned witnesses across
+/// >= 2 operators AND the pinned auditor have co-signed EXACTLY that head — closing the per-client
+/// equivocation gap that signed-head binding alone leaves open. Absent by default: a client with no
+/// pinned witnesses verifies lookups exactly as before, so this changes nothing for default
+/// deployments. Real protection still requires those witnesses to be genuinely independent + deployed
+/// (see `docs/WITNESSING.md`); the policy only makes the client DEMAND their cosignatures.
+pub struct WitnessQuorumPolicy {
+    /// The pinned witness allow-list, in canonical `witness_index` order (pin these out-of-band).
+    witnesses: Vec<mercury_kt::Witness>,
+    /// The pinned auditor's 32-byte Ed25519 public key.
+    auditor_key: [u8; 32],
+    /// Minimum verified witnesses required (the quorum also needs >= 2 operators + the auditor).
+    required_witnesses: i32,
+}
+
+impl WitnessQuorumPolicy {
+    /// Build a quorum policy from the pinned witnesses (in `witness_index` order), the pinned auditor
+    /// public key, and the minimum number of verified witnesses to require.
+    pub fn new(
+        witnesses: Vec<mercury_kt::Witness>,
+        auditor_key: [u8; 32],
+        required_witnesses: i32,
+    ) -> Self {
+        Self {
+            witnesses,
+            auditor_key,
+            required_witnesses,
+        }
+    }
+}
+
 /// A Mercury 1:1 messenger client. Secret-bearing; no `Debug`.
 pub struct MercuryClient {
     identity: IdentityKeyPair,
@@ -323,6 +364,8 @@ pub struct MercuryClient {
     /// Peers' sealed-sender device public keys, keyed by peer account id (so we can seal
     /// replies/outbound messages to them).
     peer_device: HashMap<[u8; 32], [u8; 32]>,
+    /// OPT-IN witness-quorum policy for username resolution (None = no quorum requirement).
+    witness_quorum: Option<WitnessQuorumPolicy>,
 }
 
 impl Default for MercuryClient {
@@ -344,7 +387,16 @@ impl MercuryClient {
             inbound_pq: None,
             sessions: HashMap::new(),
             peer_device: HashMap::new(),
+            witness_quorum: None,
         }
+    }
+
+    /// Require an independent witness quorum on the head every username lookup resolves against (see
+    /// [`WitnessQuorumPolicy`]). OPT-IN: without it, lookups verify exactly as before. Real
+    /// equivocation resistance still needs the witnesses to be genuinely independent + deployed.
+    pub fn with_witness_quorum(mut self, policy: WitnessQuorumPolicy) -> Self {
+        self.witness_quorum = Some(policy);
+        self
     }
 
     /// This client's account id.
@@ -608,6 +660,64 @@ impl MercuryClient {
             .map_err(|_| ClientError::Transport)
     }
 
+    /// OPT-IN equivocation defense for [`Self::resolve_username`]. `Ok(())` when no witness-quorum
+    /// policy is configured (today's behavior) OR when the relay's witnessed head carries the required
+    /// independent quorum — `required_witnesses` witnesses across >= 2 operators PLUS the pinned
+    /// auditor — over EXACTLY `(lookup_epoch, lookup_root)`. Otherwise `WitnessQuorumUnsatisfied`. A
+    /// quorum check needs a pinned log key (to verify the witnessed head's log signature); without one
+    /// the policy fails closed rather than trust an unverifiable head.
+    fn require_witness_quorum(
+        &self,
+        transport: &dyn Transport,
+        lookup_epoch: u64,
+        lookup_root: [u8; 32],
+        pinned_log: Option<&[u8; 32]>,
+    ) -> Result<(), ClientError> {
+        let Some(policy) = &self.witness_quorum else {
+            return Ok(());
+        };
+        let log_key = pinned_log.ok_or(ClientError::WitnessQuorumUnsatisfied)?;
+        let bundle = transport
+            .kt_witnessed_head()
+            .map_err(|_| ClientError::Transport)?
+            .ok_or(ClientError::WitnessQuorumUnsatisfied)?;
+        // The witnesses must vouch for EXACTLY the head this lookup is proven against — not merely
+        // some head. A relay serving a newer (genuinely witnessed) head than the lookup's trips this,
+        // and the caller simply retries against the newer head, exactly like the signed-head check.
+        if bundle.tree_size != lookup_epoch || bundle.root_hash != lookup_root {
+            return Err(ClientError::WitnessQuorumUnsatisfied);
+        }
+        let auditor_signature = bundle
+            .auditor_signature
+            .ok_or(ClientError::WitnessQuorumUnsatisfied)?;
+        let witnessed_sth = mercury_kt::SignedTreeHead {
+            tree_size: bundle.tree_size,
+            root_hash: bundle.root_hash,
+            timestamp_s: bundle.timestamp_s,
+        };
+        let cosignatures: Vec<mercury_kt::WitnessCosignature> = bundle
+            .cosignatures
+            .iter()
+            .map(|(witness_index, signature)| mercury_kt::WitnessCosignature {
+                witness_index: *witness_index,
+                signature: *signature,
+            })
+            .collect();
+        match mercury_kt::verify_lookup_witness_quorum(
+            log_key,
+            &witnessed_sth,
+            &bundle.log_signature,
+            &policy.auditor_key,
+            &auditor_signature,
+            &policy.witnesses,
+            &cosignatures,
+            policy.required_witnesses,
+        ) {
+            mercury_kt::KeyTransparencyWitnessStatus::QuorumSatisfied => Ok(()),
+            _ => Err(ClientError::WitnessQuorumUnsatisfied),
+        }
+    }
+
     /// Resolve `username` to a VERIFIED contact card via key transparency. The lookup's inclusion
     /// proof is checked against `pinned_vrf` (the directory VRF key the caller pinned) — or, if
     /// `None`, against the key the relay serves now (TRUST-ON-FIRST-USE; the caller should pin
@@ -689,6 +799,11 @@ impl MercuryClient {
         {
             return Err(ClientError::UsernameProofInvalid);
         }
+
+        // OPT-IN equivocation defense: if a witness-quorum policy is configured, the head this lookup
+        // is proven against must ALSO carry an independent witness quorum over the SAME (epoch, root).
+        // Signed-head binding alone lets a log-key holder equivocate per-client; this closes that.
+        self.require_witness_quorum(transport, lookup.epoch, root, pinned_log)?;
 
         // Verified: now fetch the contact card for the resolved account id (self-authenticating).
         let card = self.fetch_contact(transport, &lookup.account_id)?;
@@ -807,6 +922,9 @@ impl MercuryClient {
             inbound_pq,
             sessions,
             peer_device,
+            // The quorum policy is CONFIG, not persisted state — re-apply it via `with_witness_quorum`
+            // after restoring if required (a restored client defaults to no quorum requirement).
+            witness_quorum: None,
         })
     }
 }
@@ -916,6 +1034,156 @@ mod tests {
             sn_alice.digits(),
             "0".repeat(60),
             "not the degenerate all-zero number"
+        );
+    }
+
+    use ed25519_dalek::{Signer, SigningKey};
+
+    /// Wrap an in-memory transport, overriding ONLY the witnessed-head read so the gate sees a canned
+    /// bundle. The four required methods delegate; the rest take their defaults.
+    struct QuorumTransport {
+        inner: InMemoryTransport,
+        witnessed: Option<WitnessedHead>,
+    }
+    impl Transport for QuorumTransport {
+        fn submit(&self, route: &[u8; 32], blob: &[u8]) -> Result<(), TransportError> {
+            self.inner.submit(route, blob)
+        }
+        fn poll(&self, route: &[u8; 32], auth: &PollAuth) -> Result<Option<Vec<u8>>, TransportError> {
+            self.inner.poll(route, auth)
+        }
+        fn publish_card(
+            &self,
+            identity_pub: &[u8; 32],
+            card: &[u8],
+            pop_sig: &[u8; 64],
+        ) -> Result<(), TransportError> {
+            self.inner.publish_card(identity_pub, card, pop_sig)
+        }
+        fn fetch_card(&self, account_id: &[u8; 32]) -> Result<Option<Vec<u8>>, TransportError> {
+            self.inner.fetch_card(account_id)
+        }
+        fn kt_witnessed_head(&self) -> Result<Option<WitnessedHead>, TransportError> {
+            Ok(self.witnessed.clone())
+        }
+    }
+
+    fn sign_head(k: &SigningKey, head: &mercury_kt::SignedTreeHead) -> [u8; 64] {
+        k.sign(&head.signing_bytes()).to_bytes()
+    }
+
+    fn tp(witnessed: Option<WitnessedHead>) -> QuorumTransport {
+        QuorumTransport {
+            inner: InMemoryTransport::new(),
+            witnessed,
+        }
+    }
+
+    #[test]
+    fn witness_quorum_gate_accepts_a_satisfied_head_and_rejects_otherwise() {
+        let head = mercury_kt::SignedTreeHead {
+            tree_size: 5,
+            root_hash: [0x33; 32],
+            timestamp_s: 1_000,
+        };
+        let log = SigningKey::from_bytes(&[1; 32]);
+        let auditor = SigningKey::from_bytes(&[2; 32]);
+        let w1 = SigningKey::from_bytes(&[10; 32]);
+        let w2 = SigningKey::from_bytes(&[11; 32]);
+        let log_pub = log.verifying_key().to_bytes();
+
+        // 2 witnesses across 2 INDEPENDENT operators (ids 1, 2) + the pinned auditor.
+        let policy = WitnessQuorumPolicy::new(
+            vec![
+                mercury_kt::Witness::from_ed25519_bytes(1, &w1.verifying_key().to_bytes()).unwrap(),
+                mercury_kt::Witness::from_ed25519_bytes(2, &w2.verifying_key().to_bytes()).unwrap(),
+            ],
+            auditor.verifying_key().to_bytes(),
+            2,
+        );
+        let client = MercuryClient::new().with_witness_quorum(policy);
+
+        // A fully satisfied bundle over EXACTLY this head -> the gate passes.
+        let satisfied = WitnessedHead {
+            tree_size: head.tree_size,
+            root_hash: head.root_hash,
+            timestamp_s: head.timestamp_s,
+            log_signature: sign_head(&log, &head),
+            cosignatures: vec![(0, sign_head(&w1, &head)), (1, sign_head(&w2, &head))],
+            auditor_signature: Some(sign_head(&auditor, &head)),
+        };
+        assert!(
+            client
+                .require_witness_quorum(
+                    &tp(Some(satisfied.clone())),
+                    head.tree_size,
+                    head.root_hash,
+                    Some(&log_pub),
+                )
+                .is_ok(),
+            "2 operators + auditor over this exact head satisfies the quorum"
+        );
+
+        // Missing the auditor signature -> rejected.
+        let mut no_auditor = satisfied.clone();
+        no_auditor.auditor_signature = None;
+        assert!(matches!(
+            client.require_witness_quorum(
+                &tp(Some(no_auditor)),
+                head.tree_size,
+                head.root_hash,
+                Some(&log_pub)
+            ),
+            Err(ClientError::WitnessQuorumUnsatisfied)
+        ));
+
+        // Only ONE witness cosignature (quorum short) -> rejected.
+        let mut one_witness = satisfied.clone();
+        one_witness.cosignatures.truncate(1);
+        assert!(matches!(
+            client.require_witness_quorum(
+                &tp(Some(one_witness)),
+                head.tree_size,
+                head.root_hash,
+                Some(&log_pub)
+            ),
+            Err(ClientError::WitnessQuorumUnsatisfied)
+        ));
+
+        // The witnessed head does NOT match the lookup's (epoch, root) -> rejected (the witnesses
+        // vouched for a different head than this lookup is proven against).
+        assert!(matches!(
+            client.require_witness_quorum(
+                &tp(Some(satisfied.clone())),
+                head.tree_size + 1,
+                head.root_hash,
+                Some(&log_pub)
+            ),
+            Err(ClientError::WitnessQuorumUnsatisfied)
+        ));
+
+        // No witnessed head served, and no pinned log key, each fail closed.
+        assert!(matches!(
+            client.require_witness_quorum(&tp(None), head.tree_size, head.root_hash, Some(&log_pub)),
+            Err(ClientError::WitnessQuorumUnsatisfied)
+        ));
+        assert!(matches!(
+            client.require_witness_quorum(
+                &tp(Some(satisfied.clone())),
+                head.tree_size,
+                head.root_hash,
+                None
+            ),
+            Err(ClientError::WitnessQuorumUnsatisfied)
+        ));
+
+        // A client with NO policy accepts unconditionally (today's behavior preserved).
+        let no_policy = MercuryClient::new();
+        assert!(
+            no_policy
+                .require_witness_quorum(&tp(None), head.tree_size, head.root_hash, Some(&log_pub))
+                .is_ok(),
+            "without a policy the gate is a no-op"
         );
     }
 }

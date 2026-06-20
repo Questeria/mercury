@@ -303,6 +303,49 @@ pub fn verify_signed_tree_head(
     verify_sig(&key, &sth.signing_bytes(), signature)
 }
 
+/// Client-side convenience: does the relay's witnessed head carry a sufficient INDEPENDENT quorum
+/// (>= `required_witnesses` witnesses across >= 2 operators PLUS the auditor) over EXACTLY this head?
+/// Builds the verifying keys from the caller's PINNED bytes (a malformed pin -> `Invalid`, never a
+/// panic), verifies the witnessed bundle against them (binding it to the head's own `(root, size)`),
+/// and returns the witness gate status. A caller requires [`KeyTransparencyWitnessStatus::QuorumSatisfied`]
+/// before trusting a username lookup proven only against an un-witnessed (thus possibly equivocated)
+/// head — closing the per-client equivocation gap that signed-head binding alone leaves open.
+///
+/// Freshness is NOT this gate's concern (`kt_witness_status` checks cosignature presence + operator
+/// diversity, not age), so the head's own signed `timestamp_s` is used as `now_s` (a non-negative
+/// age); a stale-head defense belongs to the separate signed-head freshness check.
+#[allow(clippy::too_many_arguments)]
+pub fn verify_lookup_witness_quorum(
+    log_key: &[u8; 32],
+    sth: &SignedTreeHead,
+    log_signature: &[u8; 64],
+    auditor_key: &[u8; 32],
+    auditor_signature: &[u8; 64],
+    witnesses: &[Witness],
+    cosignatures: &[WitnessCosignature],
+    required_witnesses: i32,
+) -> KeyTransparencyWitnessStatus {
+    let (Ok(log_vk), Ok(auditor_vk)) = (
+        VerifyingKey::from_bytes(log_key),
+        VerifyingKey::from_bytes(auditor_key),
+    ) else {
+        return KeyTransparencyWitnessStatus::Invalid;
+    };
+    verify_witnessed_tree_head(
+        sth,
+        &log_vk,
+        log_signature,
+        &auditor_vk,
+        auditor_signature,
+        witnesses,
+        cosignatures,
+        sth.root_hash,
+        sth.tree_size,
+        sth.timestamp_s,
+    )
+    .kt_witness_status(required_witnesses)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -391,6 +434,80 @@ mod tests {
             SIZE,
             1_030,
         )
+    }
+
+    #[test]
+    fn lookup_witness_quorum_helper_gates_on_witnesses_plus_auditor() {
+        let sth = sth();
+        let log = key(1);
+        let auditor = key(2);
+        let w1 = key(10);
+        let w2 = key(11);
+        let witnesses = vec![
+            Witness {
+                key: w1.verifying_key(),
+                operator_id: 100,
+            },
+            Witness {
+                key: w2.verifying_key(),
+                operator_id: 200,
+            },
+        ];
+        let cosigs = vec![
+            WitnessCosignature {
+                witness_index: 0,
+                signature: sign(&w1, &sth),
+            },
+            WitnessCosignature {
+                witness_index: 1,
+                signature: sign(&w2, &sth),
+            },
+        ];
+
+        // 2 witnesses across 2 operators + the auditor over the SAME head -> the quorum is satisfied.
+        assert_eq!(
+            verify_lookup_witness_quorum(
+                &log.verifying_key().to_bytes(),
+                &sth,
+                &sign(&log, &sth),
+                &auditor.verifying_key().to_bytes(),
+                &sign(&auditor, &sth),
+                &witnesses,
+                &cosigs,
+                2,
+            ),
+            KeyTransparencyWitnessStatus::QuorumSatisfied,
+        );
+
+        // No genuine auditor signature -> NOT satisfied (the gate requires a 64-byte auditor sig).
+        assert_ne!(
+            verify_lookup_witness_quorum(
+                &log.verifying_key().to_bytes(),
+                &sth,
+                &sign(&log, &sth),
+                &auditor.verifying_key().to_bytes(),
+                &[0u8; 64],
+                &witnesses,
+                &cosigs,
+                2,
+            ),
+            KeyTransparencyWitnessStatus::QuorumSatisfied,
+        );
+
+        // A malformed pinned auditor key fails CLOSED (Invalid), never a panic.
+        assert_eq!(
+            verify_lookup_witness_quorum(
+                &log.verifying_key().to_bytes(),
+                &sth,
+                &sign(&log, &sth),
+                &[0xff; 32],
+                &sign(&auditor, &sth),
+                &witnesses,
+                &cosigs,
+                2,
+            ),
+            KeyTransparencyWitnessStatus::Invalid,
+        );
     }
 
     #[test]

@@ -83,9 +83,16 @@ decision — so the auditor role above is runnable today, not just specified.
   witnesses against this relay. `kt_witness_status` requires **≥ 2 independent operators** for
   `QuorumSatisfied`, so run witnesses on genuinely separate infrastructure/parties — N keys held by
   one operator is not a quorum.
-- **The client must require a quorum.** A client that fetches the witnessed bundle but does not gate
-  on `kt_witness_status` gains nothing. That client policy is not changed by default (so a
-  witness-less deployment still works); enabling it is a deliberate client-side step.
+- **The client must require a quorum — now an opt-in switch.** A client that fetches the witnessed
+  bundle but does not gate on `kt_witness_status` gains nothing. The enablement now exists:
+  `MercuryClient::with_witness_quorum(WitnessQuorumPolicy::new(pinned_witnesses, auditor_key,
+  required))` makes `resolve_username` additionally fetch the witnessed head, bind it to the SAME
+  `(epoch, root)` the lookup proves against, and reject (`WitnessQuorumUnsatisfied`) unless the pinned
+  witnesses + auditor have co-signed exactly that head (`mercury_kt::verify_lookup_witness_quorum`).
+  It stays **off by default** (a client with no pinned witnesses verifies lookups exactly as before),
+  so enabling it is a deliberate step — and only meaningful once real independent witnesses are
+  deployed. This closes, on the client side, the per-client equivocation gap that signed-head binding
+  alone leaves open.
 - **The auditor signature is now served — but a real auditor must run it.** `kt_witness_status`
   requires a designated **auditor** signature over the same head (an append-only auditor) for any
   non-`Invalid` verdict. The relay now exposes **`POST /kt/auditor/cosign`** and carries
