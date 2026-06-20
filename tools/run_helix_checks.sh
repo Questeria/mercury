@@ -60,6 +60,30 @@ for p in "${policies[@]}"; do
   echo "runtime: OK ($p exit 42)"
 done
 
+# Exhaustive Helix differential: compile + run the policy over its FULL input domain (not just the
+# covering vectors), asserting the COMPILED Helix agrees with the Python spec at every point. This
+# closes the gap where only a Rust PORT (decider_exhaustive_diff.rs) was checked exhaustively — the
+# compiled .hx was previously run only over the curated sample.
+"$PY" tools/gen_exhaustive_helix_diff.py --check
+for ex in helix/tests/exhaustive/*_exhaustive_test.hx; do
+  [ -e "$ex" ] || continue
+  exname="$(basename "$ex" .hx)"
+  exbin="$OUT_DIR/${exname}.bin"
+  echo "== exhaustive: $exname =="
+  "$PY" -m helixc.check "$ex" --no-stdlib --check-only --strict --hash
+  "$PY" -m helixc.check "$ex" --no-stdlib -O1 -o "$exbin"
+  chmod +x "$exbin"
+  set +e
+  "$exbin"
+  code=$?
+  set -e
+  if [ "$code" -ne 42 ]; then
+    echo "error: exhaustive Helix diff '$exname' expected exit 42 (compiled Helix == spec over the full domain), got $code" >&2
+    exit 1
+  fi
+  echo "exhaustive: OK ($exname exit 42)"
+done
+
 # Negative regression: the purity gate MUST reject an impure @pure decider. A CLEAN compile here means
 # effect-check enforcement silently regressed (e.g. --strict dropped, or the IR-level pass bypassed) —
 # which would also hollow out gen_proof_manifests.py's "every policy function is side-effect-free"
@@ -76,4 +100,4 @@ if [ "$pv_code" -eq 0 ]; then
 fi
 echo "purity gate: OK (impure @pure decider correctly rejected, exit $pv_code)"
 
-echo "All Helix policies + tests passed (typecheck + hash + proof obligations + proof manifests + ELF execution + purity gate)."
+echo "All Helix policies + tests passed (typecheck + hash + proof obligations + proof manifests + ELF execution + exhaustive differential + purity gate)."

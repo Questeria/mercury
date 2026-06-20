@@ -62,6 +62,10 @@ Push-Location $MercuryRoot
 try {
     New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
+    # Drift gates (platform-independent). Proof manifests first — attestation.json folds their hashes
+    # in — then the attestation, then the exhaustive-differential test sources.
+    python .\tools\gen_proof_manifests.py --check
+    python .\tools\gen_exhaustive_helix_diff.py --check
     python .\tools\gen_policy_attestations.py --check
     python -m helixc.check $Policy --no-stdlib --check-only --strict --hash
     python -m helixc.check $Policy --no-stdlib --emit-proof-obligations --strict

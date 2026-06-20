@@ -42,6 +42,13 @@ same `--check`, and `run_helix_checks.sh` regenerates + verifies it before the a
   policy computes the right decision. Functional correctness is the job of the **vector differential**
   (`run_helix_checks.sh` compiles each test to an ELF and requires exit 42 over golden vectors, cross-
   checked by the Rust and Python mirrors). The manifest and the differential are complementary.
+  - **Exhaustive lane (`tools/gen_exhaustive_helix_diff.py`).** For small-domain spec-derived
+    policies the differential is now *exhaustive*: it bakes EVERY point of the input domain
+    (outbound_decide: all 128) and asserts the COMPILED Helix agrees with the Python spec (the mirror
+    of the Rust `evaluate_*`) at each one — closing the gap where only a Rust *port*
+    (`decider_exhaustive_diff.rs`) was previously checked over the full space. Large-domain policies
+    stay on the covering-set lane + the Rust exhaustive diff; baking those needs a runtime-input
+    `.hx` harness (reading a packed vector blob), which is the next extension.
 - **Not bound to the ELF.** The manifest binds the normalized **source** (reproducible across the
   Windows dev box and the Linux CI runner). It does **not** bind the compiled Linux ELF, whose
   cross-platform byte-determinism is unverified; the ELF is separately compiled + exit-42-run by CI.
