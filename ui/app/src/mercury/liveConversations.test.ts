@@ -459,6 +459,26 @@ describe("live conversations controller", () => {
     expect(c.getState().error).toBeNull();
   });
 
+  it("disconnected flips on a failing poll and clears on recovery (connection truthfulness)", async () => {
+    const fake = new FakeMessaging();
+    const c = createLiveConversations(fake);
+    await c.start();
+    // A healthy session is connected — the dot reads ready, not disconnected.
+    expect(c.getState().status).toBe("ready");
+    expect(c.getState().disconnected).toBe(false);
+    // The relay becomes unreachable at runtime → a background poll fails.
+    fake.failPoll = "transport failed";
+    await c.poll();
+    // status stays ready (the SESSION is fine) but disconnected is now true, so the connection dot
+    // stops falsely reading green and the UI can show a persistent "Reconnecting" indicator.
+    expect(c.getState().status).toBe("ready");
+    expect(c.getState().disconnected).toBe(true);
+    // The relay recovers → the next successful poll clears disconnected.
+    fake.failPoll = null;
+    await c.poll();
+    expect(c.getState().disconnected).toBe(false);
+  });
+
   it("pairingCode mints a code; addByPairing opens the brokered contact once", async () => {
     const fake = new FakeMessaging();
     const c = createLiveConversations(fake);

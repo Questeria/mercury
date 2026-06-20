@@ -46,6 +46,12 @@ export interface ConversationsState {
    *  recovered background poll auto-clears ONLY its own "poll" error, never a user-action failure —
    *  otherwise a successful poll ~1.5s later would silently wipe a real send-failure banner. */
   errorSource?: "poll" | "action";
+  /** True when a background poll is currently FAILING (the relay is unreachable at runtime) even
+   *  though the session itself started OK. Distinct from `status:"error"` (a hard startup failure):
+   *  the UI shows a persistent "Reconnecting" indicator instead of a falsely-green "ready" dot.
+   *  Set on a poll() failure, cleared on the next successful poll — so the connection state never
+   *  lies about whether messages are actually flowing. */
+  disconnected: boolean;
   conversations: Conversation[];
   activePeer: string | null;
   busy: boolean;
@@ -141,6 +147,7 @@ function freshState(): ConversationsState {
     accountId: null,
     status: "connecting",
     error: null,
+    disconnected: false,
     conversations: [],
     activePeer: null,
     busy: false,
@@ -398,12 +405,16 @@ export function createLiveConversations(messaging: MercuryMessaging): LiveConver
           // active peer may have changed — re-fetch it (peer-guarded, fail-closed).
           if (state.activePeer) void refreshDecisions(state.activePeer);
         }
-        // The poll succeeded (zero or more messages): clear a stale error banner left by an EARLIER
-        // failed poll so a recovered relay doesn't keep showing an error — but ONLY a poll-sourced
-        // error, never a user-action (send/addPeer) failure the user still needs to see (M4).
+        // The poll succeeded (zero or more messages) → the relay is reachable again: drop the
+        // "disconnected" link state, and clear a stale error banner left by an EARLIER failed poll
+        // so a recovered relay doesn't keep showing an error — but ONLY a poll-sourced error, never
+        // a user-action (send/addPeer) failure the user still needs to see (M4).
+        if (state.disconnected) set({ disconnected: false });
         if (state.error && state.errorSource === "poll") set({ error: null, errorSource: undefined });
       } catch (e) {
-        set({ error: errorText(e), errorSource: "poll" });
+        // A background poll failed → the relay is unreachable at runtime. Surface it as a persistent
+        // disconnected state so the connection dot stops falsely reading "ready" (M-reconnect).
+        set({ error: errorText(e), errorSource: "poll", disconnected: true });
       } finally {
         polling = false;
       }

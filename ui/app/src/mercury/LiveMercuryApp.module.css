@@ -321,6 +321,25 @@
   background: var(--mc-bad);
 }
 
+/* Persistent connection-truthfulness pill: shown next to the status dot while a poll is failing
+   (Reconnecting) or the OS is offline. Never shown when the relay is reachable. */
+.reconnect {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--mc-warn);
+  color: var(--mc-warn);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.reconnect[data-offline="true"] {
+  border-color: var(--mc-bad);
+  color: var(--mc-bad);
+}
+
 .idCard {
   margin-top: auto;
   display: flex;

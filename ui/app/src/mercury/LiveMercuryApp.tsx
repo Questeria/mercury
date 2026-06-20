@@ -228,6 +228,24 @@ function useSystemDark(): boolean {
   );
 }
 
+/** Subscribe to the OS online/offline state (external-store read, no effect setState). Lets the UI
+ *  surface "Offline" the instant the network drops rather than waiting ~25s for the next long-poll to
+ *  time out. */
+function useOnline(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener("online", cb);
+      window.addEventListener("offline", cb);
+      return () => {
+        window.removeEventListener("online", cb);
+        window.removeEventListener("offline", cb);
+      };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
+}
+
 // Viewport width. Starts at a desktop default and corrects in an effect (so render stays pure —
 // no `window` read during render).
 function useViewport(): number {
@@ -250,6 +268,14 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
   );
   const { state, controller, peers, active, messages, composer, mePerson } =
     useLiveConversations(messaging);
+  const online = useOnline();
+  // Connection truthfulness: the session can be "ready" while a background poll is failing (relay
+  // unreachable) OR the OS reports offline — surface a non-green dot + a persistent label rather than
+  // a falsely-green "ready" indicator. Known-offline (OS) takes precedence over the poll-failure guess.
+  const linkDown = state.status === "ready" && (state.disconnected || !online);
+  const connTone = linkDown ? "connecting" : state.status;
+  const connTip = linkDown ? (!online ? "offline" : "reconnecting") : state.status;
+  const connLabel = !online ? "Offline" : "Reconnecting…";
   const [peerInput, setPeerInput] = useState("");
   // Connection-method prefs (Settings → Connections), kept live so the rail add-box reflects toggles.
   const [connPrefs, setConnPrefs] = useState(getConnectionPrefs);
@@ -650,7 +676,12 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                 </div>
               )}
             </div>
-            <span className={`${styles.dot} ${styles[state.status]}`} data-tip={state.status} />
+            <span className={`${styles.dot} ${styles[connTone]}`} data-tip={connTip} />
+            {linkDown && !railCollapsed && (
+              <span className={styles.reconnect} data-offline={!online} role="status">
+                {connLabel}
+              </span>
+            )}
             <span className={styles.idArrow}>›</span>
           </button>
         </aside>
@@ -743,7 +774,7 @@ export function LiveMercuryApp({ backendUrl }: { backendUrl: string }) {
                     <div className={`${styles.threadMeta} mono`}>direct · end-to-end encrypted</div>
                   )}
                 </div>
-                <span className={`${styles.dot} ${styles[state.status]}`} data-tip={state.status} />
+                <span className={`${styles.dot} ${styles[connTone]}`} data-tip={connTip} />
               </header>
 
               <DataStrip
