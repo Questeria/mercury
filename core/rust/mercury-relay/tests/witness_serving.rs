@@ -291,3 +291,32 @@ async fn auditor_plus_two_independent_operators_reach_quorum_satisfied() {
         "a signature not by the pinned auditor is rejected"
     );
 }
+
+#[tokio::test]
+async fn healthz_reports_kt_epoch_and_witness_freshness() {
+    use mercury_relay::HealthResponse;
+
+    // Fresh relay, ONE witness, no auditor, no head published yet.
+    let (app, wk) = build_with_witness().await;
+
+    let h: HealthResponse = get_json(app.clone(), "/healthz").await;
+    assert_eq!(h.status, "ok");
+    assert_eq!(h.kt_epoch, Some(0), "a fresh directory is epoch 0");
+    assert_eq!(h.witnesses_configured, 1);
+    assert!(!h.auditor_configured, "no auditor configured in this fixture");
+    assert_eq!(h.witness_cosig_count, 0, "nothing cosigned yet");
+    assert!(!h.auditor_present);
+    assert_eq!(h.witness_head_age_s, None, "no head published yet");
+
+    // Publish the head + cosign it; /healthz now reflects the cosignature + a fresh head age.
+    let head: WitnessedSthResponse = get_json(app.clone(), "/kt/sth/witnessed").await;
+    let sig = wk.sign(&head_of(&head).signing_bytes()).to_bytes();
+    assert_eq!(
+        post_json(app.clone(), "/kt/witness/cosign", cosign_body(&head, 0, &sig)).await,
+        StatusCode::OK
+    );
+    let h2: HealthResponse = get_json(app, "/healthz").await;
+    assert_eq!(h2.witness_cosig_count, 1, "the cosignature shows up in health");
+    let age = h2.witness_head_age_s.expect("a head is now published");
+    assert!(age >= 0, "head age is a real elapsed value");
+}

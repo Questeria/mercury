@@ -33,7 +33,8 @@ pub mod username_store;
 pub use directory::InMemoryDirectoryStore;
 pub use http::{RelayState, router};
 pub use kt::{
-    AuditorCosignRequest, ConsistencyResponse, InclusionResponse, KeyHistoryResponse, KtState,
+    AuditorCosignRequest, ConsistencyResponse, HealthResponse, InclusionResponse, KeyHistoryResponse,
+    KtState,
     SignedTreeHeadResponse, UsernameLookupResponse, VrfKeyResponse, WitnessCosignRequest,
     WitnessCosignatureJson, WitnessJson, WitnessedSthResponse, kt_router,
 };

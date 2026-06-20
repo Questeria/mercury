@@ -375,6 +375,60 @@ pub struct VrfKeyResponse {
     pub log_public_key: String,
 }
 
+/// `GET /healthz` body: an operational health signal distinct from the KT protocol endpoints. Reports
+/// the current KT epoch + witness/auditor FRESHNESS so a monitor can alert when cosigning silently
+/// decays — the failure mode that quietly defeats split-view detection (a quorum that stopped
+/// cosigning is otherwise invisible until a client rejects a head). Observability, not enforcement.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HealthResponse {
+    pub status: String,
+    /// The directory's current epoch / tree size (None only on a genuine directory error).
+    pub kt_epoch: Option<u64>,
+    /// How many witnesses are pinned in the allow-list.
+    pub witnesses_configured: usize,
+    /// Whether an auditor key is configured.
+    pub auditor_configured: bool,
+    /// Witness cosignatures gathered for the current published head (0 if none / no head published).
+    pub witness_cosig_count: usize,
+    /// Whether the auditor has cosigned the current published head.
+    pub auditor_present: bool,
+    /// Age in seconds of the current published head (None if none published yet). A large/growing
+    /// value while witnesses are configured = freshness decay worth alerting on.
+    pub witness_head_age_s: Option<i64>,
+}
+
+/// `GET /healthz` — see [`HealthResponse`]. Unauthenticated + unrate-limited (a liveness/health probe
+/// is polled frequently); cheap (one tree-head sign + two lock reads).
+async fn healthz(State(state): State<KtState>) -> Response {
+    let now = now_unix_seconds();
+    let kt_epoch = {
+        let dir = state.dir.lock().await;
+        dir.signed_tree_head(now)
+            .await
+            .ok()
+            .map(|(sth, _)| sth.tree_size)
+    };
+    let (witness_cosig_count, auditor_present, witness_head_age_s) =
+        match state.published.lock().await.as_ref() {
+            Some(ph) => (
+                ph.cosignatures.len(),
+                ph.auditor_signature.is_some(),
+                Some(now.saturating_sub(ph.sth.timestamp_s)),
+            ),
+            None => (0, false, None),
+        };
+    Json(HealthResponse {
+        status: "ok".to_string(),
+        kt_epoch,
+        witnesses_configured: state.witnesses.len(),
+        auditor_configured: state.auditor.as_ref().is_some(),
+        witness_cosig_count,
+        auditor_present,
+        witness_head_age_s,
+    })
+    .into_response()
+}
+
 /// Build the KT directory-service router.
 ///
 /// - `GET /kt/inclusion/{label}` -> [`InclusionResponse`] (404 if absent).
@@ -402,6 +456,8 @@ pub fn kt_router(state: KtState) -> Router {
         .route("/kt/auditor/cosign", post(auditor_cosign).layer(witness_limited))
         .route("/username/claim", post(username_claim).layer(claim_limited))
         .route("/username/{name}", get(username_lookup).layer(read_limited))
+        // Operational health probe (no rate limit — monitors poll it frequently; it is cheap).
+        .route("/healthz", get(healthz))
         .with_state(state)
 }
 
