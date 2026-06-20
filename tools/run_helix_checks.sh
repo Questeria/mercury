@@ -60,4 +60,20 @@ for p in "${policies[@]}"; do
   echo "runtime: OK ($p exit 42)"
 done
 
-echo "All Helix policies + tests passed (typecheck + hash + proof obligations + ELF execution)."
+# Negative regression: the purity gate MUST reject an impure @pure decider. A CLEAN compile here means
+# effect-check enforcement silently regressed (e.g. --strict dropped, or the IR-level pass bypassed) —
+# which would also hollow out gen_proof_manifests.py's "every policy function is side-effect-free"
+# assertion. Lock it by asserting this fixture FAILS to compile.
+echo "== purity gate (negative regression) =="
+set +e
+"$PY" -m helixc.check helix/tests/regression/purity_violation.hx --no-stdlib -O1 --strict \
+  -o "$OUT_DIR/_purity_violation.bin" >/dev/null 2>&1
+pv_code=$?
+set -e
+if [ "$pv_code" -eq 0 ]; then
+  echo "error: purity gate REGRESSED — an impure @pure decider compiled clean (expected trap 19001)" >&2
+  exit 1
+fi
+echo "purity gate: OK (impure @pure decider correctly rejected, exit $pv_code)"
+
+echo "All Helix policies + tests passed (typecheck + hash + proof obligations + proof manifests + ELF execution + purity gate)."
