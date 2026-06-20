@@ -33,9 +33,9 @@ pub mod username_store;
 pub use directory::InMemoryDirectoryStore;
 pub use http::{RelayState, router};
 pub use kt::{
-    ConsistencyResponse, InclusionResponse, KeyHistoryResponse, KtState, SignedTreeHeadResponse,
-    UsernameLookupResponse, VrfKeyResponse, WitnessCosignRequest, WitnessCosignatureJson,
-    WitnessJson, WitnessedSthResponse, kt_router,
+    AuditorCosignRequest, ConsistencyResponse, InclusionResponse, KeyHistoryResponse, KtState,
+    SignedTreeHeadResponse, UsernameLookupResponse, VrfKeyResponse, WitnessCosignRequest,
+    WitnessCosignatureJson, WitnessJson, WitnessedSthResponse, kt_router,
 };
 pub use pairing::{PairingStore, generate_pairing_code};
 pub use push::{InProcessWaker, NoopPushSender, PushSender};

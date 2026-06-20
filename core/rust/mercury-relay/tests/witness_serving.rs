@@ -187,3 +187,107 @@ async fn witnessing_disabled_serves_the_head_with_no_cosignatures() {
         StatusCode::BAD_REQUEST,
     );
 }
+
+#[tokio::test]
+async fn auditor_plus_two_independent_operators_reach_quorum_satisfied() {
+    use ed25519_dalek::VerifyingKey;
+    use mercury_kt::{KeyTransparencyWitnessStatus, WitnessCosignature, verify_witnessed_tree_head};
+    use mercury_relay::VrfKeyResponse;
+
+    // 2 witnesses across 2 INDEPENDENT operators (ids 1 + 2) + a separate auditor.
+    let w0 = SigningKey::from_bytes(&[11u8; 32]);
+    let w1 = SigningKey::from_bytes(&[12u8; 32]);
+    let auditor = SigningKey::from_bytes(&[13u8; 32]);
+    let dir = KtDirectory::with_vrf_seed(LOG_SEED).await.unwrap();
+    let app = kt_router(
+        KtState::new(dir)
+            .with_witnesses(vec![
+                Witness::from_ed25519_bytes(1, &w0.verifying_key().to_bytes()).unwrap(),
+                Witness::from_ed25519_bytes(2, &w1.verifying_key().to_bytes()).unwrap(),
+            ])
+            .with_auditor(
+                Witness::from_ed25519_bytes(0, &auditor.verifying_key().to_bytes()).unwrap(),
+            ),
+    );
+
+    // Publish the head; both witnesses + the auditor co-sign the SAME canonical bytes.
+    let head: WitnessedSthResponse = get_json(app.clone(), "/kt/sth/witnessed").await;
+    let sth = head_of(&head);
+    let msg = sth.signing_bytes();
+    assert_eq!(
+        post_json(app.clone(), "/kt/witness/cosign", cosign_body(&head, 0, &w0.sign(&msg).to_bytes()))
+            .await,
+        StatusCode::OK
+    );
+    assert_eq!(
+        post_json(app.clone(), "/kt/witness/cosign", cosign_body(&head, 1, &w1.sign(&msg).to_bytes()))
+            .await,
+        StatusCode::OK
+    );
+    let auditor_body = json!({
+        "tree_size": head.tree_size,
+        "root_hash": head.root_hash,
+        "timestamp_s": head.timestamp_s,
+        "signature": hex::encode(&auditor.sign(&msg).to_bytes()),
+    });
+    assert_eq!(
+        post_json(app.clone(), "/kt/auditor/cosign", auditor_body).await,
+        StatusCode::OK,
+        "the pinned auditor's signature over the published head is accepted"
+    );
+
+    // The served bundle now carries 2 cosignatures + the auditor signature + the auditor key.
+    let bundle: WitnessedSthResponse = get_json(app.clone(), "/kt/sth/witnessed").await;
+    assert_eq!(bundle.cosignatures.len(), 2, "both witness cosignatures served");
+    let auditor_sig =
+        decode64(bundle.auditor_signature.as_deref().expect("auditor signature served"));
+    assert!(bundle.auditor_public_key.is_some(), "the pinned auditor key is advertised");
+
+    // CLIENT-SIDE: with the pinned log key, the 2 witnesses, and the auditor, the FULL quorum gate
+    // PASSES — previously unreachable (kt_witness_status is hard-wired to Invalid without an auditor
+    // signature, and the relay had no way to serve one).
+    let vrf: VrfKeyResponse = get_json(app.clone(), "/kt/vrf-key").await;
+    let log_pub = VerifyingKey::from_bytes(&decode32(&vrf.log_public_key)).unwrap();
+    let cosigs: Vec<WitnessCosignature> = bundle
+        .cosignatures
+        .iter()
+        .map(|c| WitnessCosignature {
+            witness_index: c.witness_index,
+            signature: decode64(&c.signature),
+        })
+        .collect();
+    let pinned = [
+        Witness::from_ed25519_bytes(1, &w0.verifying_key().to_bytes()).unwrap(),
+        Witness::from_ed25519_bytes(2, &w1.verifying_key().to_bytes()).unwrap(),
+    ];
+    let v = verify_witnessed_tree_head(
+        &sth,
+        &log_pub,
+        &decode64(&bundle.log_signature),
+        &auditor.verifying_key(),
+        &auditor_sig,
+        &pinned,
+        &cosigs,
+        sth.root_hash,
+        sth.tree_size,
+        sth.timestamp_s,
+    );
+    assert_eq!(
+        v.kt_witness_status(2),
+        KeyTransparencyWitnessStatus::QuorumSatisfied,
+        "2 witnesses across 2 operators + the auditor reach QuorumSatisfied"
+    );
+
+    // Rejection rail: the auditor endpoint refuses a signature that is NOT the pinned auditor's.
+    let forged = json!({
+        "tree_size": bundle.tree_size,
+        "root_hash": bundle.root_hash,
+        "timestamp_s": bundle.timestamp_s,
+        "signature": hex::encode(&w0.sign(&head_of(&bundle).signing_bytes()).to_bytes()),
+    });
+    assert_eq!(
+        post_json(app, "/kt/auditor/cosign", forged).await,
+        StatusCode::UNAUTHORIZED,
+        "a signature not by the pinned auditor is rejected"
+    );
+}

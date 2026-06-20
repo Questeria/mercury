@@ -65,11 +65,15 @@ are refused.
 - **The client must require a quorum.** A client that fetches the witnessed bundle but does not gate
   on `kt_witness_status` gains nothing. That client policy is not changed by default (so a
   witness-less deployment still works); enabling it is a deliberate client-side step.
-- **The auditor signature is not served here.** `kt_witness_status` also wants a designated
-  **auditor** signature over the same head (an append-only auditor). The relay serves witness
-  cosignatures only; obtaining the auditor signature is a separate role/endpoint not yet built. Until
-  it exists, `kt_witness_status` returns `Invalid` (the gate is intentionally strict), so witnessing
-  today is **detection rails + verification machinery**, not yet a turnkey end-to-end quorum gate.
+- **The auditor signature is now served — but a real auditor must run it.** `kt_witness_status`
+  requires a designated **auditor** signature over the same head (an append-only auditor) for any
+  non-`Invalid` verdict. The relay now exposes **`POST /kt/auditor/cosign`** and carries
+  `auditor_signature` + `auditor_public_key` in the witnessed bundle (the auditor key is configured
+  via `MERCURY_KT_AUDITOR`), so the end-to-end quorum gate is **reachable** — a relay test drives
+  2 witnesses across 2 independent operators + an auditor to `QuorumSatisfied`. What the relay still
+  **cannot manufacture** is a real auditor *process* that verifies **append-only consistency before
+  it signs**; a blind auditor adds nothing. The value is that consistency check, which must be a
+  deployed, independent process (the same caveat as the witnesses).
 - **Cosignatures are in-memory.** They are ephemeral by design — witnesses re-cosign after any relay
   restart or head refresh. Nothing is persisted.
 

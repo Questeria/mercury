@@ -60,6 +60,13 @@ pub struct KtState {
     /// every cosignature submission is refused. Real split-view resistance requires these witnesses
     /// to actually be DEPLOYED and submitting — the relay only provides the rails.
     witnesses: Arc<Vec<Witness>>,
+    /// Pinned AUDITOR co-signing key (a designated append-only auditor, distinct from the witnesses).
+    /// `mercury_kt::kt_witness_status` requires an auditor signature for ANY non-Invalid verdict, so
+    /// without this the client quorum gate can never pass — this is the structural keystone. None = no
+    /// auditor configured (the witnessed-head endpoint serves no auditor signature; `/kt/auditor/cosign`
+    /// is refused). Like witnesses, a REAL auditor must be DEPLOYED and actually checking append-only
+    /// consistency before it signs — the relay only provides the rail.
+    auditor: Arc<Option<Witness>>,
     /// The current PUBLISHED signed tree head: held STABLE per epoch (a fixed timestamp, refreshed at
     /// most every `KT_STH_REFRESH_S`) so independent witnesses all co-sign the SAME canonical bytes.
     /// Carries its log signature + the valid cosignatures collected for exactly those bytes.
@@ -76,6 +83,9 @@ struct PublishedHead {
     sth: SignedTreeHead,
     log_signature: [u8; 64],
     cosignatures: Vec<WitnessCosignature>,
+    /// The pinned auditor's Ed25519 signature over EXACTLY these head bytes, once submitted. Reset to
+    /// None when the head is replaced/refreshed, like the witness cosignatures.
+    auditor_signature: Option<[u8; 64]>,
 }
 
 /// Per-IP flood caps for the KT/username router. The router was previously merged into the app
@@ -113,6 +123,7 @@ impl KtState {
             read_limiter: Arc::new(RateLimiter::new(KT_READ_MAX_PER_WINDOW, KT_READ_WINDOW_S)),
             claim_limiter: Arc::new(RateLimiter::new(KT_CLAIM_MAX_PER_WINDOW, KT_CLAIM_WINDOW_S)),
             witnesses: Arc::new(Vec::new()),
+            auditor: Arc::new(None),
             published: Arc::new(Mutex::new(None)),
             witness_limiter: Arc::new(RateLimiter::new(
                 KT_WITNESS_MAX_PER_WINDOW,
@@ -126,6 +137,13 @@ impl KtState {
     /// Replaces any existing set.
     pub fn with_witnesses(mut self, witnesses: Vec<Witness>) -> Self {
         self.witnesses = Arc::new(witnesses);
+        self
+    }
+
+    /// Configure the pinned AUDITOR co-signing key (the boot path parses MERCURY_KT_AUDITOR into this).
+    /// Clients pin the same key out-of-band. Without an auditor the quorum gate stays Invalid.
+    pub fn with_auditor(mut self, auditor: Witness) -> Self {
+        self.auditor = Arc::new(Some(auditor));
         self
     }
 }
@@ -247,6 +265,11 @@ pub struct WitnessedSthResponse {
     /// The relay's pinned witness allow-list (operator id + hex public key) in `witness_index`
     /// order. Informational: clients verify against their OWN pinned set.
     pub witnesses: Vec<WitnessJson>,
+    /// The pinned AUDITOR's hex Ed25519 signature over this head, if submitted. None until the auditor
+    /// cosigns — `mercury_kt::kt_witness_status` requires it for any non-Invalid verdict.
+    pub auditor_signature: Option<String>,
+    /// The relay's pinned auditor public key (hex), if configured. Informational; clients pin their own.
+    pub auditor_public_key: Option<String>,
 }
 
 /// One witness cosignature in a [`WitnessedSthResponse`].
@@ -280,6 +303,19 @@ pub struct WitnessCosignRequest {
     /// Index into the relay's pinned witness allow-list.
     pub witness_index: usize,
     /// Hex-encoded 64-byte Ed25519 cosignature over the head's canonical bytes.
+    pub signature: String,
+}
+
+/// `POST /kt/auditor/cosign` request: the pinned AUDITOR submits its signature over the relay's
+/// CURRENT published head (the same canonical bytes witnesses sign). Verified fail-closed against the
+/// pinned auditor key + the exact published head; a stale/mismatched head is rejected (409).
+#[derive(Debug, Deserialize)]
+pub struct AuditorCosignRequest {
+    pub tree_size: u64,
+    /// Hex-encoded 32-byte root hash of the head being cosigned.
+    pub root_hash: String,
+    pub timestamp_s: i64,
+    /// Hex-encoded 64-byte Ed25519 auditor signature over the head's canonical bytes.
     pub signature: String,
 }
 
@@ -362,7 +398,8 @@ pub fn kt_router(state: KtState) -> Router {
         .route("/kt/sth", get(signed_tree_head).layer(read_limited.clone()))
         .route("/kt/sth/witnessed", get(witnessed_sth).layer(read_limited.clone()))
         .route("/kt/vrf-key", get(vrf_key).layer(read_limited.clone()))
-        .route("/kt/witness/cosign", post(witness_cosign).layer(witness_limited))
+        .route("/kt/witness/cosign", post(witness_cosign).layer(witness_limited.clone()))
+        .route("/kt/auditor/cosign", post(auditor_cosign).layer(witness_limited))
         .route("/username/claim", post(username_claim).layer(claim_limited))
         .route("/username/{name}", get(username_lookup).layer(read_limited))
         .with_state(state)
@@ -461,6 +498,7 @@ async fn witnessed_sth(State(state): State<KtState>) -> Response {
             sth: cur_sth,
             log_signature: cur_sig,
             cosignatures: Vec::new(),
+            auditor_signature: None,
         });
     }
     let ph = published.as_ref().expect("published head just ensured present");
@@ -485,6 +523,12 @@ async fn witnessed_sth(State(state): State<KtState>) -> Response {
                 public_key: hex::encode(&w.key_bytes()),
             })
             .collect(),
+        auditor_signature: ph.auditor_signature.as_ref().map(|s| hex::encode(s)),
+        auditor_public_key: state
+            .auditor
+            .as_ref()
+            .as_ref()
+            .map(|a| hex::encode(&a.key_bytes())),
     })
     .into_response()
 }
@@ -538,6 +582,50 @@ async fn witness_cosign(
         witness_index: req.witness_index,
         signature,
     });
+    StatusCode::OK.into_response()
+}
+
+/// `POST /kt/auditor/cosign` — the pinned AUDITOR submits its signature over the relay's CURRENT
+/// published head (the same canonical bytes witnesses sign). Fail-closed: requires a configured
+/// auditor, an EXACT match of the published head, and the auditor's genuine Ed25519 signature; a
+/// stale/mismatched head is rejected (409) so the auditor re-fetches and re-signs.
+async fn auditor_cosign(
+    State(state): State<KtState>,
+    Json(req): Json<AuditorCosignRequest>,
+) -> Response {
+    let Some(root_hash) = hex::decode(&req.root_hash)
+        .ok()
+        .and_then(|b| <[u8; 32]>::try_from(b.as_slice()).ok())
+    else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    let Some(signature) = hex::decode(&req.signature)
+        .ok()
+        .and_then(|b| <[u8; 64]>::try_from(b.as_slice()).ok())
+    else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    // An auditor must be configured for the relay to accept its signature.
+    let Some(auditor) = state.auditor.as_ref().as_ref() else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+
+    let mut published = state.published.lock().await;
+    let Some(ph) = published.as_mut() else {
+        // No head published yet — the auditor must GET /kt/sth/witnessed first.
+        return StatusCode::CONFLICT.into_response();
+    };
+    if ph.sth.tree_size != req.tree_size
+        || ph.sth.root_hash != root_hash
+        || ph.sth.timestamp_s != req.timestamp_s
+    {
+        return StatusCode::CONFLICT.into_response();
+    }
+    // The auditor signs the SAME canonical head bytes as witnesses; reuse the strict verifier.
+    if !verify_witness_cosignature(auditor, &ph.sth, &signature) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    ph.auditor_signature = Some(signature);
     StatusCode::OK.into_response()
 }
 

@@ -217,6 +217,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(_) => kt_state,
     };
 
+    // Optional KT auditor (MERCURY_KT_AUDITOR = a single hex Ed25519 public key). The auditor signs
+    // the same published heads as witnesses; mercury_kt::kt_witness_status requires its signature for
+    // any non-Invalid client verdict, so without it the quorum gate stays Invalid. A real auditor must
+    // be DEPLOYED and checking append-only consistency before it signs — this only configures the key.
+    let kt_state = match std::env::var("MERCURY_KT_AUDITOR") {
+        Ok(hexkey) => {
+            let key_bytes: [u8; 32] = hex::decode(hexkey.trim())
+                .ok()
+                .and_then(|b| <[u8; 32]>::try_from(b.as_slice()).ok())
+                .ok_or("MERCURY_KT_AUDITOR must be a 32-byte hex Ed25519 public key")?;
+            let auditor = Witness::from_ed25519_bytes(0, &key_bytes)
+                .ok_or("MERCURY_KT_AUDITOR is not a valid Ed25519 public key")?;
+            eprintln!("mercury-relay-server: pinned a KT auditor for cosignature serving");
+            kt_state.with_auditor(auditor)
+        }
+        Err(_) => kt_state,
+    };
+
     let state = RelayState::new(Arc::clone(&store), push);
     let app = router(state).merge(kt_router(kt_state));
 
