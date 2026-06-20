@@ -189,7 +189,7 @@ fn trust_forwarded_for() -> bool {
 /// LEFT). We never trust the left-most/aggregate header value, so this is not a spoofing vector;
 /// it simply restores per-client keying in the documented behind-Caddy deployment. Falls back to
 /// the peer IP when the header is absent or empty.
-fn client_key(request: &Request) -> String {
+pub(crate) fn client_key(request: &Request) -> String {
     let forwarded = trust_forwarded_for()
         .then(|| {
             // Use the LAST `X-Forwarded-For` header line (multiple lines are semantically one

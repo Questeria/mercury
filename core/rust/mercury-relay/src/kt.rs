@@ -23,8 +23,9 @@ use std::sync::Arc;
 
 use axum::{
     Json, Router,
-    extract::{Path, Query, State},
+    extract::{Path, Query, Request, State},
     http::StatusCode,
+    middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
 };
@@ -33,6 +34,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 use crate::hex;
+use crate::rate::RateLimiter;
 use crate::store::now_unix_seconds;
 use crate::username::{ClaimResult, UsernameRegistry, kt_username_label};
 
@@ -43,7 +45,23 @@ use crate::username::{ClaimResult, UsernameRegistry, kt_username_label};
 pub struct KtState {
     pub dir: Arc<Mutex<KtDirectory>>,
     pub usernames: Arc<Mutex<UsernameRegistry>>,
+    /// Per-IP flood limiter for the cheaper KT READS (each still generates an on-demand AKD proof).
+    read_limiter: Arc<RateLimiter>,
+    /// Strict per-IP flood limiter for `POST /username/claim` — each fresh claim verifies an
+    /// Ed25519 proof-of-possession AND advances an AKD epoch + signs a new tree head (and holds
+    /// the registry mutex across that publish), so it is far more expensive than a read.
+    claim_limiter: Arc<RateLimiter>,
 }
+
+/// Per-IP flood caps for the KT/username router. The router was previously merged into the app
+/// WITHOUT any rate-limit layer (the open-endpoint limiter only covered /relay/submit etc.), so
+/// every proof-generating read and every epoch-advancing claim was uncapped per source. Reads are
+/// generous; claims are tight because each one advances the AKD log. Honest scope is the same as
+/// `crate::rate`: this bounds a SINGLE-SOURCE flood, not a distributed one (upstream CDN/proxy).
+const KT_READ_MAX_PER_WINDOW: u32 = 120;
+const KT_READ_WINDOW_S: i64 = 60;
+const KT_CLAIM_MAX_PER_WINDOW: u32 = 8;
+const KT_CLAIM_WINDOW_S: i64 = 60;
 
 impl KtState {
     /// Host an existing directory with a fresh, empty username registry.
@@ -59,8 +77,34 @@ impl KtState {
         Self {
             dir: Arc::new(Mutex::new(dir)),
             usernames: Arc::new(Mutex::new(usernames)),
+            read_limiter: Arc::new(RateLimiter::new(KT_READ_MAX_PER_WINDOW, KT_READ_WINDOW_S)),
+            claim_limiter: Arc::new(RateLimiter::new(KT_CLAIM_MAX_PER_WINDOW, KT_CLAIM_WINDOW_S)),
         }
     }
+}
+
+/// Flood limiter for the KT read endpoints — keyed by source IP via the shared
+/// [`crate::http::client_key`] (so the documented behind-Caddy `X-Forwarded-For` handling applies
+/// equally). Returns 429 over the cap, before any AKD proof is generated.
+async fn kt_read_rate_limit(State(state): State<KtState>, request: Request, next: Next) -> Response {
+    if !state.read_limiter.check(&crate::http::client_key(&request)) {
+        return StatusCode::TOO_MANY_REQUESTS.into_response();
+    }
+    next.run(request).await
+}
+
+/// Strict flood limiter for `POST /username/claim` — rejects (429) before the Ed25519 verify and
+/// the epoch-advancing AKD publish, so a source cannot drive unbounded epoch growth or head-of-line
+/// block legitimate claimants behind the registry mutex.
+async fn kt_claim_rate_limit(
+    State(state): State<KtState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if !state.claim_limiter.check(&crate::http::client_key(&request)) {
+        return StatusCode::TOO_MANY_REQUESTS.into_response();
+    }
+    next.run(request).await
 }
 
 /// A served inclusion proof + the checkpoint it is relative to. The client
@@ -187,14 +231,19 @@ pub struct VrfKeyResponse {
 /// - `GET /kt/sth` -> [`SignedTreeHeadResponse`] (a fresh directory serves a
 ///   valid epoch-0 head; 404 only on a genuine directory error).
 pub fn kt_router(state: KtState) -> Router {
+    // Per-IP flood limiters (previously the KT router carried NONE). Reads share one cap; the
+    // epoch-advancing claim gets a much tighter one. Applied OUTSIDE the handler so a flood is
+    // rejected (429) before any AKD proof generation / Ed25519 verify / epoch advance.
+    let read_limited = middleware::from_fn_with_state(state.clone(), kt_read_rate_limit);
+    let claim_limited = middleware::from_fn_with_state(state.clone(), kt_claim_rate_limit);
     Router::new()
-        .route("/kt/inclusion/{label}", get(inclusion))
-        .route("/kt/consistency", get(consistency))
-        .route("/kt/history/{label}", get(key_history))
-        .route("/kt/sth", get(signed_tree_head))
-        .route("/kt/vrf-key", get(vrf_key))
-        .route("/username/claim", post(username_claim))
-        .route("/username/{name}", get(username_lookup))
+        .route("/kt/inclusion/{label}", get(inclusion).layer(read_limited.clone()))
+        .route("/kt/consistency", get(consistency).layer(read_limited.clone()))
+        .route("/kt/history/{label}", get(key_history).layer(read_limited.clone()))
+        .route("/kt/sth", get(signed_tree_head).layer(read_limited.clone()))
+        .route("/kt/vrf-key", get(vrf_key).layer(read_limited.clone()))
+        .route("/username/claim", post(username_claim).layer(claim_limited))
+        .route("/username/{name}", get(username_lookup).layer(read_limited))
         .with_state(state)
 }
 

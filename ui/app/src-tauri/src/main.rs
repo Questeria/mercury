@@ -359,9 +359,14 @@ async fn delete_account(
             let _ = controller.delete_for_everyone_all();
         }
         // 3. Remove the snapshot + any half-written temp, AND the durable mirror (automatic backup)
-        //    + its temp, so the erase leaves nothing recoverable on disk.
+        //    + its temp, so the erase leaves nothing recoverable on disk. Also remove the
+        //    `.unreadable` aside a prior boot may have preserved (a snapshot that wouldn't open
+        //    under the device key is renamed aside, not deleted — see the startup self-heal). It is
+        //    already cryptographically inert once the keychain key is gone (deleted in step 1), but
+        //    "delete my data" must leave no account-ciphertext blob behind, per this fn's contract.
         let _ = std::fs::remove_file(&state.snapshot_path);
         let _ = std::fs::remove_file(state.snapshot_path.with_extension("tmp"));
+        let _ = std::fs::remove_file(state.snapshot_path.with_extension("unreadable"));
         if let Some(mirror) = state.mirror_path.as_ref() {
             let _ = std::fs::remove_file(mirror);
             let _ = std::fs::remove_file(mirror.with_extension("tmp"));

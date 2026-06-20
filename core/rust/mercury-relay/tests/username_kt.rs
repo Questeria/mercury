@@ -190,3 +190,30 @@ async fn unknown_username_is_404() {
     let (status, _) = raw_get(app, "/username/ghost").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
+
+// Regression: the KT router was previously merged WITHOUT any rate-limit layer, leaving the
+// epoch-advancing /username/claim uncapped per source. It must now flood-limit. The cloned router
+// shares the same Arc<RateLimiter>, and in-process there's no ConnectInfo so client_key collapses
+// to one shared key — so the cap applies across these requests. The limiter runs as a layer BEFORE
+// the handler, so it counts every request (each here 400s on a deliberately-bad body) and rejects
+// over the cap with 429 before any Ed25519 verify / AKD epoch advance.
+#[tokio::test]
+async fn kt_username_claim_is_flood_limited_per_source() {
+    let app = build().await;
+    let bad = json!({ "username": "x", "identity_pub": "00", "pop_sig": "00" });
+    // KT_CLAIM_MAX_PER_WINDOW is 8: the first 8 are under the cap, the 9th is over it.
+    for i in 0..8 {
+        let (status, _) = post_json(app.clone(), "/username/claim", bad.clone()).await;
+        assert_ne!(
+            status,
+            StatusCode::TOO_MANY_REQUESTS,
+            "request {i} is under the cap and must not be rate-limited"
+        );
+    }
+    let (status, _) = post_json(app.clone(), "/username/claim", bad.clone()).await;
+    assert_eq!(
+        status,
+        StatusCode::TOO_MANY_REQUESTS,
+        "the 9th claim from one source must be flood-limited (429)"
+    );
+}
