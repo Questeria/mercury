@@ -43,7 +43,7 @@
 pub mod transport;
 pub use transport::{
     InMemoryTransport, KtPublicKeys, PollAuth, RelayTransport, Transport, TransportError,
-    UsernameClaimOutcome, UsernameLookup,
+    UsernameClaimOutcome, UsernameLookup, WitnessedHead,
 };
 
 use std::collections::HashMap;

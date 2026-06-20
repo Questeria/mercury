@@ -108,6 +108,23 @@ pub struct KtPublicKeys {
     pub log_public_key: [u8; 32],
 }
 
+/// The relay's current WITNESSED head bundle: the published head, its log signature, the witness
+/// cosignatures gathered for EXACTLY those bytes, and the auditor signature if present. The caller
+/// verifies it via `mercury_kt::verify_witnessed_tree_head` against the witnesses + auditor + log key
+/// IT pinned out-of-band, then gates on `kt_witness_status` — serving this confers no trust. The
+/// relay-advertised witness set is intentionally NOT carried: a client verifies against its OWN pins.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WitnessedHead {
+    pub tree_size: u64,
+    pub root_hash: [u8; 32],
+    pub timestamp_s: i64,
+    pub log_signature: [u8; 64],
+    /// `(witness_index, cosignature)` pairs gathered for this exact head.
+    pub cosignatures: Vec<(usize, [u8; 64])>,
+    /// The auditor's signature over this head, if it has co-signed.
+    pub auditor_signature: Option<[u8; 64]>,
+}
+
 /// Moves opaque client blobs between peers via routes (recipient account ids in 1a/1b),
 /// and carries the public prekey directory (publish/fetch a contact card by account id).
 pub trait Transport {
@@ -201,6 +218,14 @@ pub trait Transport {
     fn kt_signed_tree_head(
         &self,
     ) -> Result<Option<(u64, [u8; 32], i64, [u8; 64])>, TransportError> {
+        Ok(None)
+    }
+
+    /// Fetch the relay's current WITNESSED head bundle (`GET /kt/sth/witnessed`). The caller verifies
+    /// it against the witnesses + auditor + log key IT pinned (`mercury_kt::verify_witnessed_tree_head`)
+    /// and gates on `kt_witness_status` — this is the split-view-detection read path. `Ok(None)` when
+    /// the transport does not serve KT (the default) or the relay has no head yet.
+    fn kt_witnessed_head(&self) -> Result<Option<WitnessedHead>, TransportError> {
         Ok(None)
     }
 }
@@ -764,6 +789,24 @@ impl Transport for RelayTransport {
         Ok(Some((tree_size, root, timestamp_s, sig)))
     }
 
+    fn kt_witnessed_head(&self) -> Result<Option<WitnessedHead>, TransportError> {
+        let url = format!("{}/kt/sth/witnessed", self.base_url);
+        let resp = match ureq::get(&url).call() {
+            Ok(resp) => resp,
+            Err(ureq::Error::Status(404, _)) => return Ok(None),
+            Err(ureq::Error::Status(_, _)) => {
+                return Err(TransportError::Rejected(
+                    "witnessed-head fetch refused".to_string(),
+                ));
+            }
+            Err(e) => return Err(TransportError::Network(e.to_string())),
+        };
+        let text = resp
+            .into_string()
+            .map_err(|e| TransportError::Network(e.to_string()))?;
+        parse_witnessed_head(&text).map(Some)
+    }
+
     fn kt_public_keys(&self) -> Result<Option<KtPublicKeys>, TransportError> {
         let url = format!("{}/kt/vrf-key", self.base_url);
         let resp = match ureq::get(&url).call() {
@@ -873,6 +916,66 @@ fn hex_nibble(c: u8) -> Result<u8, TransportError> {
     }
 }
 
+/// Decode a hex string into a fixed `[u8; N]`, failing `Malformed` on a wrong length or non-hex byte.
+fn hex_array<const N: usize>(s: &str) -> Result<[u8; N], TransportError> {
+    hex_decode(s)?.try_into().map_err(|_| TransportError::Malformed)
+}
+
+/// Parse a `/kt/sth/witnessed` response body into a [`WitnessedHead`]. Fail-closed: a missing field or
+/// any malformed hex (bad length / non-hex byte) is `Malformed`, never a coerced buffer. The relay's
+/// advertised witness set is ignored on purpose — a client verifies against its OWN pinned witnesses.
+fn parse_witnessed_head(text: &str) -> Result<WitnessedHead, TransportError> {
+    let value: serde_json::Value =
+        serde_json::from_str(text).map_err(|_| TransportError::Malformed)?;
+    let tree_size = value
+        .get("tree_size")
+        .and_then(|v| v.as_u64())
+        .ok_or(TransportError::Malformed)?;
+    let root_hash = hex_array::<32>(
+        value
+            .get("root_hash")
+            .and_then(|v| v.as_str())
+            .ok_or(TransportError::Malformed)?,
+    )?;
+    let timestamp_s = value
+        .get("timestamp_s")
+        .and_then(|v| v.as_i64())
+        .ok_or(TransportError::Malformed)?;
+    let log_signature = hex_array::<64>(
+        value
+            .get("log_signature")
+            .and_then(|v| v.as_str())
+            .ok_or(TransportError::Malformed)?,
+    )?;
+    let mut cosignatures = Vec::new();
+    if let Some(arr) = value.get("cosignatures").and_then(|v| v.as_array()) {
+        for c in arr {
+            let idx = c
+                .get("witness_index")
+                .and_then(|v| v.as_u64())
+                .ok_or(TransportError::Malformed)? as usize;
+            let sig = hex_array::<64>(
+                c.get("signature")
+                    .and_then(|v| v.as_str())
+                    .ok_or(TransportError::Malformed)?,
+            )?;
+            cosignatures.push((idx, sig));
+        }
+    }
+    let auditor_signature = match value.get("auditor_signature").and_then(|v| v.as_str()) {
+        Some(h) => Some(hex_array::<64>(h)?),
+        None => None,
+    };
+    Ok(WitnessedHead {
+        tree_size,
+        root_hash,
+        timestamp_s,
+        log_signature,
+        cosignatures,
+        auditor_signature,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -896,6 +999,50 @@ mod tests {
     #[test]
     fn hex_decode_rejects_non_hex() {
         assert!(matches!(hex_decode("zz"), Err(TransportError::Malformed)));
+    }
+
+    #[test]
+    fn parse_witnessed_head_reads_the_relay_bundle() {
+        let json = format!(
+            r#"{{"tree_size":4,"root_hash":"{}","timestamp_s":1900000000,"log_signature":"{}","cosignatures":[{{"witness_index":0,"signature":"{}"}},{{"witness_index":2,"signature":"{}"}}],"witnesses":[],"auditor_signature":"{}","auditor_public_key":null}}"#,
+            "ab".repeat(32),
+            "cd".repeat(64),
+            "01".repeat(64),
+            "02".repeat(64),
+            "03".repeat(64),
+        );
+        let h = parse_witnessed_head(&json).unwrap();
+        assert_eq!(h.tree_size, 4);
+        assert_eq!(h.root_hash, [0xab; 32]);
+        assert_eq!(h.timestamp_s, 1_900_000_000);
+        assert_eq!(h.log_signature, [0xcd; 64]);
+        assert_eq!(h.cosignatures, vec![(0, [0x01; 64]), (2, [0x02; 64])]);
+        assert_eq!(h.auditor_signature, Some([0x03; 64]));
+    }
+
+    #[test]
+    fn parse_witnessed_head_without_cosigs_or_auditor() {
+        let json = format!(
+            r#"{{"tree_size":0,"root_hash":"{}","timestamp_s":1,"log_signature":"{}","cosignatures":[],"witnesses":[],"auditor_signature":null,"auditor_public_key":null}}"#,
+            "00".repeat(32),
+            "00".repeat(64),
+        );
+        let h = parse_witnessed_head(&json).unwrap();
+        assert!(h.cosignatures.is_empty());
+        assert_eq!(h.auditor_signature, None);
+    }
+
+    #[test]
+    fn parse_witnessed_head_fails_closed_on_malformed_hex() {
+        // A short root_hash must fail Malformed, never coerce into a fixed buffer.
+        let json = format!(
+            r#"{{"tree_size":1,"root_hash":"abcd","timestamp_s":1,"log_signature":"{}","cosignatures":[],"auditor_signature":null}}"#,
+            "00".repeat(64),
+        );
+        assert!(matches!(
+            parse_witnessed_head(&json),
+            Err(TransportError::Malformed)
+        ));
     }
 
     // Regression (cert round-2 finding): a malicious relay response whose hex
