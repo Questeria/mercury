@@ -118,6 +118,12 @@ pub enum ClientError {
     /// cosignatures, or a head the witnesses did not vouch for). Fails closed — the binding could
     /// have been served only to this client (equivocation), so it is not trusted.
     WitnessQuorumUnsatisfied,
+    /// The directory's authenticated signed tree head went BACKWARDS — a smaller epoch, or a
+    /// different root at the same epoch — versus the highest head this client has already seen. A
+    /// malicious-after-first-contact relay can serve a genuinely log-signed OLDER head to roll the
+    /// append-only log back and undo a key rotation (re-binding a handle to a since-rotated, possibly
+    /// compromised key). Fails closed: the directory must only move forward.
+    DirectoryRollback,
 }
 
 impl core::fmt::Display for ClientError {
@@ -144,6 +150,9 @@ impl core::fmt::Display for ClientError {
             }
             ClientError::WitnessQuorumUnsatisfied => {
                 f.write_str("username head lacks the required independent witness quorum")
+            }
+            ClientError::DirectoryRollback => {
+                f.write_str("directory signed tree head rolled back (non-monotonic)")
             }
         }
     }
@@ -366,6 +375,11 @@ pub struct MercuryClient {
     peer_device: HashMap<[u8; 32], [u8; 32]>,
     /// OPT-IN witness-quorum policy for username resolution (None = no quorum requirement).
     witness_quorum: Option<WitnessQuorumPolicy>,
+    /// The highest authenticated directory head `(tree_size, root)` this client has seen (set only on
+    /// a pinned-log resolve). Enforces append-only MONOTONICITY across resolves: a relay cannot serve
+    /// a genuinely-signed OLDER head to roll the log back. Persisted; None until the first pinned-log
+    /// resolve establishes the baseline (trust-on-first-use of the directory's position).
+    seen_directory_head: Option<(u64, [u8; 32])>,
 }
 
 impl Default for MercuryClient {
@@ -388,6 +402,7 @@ impl MercuryClient {
             sessions: HashMap::new(),
             peer_device: HashMap::new(),
             witness_quorum: None,
+            seen_directory_head: None,
         }
     }
 
@@ -725,7 +740,7 @@ impl MercuryClient {
     /// detected). Only after the proof verifies is the resolved account id used to fetch a contact
     /// card, which is INDEPENDENTLY self-authenticating. Fails closed at every step.
     pub fn resolve_username(
-        &self,
+        &mut self,
         transport: &dyn Transport,
         username: &str,
         pinned_vrf: Option<&[u8]>,
@@ -768,6 +783,19 @@ impl MercuryClient {
             if lookup.epoch != tree_size || lookup_root != root {
                 return Err(ClientError::UsernameProofInvalid);
             }
+            // ANTI-ROLLBACK (append-only monotonicity): the authenticated head must never go BACKWARDS
+            // versus the highest we have already seen. A malicious-after-first-contact relay could
+            // otherwise serve a genuinely log-signed OLDER head to undo a key rotation (re-binding a
+            // handle to a since-rotated, possibly-compromised key). The first pinned-log resolve is
+            // trust-on-first-use of the directory's position; thereafter a smaller epoch — or a
+            // different root at the SAME epoch (a same-epoch fork) — fails closed. The pin persists in
+            // the encrypted pickle, so the baseline survives restarts.
+            if let Some((seen_size, seen_root)) = self.seen_directory_head
+                && (tree_size < seen_size || (tree_size == seen_size && root != seen_root))
+            {
+                return Err(ClientError::DirectoryRollback);
+            }
+            self.seen_directory_head = Some((tree_size, root));
         }
 
         // Choose the VRF key to verify against: the pinned one (strong), else the served one (TOFU).
@@ -852,6 +880,10 @@ struct ClientSnapshot {
     account_pickle: String,
     sessions: Vec<([u8; 32], Vec<u8>)>,
     peer_device: Vec<([u8; 32], [u8; 32])>,
+    /// The anti-rollback baseline (highest authenticated directory head seen). `#[serde(default)]` so
+    /// an OLDER pickle without it restores to None (re-establishes the baseline on the next resolve).
+    #[serde(default)]
+    seen_directory_head: Option<(u64, [u8; 32])>,
 }
 
 impl Drop for ClientSnapshot {
@@ -882,6 +914,7 @@ impl MercuryClient {
                 .map(|(id, s)| (*id, s.to_encrypted_pickle(key)))
                 .collect(),
             peer_device: self.peer_device.iter().map(|(a, d)| (*a, *d)).collect(),
+            seen_directory_head: self.seen_directory_head,
         };
         let mut plain = serde_json::to_vec(&snapshot).expect("the client snapshot serializes");
         let blob = pickle_seal(key, &plain);
@@ -925,6 +958,9 @@ impl MercuryClient {
             // The quorum policy is CONFIG, not persisted state — re-apply it via `with_witness_quorum`
             // after restoring if required (a restored client defaults to no quorum requirement).
             witness_quorum: None,
+            // The anti-rollback baseline IS persisted state — restore it so a relay cannot reset it
+            // with a rollback right after a restart.
+            seen_directory_head: snap.seen_directory_head,
         })
     }
 }

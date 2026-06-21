@@ -5,7 +5,10 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use mercury_client::{ClientError, MercuryClient, RelayTransport, Transport, UsernameClaimOutcome};
+use mercury_client::{
+    ClientError, MercuryClient, PollAuth, RelayTransport, Transport, TransportError,
+    UsernameClaimOutcome, UsernameLookup,
+};
 use mercury_kt::KtDirectory;
 use mercury_relay::{
     InMemoryQueueStore, KtState, NoopPushSender, QueueStore, RelayState, kt_router, router,
@@ -90,7 +93,7 @@ fn username_registry_resolves_a_verified_card() {
     let base = start_relay_full();
     let transport = RelayTransport::new(&base);
 
-    let alice = MercuryClient::new();
+    let mut alice = MercuryClient::new();
     let mut bob = MercuryClient::new();
     let b_id = bob.account_id();
 
@@ -163,4 +166,101 @@ fn username_registry_resolves_a_verified_card() {
             .unwrap_err(),
         ClientError::UsernameProofInvalid
     );
+}
+
+/// Delegates everything to the real relay transport EXCEPT it replays a captured, OLDER signed tree
+/// head + the matching username lookup — i.e. a malicious-after-first-contact relay rolling the
+/// append-only directory backwards. Both are genuinely log-signed and the inclusion proof is valid;
+/// only the client's monotonicity check can catch it.
+struct RollbackTransport {
+    inner: RelayTransport,
+    old_head: (u64, [u8; 32], i64, [u8; 64]),
+    old_lookup: UsernameLookup,
+}
+
+impl Transport for RollbackTransport {
+    fn submit(&self, route: &[u8; 32], blob: &[u8]) -> Result<(), TransportError> {
+        self.inner.submit(route, blob)
+    }
+    fn poll(&self, route: &[u8; 32], auth: &PollAuth) -> Result<Option<Vec<u8>>, TransportError> {
+        self.inner.poll(route, auth)
+    }
+    fn publish_card(
+        &self,
+        identity_pub: &[u8; 32],
+        card: &[u8],
+        pop_sig: &[u8; 64],
+    ) -> Result<(), TransportError> {
+        self.inner.publish_card(identity_pub, card, pop_sig)
+    }
+    fn fetch_card(&self, account_id: &[u8; 32]) -> Result<Option<Vec<u8>>, TransportError> {
+        self.inner.fetch_card(account_id)
+    }
+    fn kt_signed_tree_head(
+        &self,
+    ) -> Result<Option<(u64, [u8; 32], i64, [u8; 64])>, TransportError> {
+        Ok(Some(self.old_head)) // the rollback: serve the OLD head
+    }
+    fn lookup_username(&self, _name: &str) -> Result<Option<UsernameLookup>, TransportError> {
+        Ok(Some(self.old_lookup.clone()))
+    }
+}
+
+#[test]
+fn resolve_username_rejects_a_directory_rollback() {
+    let base = start_relay_full();
+    let transport = RelayTransport::new(&base);
+
+    let mut alice = MercuryClient::new();
+    let mut bob = MercuryClient::new();
+    let b_id = bob.account_id();
+
+    bob.publish_to_directory(&transport).expect("publish card");
+    bob.claim_username(&transport, "bob").expect("claim bob"); // -> directory epoch advances
+
+    // Capture the directory's head + bob's lookup AT THIS earlier epoch — exactly what a rolling-back
+    // relay would replay later. Both are genuinely log-signed + validly included.
+    let old_head = transport
+        .kt_signed_tree_head()
+        .expect("sth")
+        .expect("a head is served");
+    let old_lookup = transport
+        .lookup_username("bob")
+        .expect("lookup")
+        .expect("bob is registered");
+
+    // The directory moves FORWARD (a second account claims a handle), so the head is now newer.
+    let mut carol = MercuryClient::new();
+    carol.publish_to_directory(&transport).expect("publish carol");
+    carol.claim_username(&transport, "carol").expect("claim carol");
+
+    let keys = transport.kt_public_keys().expect("keys").expect("served");
+    let pinned_vrf = keys.vrf_public_key.clone();
+    let pinned_log = keys.log_public_key;
+
+    // Alice resolves bob against the CURRENT (newer) head — this sets her anti-rollback baseline.
+    let resolved = alice
+        .resolve_username(&transport, "bob", Some(&pinned_vrf), Some(&pinned_log))
+        .expect("resolve at the current head");
+    assert_eq!(resolved.account_id, b_id);
+
+    // Now the relay replays the OLDER head + matching lookup. The signature verifies and the proof is
+    // valid — ONLY the monotonicity check rejects it.
+    let rolled_back = RollbackTransport {
+        inner: RelayTransport::new(&base),
+        old_head,
+        old_lookup,
+    };
+    assert_eq!(
+        alice
+            .resolve_username(&rolled_back, "bob", Some(&pinned_vrf), Some(&pinned_log))
+            .unwrap_err(),
+        ClientError::DirectoryRollback,
+        "a genuinely-signed OLDER head is rejected as a rollback"
+    );
+
+    // The baseline does not break legitimate forward resolution: the current head still resolves.
+    alice
+        .resolve_username(&transport, "bob", Some(&pinned_vrf), Some(&pinned_log))
+        .expect("the current head still resolves after the rejected rollback");
 }
