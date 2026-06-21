@@ -17,6 +17,20 @@
 //! consent guarantee is only as strong as the user genuinely choosing the runtime
 //! and model from a visible chooser, and the engine refuses to assert that for
 //! them. Only audited SHA-256 is used; nothing crypto is hand-rolled.
+//!
+//! ## Scope boundary (honest residual)
+//!
+//! The context digest commits exactly the BYTES the AI was shown, and the gates enforce the action
+//! KIND, read-scope category, selected-message count, local-runtime, and draft-only invariants. What
+//! the digest does NOT yet bind is conversation PROVENANCE: it commits the selected bytes but not
+//! *which conversation* they came from, and the grant ([`AiGrantFacts`]) carries a `room_mode`
+//! category, not a conversation identity. So "the AI saw only the granted conversation" currently
+//! rests on the CALLER selecting that conversation's messages — the gate cannot yet verify it. Closing
+//! this is a wiring-time step (see `docs/02_AI_PARTICIPANT_MODEL.md`): when the @mention→AI egress
+//! path is built, bind a conversation / room-epoch id into the grant + the digest and have the gate
+//! require every selected message's authenticated conversation to equal the grant's. Until then the
+//! commitment is auditable after-the-fact, not preventive — and this engine has no production caller,
+//! so there is no live egress path yet to enforce against.
 
 #![forbid(unsafe_code)]
 

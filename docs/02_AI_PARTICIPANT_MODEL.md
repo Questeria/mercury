@@ -243,3 +243,22 @@ The first Mercury AI feature should be local draft/summarize for selected messag
 - Helix policy validator for grant shape and scope checks.
 
 Initial executable policy exists in `docs/08_AI_GRANT_POLICY.md`.
+
+## Implementation Status (honest residual)
+
+The model above is the design target. The executable core today (`mercury-ai` + `mercury-core`'s AI
+gates) implements the **commitment** and the **kind / count / local / draft-only gates**: it computes
+the auditable context + draft SHA-256 digests, counts the selected messages, and the policy gate
+enforces the action kind, read-scope category, local runtime, and draft-only invariants — refusing on
+any honest attestation failure (prompt-injection enforcement lives outside the model, as above). What
+is **not yet wired**:
+
+- **Conversation / message provenance.** The grant validates scope *categories and counts*, and the
+  digest commits the selected *bytes*, but neither yet binds those bytes to a specific conversation or
+  to the named message range in the grant above. So "the AI saw only the granted messages" currently
+  rests on the client selecting them, **not** on gate verification. When the `@mention → AI` egress
+  path is wired, bind a conversation / room-epoch id into the grant **and** the context digest, and
+  have the gate require every selected message's *authenticated* conversation to equal the grant's —
+  turning the after-the-fact commitment into a preventive guarantee.
+- **No live egress path.** `mercury-ai` has no production caller yet; the gates are exercised by tests
+  and the UI simulation fixtures. The gates are the enforced core of the model; the rest is roadmap.
