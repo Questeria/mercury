@@ -26,7 +26,7 @@ use chacha20poly1305::aead::rand_core::RngCore;
 use chacha20poly1305::aead::{Aead, OsRng, Payload};
 use chacha20poly1305::{KeyInit, XChaCha20Poly1305, XNonce};
 use subtle::ConstantTimeEq;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 pub use mercury_core::{
     AccountRecoveryDecision, SecureBackupRestoreDecision, SecureBackupRestoreEnvelopeSuite,
@@ -242,9 +242,10 @@ impl RecoveryCode {
         Self(bytes)
     }
 
-    /// The raw recovery-code bytes (to render for the user). Handle with care.
-    pub fn to_bytes(&self) -> [u8; RECOVERY_CODE_LEN] {
-        self.0
+    /// The raw recovery-code bytes (to render for the user). Handle with care — returned in a
+    /// `Zeroizing` wrapper so the rendered copy is wiped when the caller drops it.
+    pub fn to_bytes(&self) -> Zeroizing<[u8; RECOVERY_CODE_LEN]> {
+        Zeroizing::new(self.0)
     }
 }
 
@@ -540,16 +541,16 @@ fn derive_backup_key(
     code: &RecoveryCode,
     salt: &[u8; SALT_LEN],
     kdf: BackupKdfParams,
-) -> Result<[u8; 32], BackupError> {
+) -> Result<Zeroizing<[u8; 32]>, BackupError> {
     let params = argon2::Params::new(kdf.memory_kib()?, kdf.iterations, kdf.parallelism, Some(32))
         .map_err(|_| BackupError::KeyDerivation)?;
     let algorithm = match kdf.algorithm {
         BackupKdfAlgorithm::Argon2id => argon2::Algorithm::Argon2id,
     };
     let argon2 = argon2::Argon2::new(algorithm, argon2::Version::V0x13, params);
-    let mut key = [0u8; 32];
+    let mut key = Zeroizing::new([0u8; 32]);
     argon2
-        .hash_password_into(&code.0, salt, &mut key)
+        .hash_password_into(&code.0, salt, &mut *key)
         .map_err(|_| BackupError::KeyDerivation)?;
     Ok(key)
 }
@@ -660,14 +661,14 @@ fn create_backup_with_profile(
     let salt = random_bytes::<SALT_LEN>();
     let nonce = random_bytes::<NONCE_LEN>();
 
-    let mut backup_key = derive_backup_key(&recovery_code, &salt, kdf)?;
-    let backup_key_digest: [u8; DIGEST_LEN] = *blake3::hash(&backup_key).as_bytes();
+    let backup_key = derive_backup_key(&recovery_code, &salt, kdf)?;
+    let backup_key_digest: [u8; DIGEST_LEN] = *blake3::hash(&*backup_key).as_bytes();
 
     let manifest = backup_manifest(version, kdf, &salt, &nonce);
     let audit_digest: [u8; DIGEST_LEN] = *blake3::hash(&manifest).as_bytes();
 
-    let cipher = XChaCha20Poly1305::new_from_slice(&backup_key).map_err(|_| BackupError::Seal)?;
-    backup_key.zeroize();
+    let cipher = XChaCha20Poly1305::new_from_slice(&*backup_key).map_err(|_| BackupError::Seal)?;
+    drop(backup_key); // Zeroizing: wipes now (and on any early return), minimizing the key lifetime
     let sealed_archive = cipher
         .encrypt(
             XNonce::from_slice(&nonce),
@@ -716,23 +717,21 @@ pub fn open_backup(code: &RecoveryCode, sealed: &SealedBackup) -> Result<Vec<u8>
     if sealed.kdf.memory_mib < MIN_KDF_MEMORY_MIB || sealed.kdf.iterations < MIN_KDF_ITERATIONS {
         return Err(BackupError::WeakKdf);
     }
-    let mut backup_key = derive_backup_key(code, &sealed.salt, sealed.kdf)?;
-    let derived_digest: [u8; DIGEST_LEN] = *blake3::hash(&backup_key).as_bytes();
+    let backup_key = derive_backup_key(code, &sealed.salt, sealed.kdf)?;
+    let derived_digest: [u8; DIGEST_LEN] = *blake3::hash(&*backup_key).as_bytes();
     if !digests_match(&derived_digest, &sealed.backup_key_digest) {
-        backup_key.zeroize();
-        return Err(BackupError::WrongRecoveryCode);
+        return Err(BackupError::WrongRecoveryCode); // backup_key (Zeroizing) wipes on drop
     }
 
     let manifest = backup_manifest(sealed.version, sealed.kdf, &sealed.salt, &sealed.nonce);
     let audit_digest: [u8; DIGEST_LEN] = *blake3::hash(&manifest).as_bytes();
     if !digests_match(&audit_digest, &sealed.audit_digest) {
-        backup_key.zeroize();
         return Err(BackupError::Malformed);
     }
 
     let cipher =
-        XChaCha20Poly1305::new_from_slice(&backup_key).map_err(|_| BackupError::OpenFailed)?;
-    backup_key.zeroize();
+        XChaCha20Poly1305::new_from_slice(&*backup_key).map_err(|_| BackupError::OpenFailed)?;
+    drop(backup_key);
     cipher
         .decrypt(
             XNonce::from_slice(&sealed.nonce),
