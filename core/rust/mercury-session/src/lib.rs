@@ -700,6 +700,14 @@ impl MercurySession {
             )
             .map_err(|_| SessionError::SessionCreation)?;
 
+        // REPLAY INVARIANT (first flight): this bootstrap carries no protocol-level anti-replay nonce
+        // of its own — its single-use guarantee rests ENTIRELY on `create_inbound_session` CONSUMING
+        // the one-time key the pre-key message names. The account/store layer MUST therefore (a) never
+        // serve the same one-time key to two parties and (b) never resurrect a consumed one-time key
+        // from a stale snapshot / rollback; either would let a captured first flight re-establish and
+        // re-deliver the bootstrap plaintext. Steady-state messages are replay-protected by the
+        // ratchet's per-index + superseded-epoch guards (see `pq_ratchet.rs`); this covers the bootstrap.
+
         // SECURITY: vodozemac derives the Olm version from the incoming pre-key
         // message, NOT from the `version_2()` config we passed. A V1
         // (truncated-8-byte-MAC) pre-key message therefore yields a V1 session

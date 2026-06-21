@@ -45,7 +45,7 @@
 //! cannot forge — peer-key adoption is gated on the outer AEAD succeeding. This is the
 //! standard Double Ratchet / Olm trust model; it is not a per-epoch signature scheme.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use chacha20poly1305::aead::{Aead, AeadCore, KeyInit, OsRng, Payload};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
@@ -88,6 +88,11 @@ pub const RATCHET_MAX_SKIP: u32 = 1024;
 /// Max total skipped message keys retained across all epochs (bounds memory). When
 /// exceeded, the lowest-keyed entries are evicted (and zeroized).
 const RATCHET_MAX_SKIPPED_KEYS: usize = 2048;
+/// Bound on the in-memory set of already-superseded receiving epoch ids tracked for the new-epoch
+/// anti-replay guard. Generous for a long conversation's recent epochs; older epochs that fall off
+/// the FIFO remain covered by the send-keypair rotation invariant. Bounds the set so a peer forcing
+/// many epoch changes cannot grow it without limit.
+const MAX_SUPERSEDED_EPOCHS: usize = 256;
 /// Wire-format version byte for the ratchet-message codec. Bumped if the layout changes,
 /// so an old/foreign frame is rejected (fail-closed) rather than silently misparsed.
 const RATCHET_WIRE_V1: u8 = 1;
@@ -330,6 +335,14 @@ pub struct PqRatchet {
     /// Monotonic counter stamped into each skipped entry to give a stable FIFO eviction
     /// order independent of the (hashed) epoch identifier.
     skip_seq: u64,
+    /// Receiving epoch ids we have already moved PAST. An explicit anti-replay set for the new-epoch
+    /// decrypt path: a message re-opening one of these is rejected outright (mirroring the same-epoch
+    /// path's `index < recv.index` guard), instead of relying solely on our send-keypair having
+    /// rotated past its KEM ciphertext — an emergent invariant a future change (multi-device, group
+    /// fan-in, altered rotation timing) could break. In-memory only: across a restart the persisted
+    /// `self_kp` rotation still enforces the property, so this is pure in-session defense-in-depth.
+    /// Bounded FIFO ([`MAX_SUPERSEDED_EPOCHS`]); ids are public hashes (no zeroize needed).
+    superseded_epochs: VecDeque<[u8; 32]>,
 }
 
 impl Drop for PqRatchet {
@@ -358,6 +371,7 @@ impl PqRatchet {
             prev_send_count: 0,
             skipped: BTreeMap::new(),
             skip_seq: 0,
+            superseded_epochs: VecDeque::new(),
         }
     }
 
@@ -377,6 +391,7 @@ impl PqRatchet {
             prev_send_count: 0,
             skipped: BTreeMap::new(),
             skip_seq: 0,
+            superseded_epochs: VecDeque::new(),
         }
     }
 
@@ -574,6 +589,15 @@ impl PqRatchet {
         header: &RatchetHeader,
         outer: &[u8],
     ) -> Result<Vec<u8>, SessionError> {
+        // Explicit anti-replay for the new-epoch path: refuse to RE-OPEN an epoch we have already
+        // moved past (mirrors the same-epoch path's `index < recv.index` guard). Previously this path
+        // relied solely on our send-keypair having rotated past a superseded epoch's KEM ciphertext —
+        // an emergent invariant; the explicit set makes it an enforced check, so a regression in
+        // keypair-rotation timing cannot silently reopen a replay window.
+        if self.superseded_epochs.contains(inc_eid) {
+            return Err(SessionError::RatchetFailed);
+        }
+
         // Parse the peer's new ratchet key up front; a malformed key fails closed.
         let new_peer_pub = MlKemPublicKey::from_bytes(&header.epoch_pub)
             .map_err(|_| SessionError::RatchetFailed)?;
@@ -672,6 +696,12 @@ impl PqRatchet {
         for (key, value) in new_skipped {
             self.store_skipped(key.0, key.1, value);
         }
+        // Record the epoch we are leaving as superseded, so a later replay of one of its messages is
+        // rejected by the guard at the top of this function (defense in depth over keypair rotation).
+        let leaving = self.recv.as_ref().map(|r| r.epoch_id);
+        if let Some(eid) = leaving {
+            self.note_superseded_epoch(eid);
+        }
         self.root.zeroize();
         self.root = new_root;
         self.recv = Some(RecvChain {
@@ -683,6 +713,18 @@ impl PqRatchet {
         // We have a new peer ratchet key: our next send must open a new epoch.
         self.need_send_ratchet = true;
         Ok(pt)
+    }
+
+    /// Record `eid` as a receiving epoch we have moved past, for the new-epoch anti-replay guard.
+    /// Bounded FIFO: the oldest superseded epoch is evicted once the set is full (older replays stay
+    /// covered by the send-keypair rotation invariant). Ids are public hashes — no zeroize needed.
+    fn note_superseded_epoch(&mut self, eid: [u8; 32]) {
+        if !self.superseded_epochs.contains(&eid) {
+            self.superseded_epochs.push_back(eid);
+            while self.superseded_epochs.len() > MAX_SUPERSEDED_EPOCHS {
+                self.superseded_epochs.pop_front();
+            }
+        }
     }
 }
 
@@ -964,6 +1006,7 @@ impl PqRatchet {
             prev_send_count: snap.prev_send_count,
             skipped,
             skip_seq: snap.skip_seq,
+            superseded_epochs: VecDeque::new(),
         })
     }
 }
@@ -1223,5 +1266,37 @@ mod tests {
         let m2 = a2.encrypt(b"same").unwrap();
         assert_ne!(m1.outer, m2.outer);
         assert_ne!(m1.header.epoch_pub, m2.header.epoch_pub);
+    }
+
+    #[test]
+    fn replaying_a_message_from_a_superseded_epoch_is_rejected() {
+        // Drive Bob past Alice's first epoch, then replay a first-epoch message. The explicit
+        // new-epoch guard must reject it (it records the epoch Bob left as superseded), rather than
+        // relying only on Bob's send-keypair having rotated.
+        let (mut alice, mut bob) = pair();
+        let m1 = alice.encrypt(b"epoch-1").unwrap();
+        assert_eq!(bob.decrypt(&m1).unwrap(), b"epoch-1");
+        // Bob replies (rotating Bob's send keypair) so Alice adopts it and her next send opens epoch 2.
+        let r1 = bob.encrypt(b"reply").unwrap();
+        assert_eq!(alice.decrypt(&r1).unwrap(), b"reply");
+        let m2 = alice.encrypt(b"epoch-2").unwrap();
+        assert_eq!(bob.decrypt(&m2).unwrap(), b"epoch-2"); // Bob adopts epoch 2, supersedes epoch 1
+        assert!(!bob.superseded_epochs.is_empty()); // the guard recorded the epoch Bob left
+
+        // Replaying the epoch-1 message is now rejected by the explicit guard.
+        assert!(matches!(bob.decrypt(&m1), Err(SessionError::RatchetFailed)));
+    }
+
+    #[test]
+    fn the_superseded_epoch_set_is_bounded_fifo() {
+        let bob_kp = MlKemKeyPair::generate();
+        let mut bob = PqRatchet::responder(bob_kp);
+        for i in 0..(MAX_SUPERSEDED_EPOCHS as u64 + 50) {
+            let mut eid = [0u8; 32];
+            eid[..8].copy_from_slice(&i.to_le_bytes());
+            bob.note_superseded_epoch(eid);
+        }
+        // The set never grows past the cap, so a peer forcing many epoch changes cannot blow memory.
+        assert_eq!(bob.superseded_epochs.len(), MAX_SUPERSEDED_EPOCHS);
     }
 }
