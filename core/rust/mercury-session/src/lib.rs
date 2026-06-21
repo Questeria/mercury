@@ -1352,3 +1352,58 @@ impl SessionCiphertext {
         })
     }
 }
+
+#[cfg(test)]
+mod leg_independence_tests {
+    use super::*;
+
+    /// LEG INDEPENDENCE — the marquee hybrid claim: confidentiality requires breaking BOTH legs.
+    ///
+    /// Here the attacker FULLY recovers the POST-QUANTUM leg — decapsulates the ML-KEM shared secret
+    /// and derives the exact outer-AEAD key (`derive_first_flight_key` depends ONLY on the PQ leg by
+    /// its signature) — and opens the OUTER PQ AEAD layer. What it recovers is the INNER Olm
+    /// ciphertext, NOT the plaintext: the classical Olm layer independently protects it. (The reverse
+    /// — Olm compromised, the PQ outer protects — is covered by `the_wrong_pq_keypair_fails_the_flight`
+    /// and the tampered-mlkem test, where a wrong/absent PQ secret fails the outer AEAD.) A future
+    /// refactor that keyed the outer AEAD from inner Olm state, or dropped the inner layer, would leak
+    /// the plaintext here and fail this test — turning the headline claim from prose into a check.
+    #[test]
+    fn recovering_the_pq_leg_alone_does_not_reveal_the_plaintext() {
+        const PLAINTEXT: &[u8] = b"top-secret-hybrid-bootstrap-plaintext";
+
+        let mut bob_account = LocalSessionAccount::new();
+        let bob_identity = IdentityKeyPair::generate();
+        let bob_pq = MlKemKeyPair::generate();
+        let bob_bundle = bob_account.publish_bundle(&bob_identity, &bob_pq.public(), 5);
+        let alice = LocalSessionAccount::new();
+
+        let (_a_session, flight) =
+            MercurySession::establish_outbound_hybrid(&alice, &bob_bundle, PLAINTEXT).unwrap();
+
+        // Break the PQ leg completely: decapsulate -> the exact outer-AEAD key.
+        let ss_pq = bob_pq.decapsulate(&flight.mlkem_ciphertext).unwrap();
+        let outer_key = derive_first_flight_key(&ss_pq, &flight.mlkem_ciphertext);
+
+        // Opening the OUTER PQ AEAD now SUCCEEDS (the PQ leg is broken)...
+        let (nonce, sealed) = flight.outer.split_at(NONCE_LEN);
+        let cipher = XChaCha20Poly1305::new_from_slice(&outer_key)
+            .expect("32-byte key is valid for XChaCha20Poly1305");
+        let inner_olm = cipher
+            .decrypt(
+                XNonce::from_slice(nonce),
+                Payload {
+                    msg: sealed,
+                    aad: &first_flight_aad(&flight.mlkem_ciphertext),
+                },
+            )
+            .expect("a recovered PQ leg opens the outer AEAD");
+
+        // ...but the recovered bytes are the INNER Olm ciphertext, NOT the plaintext: the classical
+        // leg still protects it. Breaking only the PQ leg yields no plaintext.
+        assert_ne!(inner_olm.as_slice(), PLAINTEXT);
+        assert!(
+            !inner_olm.windows(PLAINTEXT.len()).any(|w| w == PLAINTEXT),
+            "breaking the PQ leg alone must NOT reveal the plaintext — the inner Olm leg protects it"
+        );
+    }
+}
