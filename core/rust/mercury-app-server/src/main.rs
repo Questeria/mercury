@@ -123,15 +123,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Load a 32-byte key from `path`, or generate + persist one on first run.
+///
+/// SECURITY: persisting the at-rest key to disk in CLEARTEXT leaks the ENTIRE sealed snapshot to
+/// anyone who can read the file. This DEV-ONLY shim therefore refuses to CREATE a new on-disk key
+/// unless the operator explicitly sets `MERCURY_DEV_INSECURE_KEY=1` — so it cannot be pointed at real
+/// data by accident — and restricts the file to owner-only (`0600`) on Unix. Production clients keep
+/// the key in the OS keychain (`MercuryKeychainAdapter`) and never write it to disk.
 fn load_or_create_key(path: &Path) -> Result<[u8; 32], Box<dyn std::error::Error>> {
     if let Ok(bytes) = std::fs::read(path) {
         if let Ok(key) = <[u8; 32]>::try_from(bytes.as_slice()) {
             return Ok(key);
         }
     }
+    if std::env::var("MERCURY_DEV_INSECURE_KEY").ok().as_deref() != Some("1") {
+        return Err(format!(
+            "refusing to write a CLEARTEXT at-rest key to {} — this DEV-ONLY shim would leak the \
+             sealed snapshot to anyone who can read that file. Set MERCURY_DEV_INSECURE_KEY=1 to \
+             allow it for LOCAL dev only; production clients use the OS keychain, never an on-disk key.",
+            path.display()
+        )
+        .into());
+    }
     let mut key = [0u8; 32];
     getrandom::getrandom(&mut key)?;
     std::fs::write(path, key)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+    }
     Ok(key)
 }
 
