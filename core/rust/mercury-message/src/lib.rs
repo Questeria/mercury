@@ -660,6 +660,24 @@ mod hybrid_message_tests {
     }
 
     #[test]
+    fn a_tampered_gate_blind_flag_fails_to_open() {
+        // `noncritical_flags` is entirely UNCONSTRAINED by the policy gate (it accepts any value), so
+        // before the AEAD binding it was an even cleaner field-confusion vector than `kind`. Flipping
+        // it must still fail to open — proving the binding covers the gate's BLIND SPOTS, not only the
+        // fields the gate range-checks.
+        let x = DeviceKeyPair::generate();
+        let pt = b"gate-blind flag tamper";
+        let sealed =
+            seal_message(&x.public(), pt, envelope(ProtocolSuite::ClassicalDev), &context()).unwrap();
+        let mut tampered = sealed.clone();
+        tampered.envelope.noncritical_flags = 0x1234;
+        assert!(
+            matches!(open_message(&x, &tampered, &context()), Err(MessageError::Open(_))),
+            "a flipped gate-blind flag is still rejected by the bound AEAD"
+        );
+    }
+
+    #[test]
     fn classical_seal_rejects_a_pq_suite() {
         let x = DeviceKeyPair::generate();
         assert_eq!(
