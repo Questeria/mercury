@@ -31,7 +31,7 @@ use crate::hex;
 use crate::pairing::{self, PairingStore};
 use crate::push::PushSender;
 use crate::rate::RateLimiter;
-use crate::store::{QueueRecord, QueueStore, now_unix_seconds};
+use crate::store::{QueueRecord, QueueStore, now_unix_seconds, queue_admits_new_route};
 
 /// Default flood cap for the open endpoints: requests per window per client key.
 const DEFAULT_RATE_LIMIT_MAX: u32 = 120;
@@ -385,6 +385,23 @@ async fn submit(State(state): State<RelayState>, Json(req): Json<SubmitRequest>)
                 Json(DecisionResponse {
                     accepted: false,
                     reason: submit_reason(submission.reason_code, &queue),
+                }),
+            )
+                .into_response();
+        }
+
+        // Global entry cap (mirrors the directory/pairing/username stores): refuse a brand-new route
+        // once the store holds MAX_QUEUE_ENTRIES records, so an unauthenticated remote flood of
+        // distinct attacker-chosen route_ids cannot grow the queue (and the durable redb file) without
+        // bound. An EXISTING route (state_now != Absent) is always updatable, so a legitimate recipient
+        // with a pending item is never blocked — only new route_ids are refused; the background sweeper
+        // frees slots as far-past-horizon entries are reaped. Checked under the same store lock.
+        if !queue_admits_new_route(state_now == RelayQueueItemState::Absent, store.len()) {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(DecisionResponse {
+                    accepted: false,
+                    reason: "queue_full",
                 }),
             )
                 .into_response();

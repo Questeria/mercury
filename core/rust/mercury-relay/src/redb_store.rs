@@ -28,10 +28,10 @@
 use std::path::Path;
 
 use mercury_core::{RelayQueueItemState, RelaySubmissionDecision};
-use redb::{Database, ReadableTable, TableDefinition};
+use redb::{Database, ReadableTable, ReadableTableMetadata, TableDefinition};
 use serde::{Deserialize, Serialize};
 
-use crate::store::{QueueRecord, QueueStore, TERMINAL_RETENTION_S};
+use crate::store::{MAX_QUEUE_ENTRIES, QueueRecord, QueueStore, TERMINAL_RETENTION_S};
 
 /// `route_id` -> JSON [`PersistedRecord`].
 const RECORDS: TableDefinition<&[u8], &[u8]> = TableDefinition::new("mercury_queue_records_v1");
@@ -180,6 +180,18 @@ impl QueueStore for RedbQueueStore {
         let bytes = serde_json::to_vec(&PersistedRecord::from_record(&record))
             .expect("a queue record always serializes");
         self.put(&record.route_id, &bytes);
+    }
+
+    fn len(&self) -> usize {
+        // Count the RECORDS table. Fail closed (mirrors `record_bytes`): an unreadable store is
+        // treated as full so the entry cap refuses NEW routes rather than admitting unbounded growth.
+        let Ok(txn) = self.db.begin_read() else {
+            return MAX_QUEUE_ENTRIES;
+        };
+        let Ok(table) = txn.open_table(RECORDS) else {
+            return MAX_QUEUE_ENTRIES;
+        };
+        table.len().map(|n| n as usize).unwrap_or(MAX_QUEUE_ENTRIES)
     }
 
     fn update_state(&mut self, route_id: &[u8], next_state: RelayQueueItemState) {

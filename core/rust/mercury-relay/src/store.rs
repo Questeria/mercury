@@ -24,6 +24,26 @@ use tokio::sync::Mutex;
 /// gate's `max_queue_ttl_s` (7 days), so a replay token always outlives any item it guards.
 pub const TERMINAL_RETENTION_S: i64 = 7 * 86_400;
 
+/// Global ceiling on distinct stored route entries (pending + audit tombstones), mirroring the
+/// directory / pairing / username stores — the message queue was previously the ONLY attacker-driven
+/// store without one. `/relay/submit` is unauthenticated and accepts an attacker-CHOSEN `route_id`
+/// with a payload as small as one byte, so without a cap a remote flood of distinct route_ids grows
+/// the in-memory map (and the durable redb file) without bound. This caps the ENTRY COUNT — the
+/// route-proliferation vector — to a finite ceiling; the per-entry PAYLOAD bytes are separately
+/// bounded by the 4 MiB submit body limit, the per-IP rate limiter, and TTL reaping. Generous for
+/// real small-scale use (legit pending+recent counts sit far below it); tune down for a
+/// memory-constrained relay. Fail-closed: a brand-new route is refused once full (existing routes are
+/// always updatable), after the sweeper reaps far-past-horizon entries.
+pub const MAX_QUEUE_ENTRIES: usize = 1_000_000;
+
+/// Whether a submit may be ADMITTED under [`MAX_QUEUE_ENTRIES`]: a brand-new route is refused once the
+/// store is full; an EXISTING route is always admitted (it occupies no new slot, so a legitimate
+/// recipient with a pending item is never blocked — only new attacker-chosen route_ids are refused).
+/// Pure, so the cap logic is unit-testable without materializing a million-entry store.
+pub fn queue_admits_new_route(is_new_route: bool, current_entries: usize) -> bool {
+    !is_new_route || current_entries < MAX_QUEUE_ENTRIES
+}
+
 /// One queued relay item.
 ///
 /// Holds only content-free metadata plus the opaque ciphertext + sealed-header
@@ -97,6 +117,16 @@ pub trait QueueStore: Send + Sync {
     /// retained (a tombstone) so a re-submit after expiry is still rejected as
     /// a duplicate — matching the gate's replay semantics.
     fn sweep_expired(&mut self, now_s: i64) -> usize;
+
+    /// Number of distinct stored route entries (pending + tombstones). Drives the global entry cap
+    /// ([`MAX_QUEUE_ENTRIES`]); a backend that cannot read its own count returns the cap (fail
+    /// closed — treat an unreadable store as full rather than admit unbounded new routes).
+    fn len(&self) -> usize;
+
+    /// Whether the store holds no records.
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 /// In-memory [`QueueStore`]. Mirrors `PrototypeRelayServer` exactly.
@@ -109,14 +139,6 @@ pub struct InMemoryQueueStore {
 impl InMemoryQueueStore {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
     }
 }
 
@@ -194,6 +216,10 @@ impl QueueStore for InMemoryQueueStore {
             self.replay_tokens.remove(token);
         }
         swept
+    }
+
+    fn len(&self) -> usize {
+        self.items.len()
     }
 }
 
@@ -274,6 +300,34 @@ mod tests {
         // Second take yields empties.
         let (ct2, sh2) = store.take_payload(&route);
         assert!(ct2.is_empty() && sh2.is_empty());
+    }
+
+    #[test]
+    fn the_entry_cap_refuses_new_routes_when_full_but_always_admits_existing() {
+        // The HIGH-severity DoS fix: a brand-new attacker-chosen route is refused once the store is at
+        // MAX_QUEUE_ENTRIES, bounding the one previously-uncapped attacker-driven store.
+        assert!(!queue_admits_new_route(true, MAX_QUEUE_ENTRIES));
+        assert!(!queue_admits_new_route(true, MAX_QUEUE_ENTRIES + 1));
+        // ...but admitted below the cap...
+        assert!(queue_admits_new_route(true, 0));
+        assert!(queue_admits_new_route(true, MAX_QUEUE_ENTRIES - 1));
+        // ...and an EXISTING route is ALWAYS admitted, even at/over the cap (it occupies no new slot),
+        // so a legitimate recipient with a pending item is never blocked by a flood of other routes.
+        assert!(queue_admits_new_route(false, MAX_QUEUE_ENTRIES));
+        assert!(queue_admits_new_route(false, usize::MAX));
+    }
+
+    #[test]
+    fn len_counts_distinct_routes_for_the_cap() {
+        // len() (which drives the cap) reflects DISTINCT route_ids: a re-insert to the same route is
+        // an update (no new slot), so a legitimate re-submit never inflates the count the cap reads.
+        let mut store = InMemoryQueueStore::new();
+        assert!(store.is_empty());
+        store.insert(record(&[1u8; 32], 400));
+        store.insert(record(&[2u8; 32], 400));
+        assert_eq!(store.len(), 2);
+        store.insert(record(&[1u8; 32], 500)); // same route -> overwrite, not a new slot
+        assert_eq!(store.len(), 2);
     }
 
     #[test]
