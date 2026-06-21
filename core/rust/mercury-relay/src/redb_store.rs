@@ -177,9 +177,27 @@ impl QueueStore for RedbQueueStore {
     }
 
     fn insert(&mut self, record: QueueRecord) {
+        // Retire the superseded record's replay token on overwrite (see InMemoryQueueStore::insert): a
+        // route is recycled per message, so without this the REPLAY table grows without bound as old
+        // tokens are orphaned. Insert the record and remove the old token in ONE write txn (atomic);
+        // guard old != new so the just-inserted token is never dropped.
+        let old_token = self.get(&record.route_id).map(|r| r.replay_token);
         let bytes = serde_json::to_vec(&PersistedRecord::from_record(&record))
             .expect("a queue record always serializes");
-        self.put(&record.route_id, &bytes);
+        let txn = self.db.begin_write().expect("redb begin_write");
+        {
+            let mut records = txn.open_table(RECORDS).expect("open records table");
+            records
+                .insert(record.route_id.as_slice(), bytes.as_slice())
+                .expect("redb insert record");
+        }
+        if let Some(old) = old_token
+            && old != record.replay_token
+        {
+            let mut replay = txn.open_table(REPLAY).expect("open replay table");
+            let _ = replay.remove(old.as_slice());
+        }
+        txn.commit().expect("redb commit");
     }
 
     fn len(&self) -> usize {

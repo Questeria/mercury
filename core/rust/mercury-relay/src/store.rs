@@ -148,6 +148,19 @@ impl QueueStore for InMemoryQueueStore {
     }
 
     fn insert(&mut self, record: QueueRecord) {
+        // Retire the superseded record's replay token on overwrite. A route is the recipient's id, so
+        // it is RE-USED for every message: each new submit overwrites the prior (terminal) record. If
+        // we kept the old token, it would be ORPHANED (the record now holds the new token) and never
+        // reaped (the reaper only removes a record's CURRENT token), so the replay-token set would grow
+        // without bound — a sibling of the MAX_QUEUE_ENTRIES-capped items map. Retiring it keeps the
+        // token set 1:1 with live records, so the entry cap bounds the token set too. Replay defence is
+        // unaffected for live messages; a stale retry of the SUPERSEDED submit is an app-layer
+        // duplicate the E2E layer drops. (Guard old != new so we never drop the just-inserted token.)
+        if let Some(old) = self.items.get(&record.route_id)
+            && old.replay_token != record.replay_token
+        {
+            self.replay_tokens.remove(&old.replay_token);
+        }
         self.items.insert(record.route_id.clone(), record);
     }
 
@@ -280,6 +293,33 @@ mod tests {
             ciphertext: vec![42u8; 128],
             sealed_header: vec![5u8; 96],
         }
+    }
+
+    fn record_with_token(route_id: &[u8], replay_token: &[u8]) -> QueueRecord {
+        QueueRecord {
+            replay_token: replay_token.to_vec(),
+            ..record(route_id, 400)
+        }
+    }
+
+    #[test]
+    fn recycling_one_route_does_not_leak_replay_tokens() {
+        // Regression for the skeptic's break: a route (= recipient id) is RE-USED per message, so each
+        // re-submit appends a fresh replay token while overwriting the single record. Without retiring
+        // the superseded token, the replay-token set would grow without bound under the entry cap
+        // (which counts only records). Mirror the submit handler's sequence (record token, then
+        // overwrite the record) across many submits to one route and assert the token set stays bounded.
+        let mut store = InMemoryQueueStore::new();
+        let route = [7u8; 32];
+        for i in 0..1000u32 {
+            let mut token = vec![0u8; 32];
+            token[..4].copy_from_slice(&i.to_le_bytes());
+            store.insert_replay_token(&token);
+            store.insert(record_with_token(&route, &token));
+        }
+        // One recycled route => one record and one live token, NOT one per submit.
+        assert_eq!(store.len(), 1);
+        assert_eq!(store.replay_tokens.len(), 1);
     }
 
     #[test]
