@@ -96,13 +96,18 @@ fn derive_key_and_commitment(shared: &[u8; 32], salt: &[u8; 64]) -> [u8; 64] {
     okm
 }
 
-/// `domain || ephemeral_pub || recipient_pub`, bound as AEAD associated data so
-/// the framing cannot be transplanted onto a different recipient.
-fn associated_data(ephemeral_pub: &[u8; 32], recipient_pub: &[u8; 32]) -> Vec<u8> {
-    let mut aad = Vec::with_capacity(DOMAIN.len() + EPHEMERAL_PUBKEY_LEN + EPHEMERAL_PUBKEY_LEN);
+/// `domain || ephemeral_pub || recipient_pub || context`, bound as AEAD associated data so the
+/// framing cannot be transplanted onto a different recipient, AND any caller-supplied `context`
+/// (e.g. a message envelope header carried alongside the ciphertext) cannot be tampered with
+/// undetected — a mismatch flips the AEAD tag on open. `context` is empty for the bare [`seal`].
+fn associated_data(ephemeral_pub: &[u8; 32], recipient_pub: &[u8; 32], context: &[u8]) -> Vec<u8> {
+    let mut aad = Vec::with_capacity(
+        DOMAIN.len() + EPHEMERAL_PUBKEY_LEN + EPHEMERAL_PUBKEY_LEN + context.len(),
+    );
     aad.extend_from_slice(DOMAIN);
     aad.extend_from_slice(ephemeral_pub);
     aad.extend_from_slice(recipient_pub);
+    aad.extend_from_slice(context);
     aad
 }
 
@@ -129,6 +134,17 @@ fn split_key_and_commitment(okm: &[u8; 64]) -> ([u8; 32], [u8; 32]) {
 /// plaintext to the same recipient differ and the sender stays anonymous. The
 /// framed `commitment` makes the object KEY-COMMITTING (see [`COMMITMENT_LEN`]).
 pub fn seal(recipient: &DevicePublicKey, plaintext: &[u8]) -> Result<Vec<u8>, SealError> {
+    seal_with_context(recipient, plaintext, &[])
+}
+
+/// Like [`seal`], additionally binding `context` into the AEAD associated data. The recipient MUST
+/// pass the IDENTICAL `context` to [`open_with_context`]; any tampering with it fails closed on open.
+/// Used to bind a plaintext message-envelope header to exactly its ciphertext.
+pub fn seal_with_context(
+    recipient: &DevicePublicKey,
+    plaintext: &[u8],
+    context: &[u8],
+) -> Result<Vec<u8>, SealError> {
     let ephemeral = DeviceKeyPair::generate();
     let e = ephemeral.public();
 
@@ -143,7 +159,7 @@ pub fn seal(recipient: &DevicePublicKey, plaintext: &[u8]) -> Result<Vec<u8>, Se
         .expect("32-byte key is valid for XChaCha20Poly1305");
     key.zeroize();
 
-    let aad = associated_data(e.as_bytes(), recipient.as_bytes());
+    let aad = associated_data(e.as_bytes(), recipient.as_bytes(), context);
     let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
     let ciphertext = cipher
         .encrypt(
@@ -169,6 +185,16 @@ pub fn seal(recipient: &DevicePublicKey, plaintext: &[u8]) -> Result<Vec<u8>, Se
 /// AEAD, and fails closed on any tampering, wrong recipient, commitment mismatch,
 /// or malformed framing.
 pub fn open(recipient: &DeviceKeyPair, sealed: &[u8]) -> Result<Vec<u8>, SealError> {
+    open_with_context(recipient, sealed, &[])
+}
+
+/// Like [`open`], requiring the IDENTICAL `context` that [`seal_with_context`] bound. A mismatch (or
+/// any tampering with the bound context) fails closed with [`SealError::OpenFailed`].
+pub fn open_with_context(
+    recipient: &DeviceKeyPair,
+    sealed: &[u8],
+    context: &[u8],
+) -> Result<Vec<u8>, SealError> {
     if sealed.len() < EPHEMERAL_PUBKEY_LEN + COMMITMENT_LEN + NONCE_LEN + TAG_LEN {
         return Err(SealError::Malformed);
     }
@@ -198,7 +224,7 @@ pub fn open(recipient: &DeviceKeyPair, sealed: &[u8]) -> Result<Vec<u8>, SealErr
         .expect("32-byte key is valid for XChaCha20Poly1305");
     key.zeroize();
 
-    let aad = associated_data(&e_array, r.as_bytes());
+    let aad = associated_data(&e_array, r.as_bytes(), context);
     let nonce = XNonce::from_slice(nonce_bytes);
     cipher
         .decrypt(
@@ -275,13 +301,27 @@ pub fn seal_hybrid(
     recipient_pq: &MlKemPublicKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, SealError> {
+    seal_hybrid_with_context(recipient_x, recipient_pq, plaintext, &[])
+}
+
+/// Like [`seal_hybrid`], additionally binding `context` (e.g. a message-envelope header) into the
+/// hybrid transcript — which seeds BOTH the HKDF salt and the AEAD associated data — so any tampering
+/// with it fails closed on open. The recipient MUST pass the identical `context` to
+/// [`open_hybrid_with_context`].
+pub fn seal_hybrid_with_context(
+    recipient_x: &DevicePublicKey,
+    recipient_pq: &MlKemPublicKey,
+    plaintext: &[u8],
+    context: &[u8],
+) -> Result<Vec<u8>, SealError> {
     let ephemeral = DeviceKeyPair::generate();
     let e = ephemeral.public();
 
     let mut ss_x = ephemeral.diffie_hellman(recipient_x)?;
     let (mlkem_ct, mut ss_pq) = recipient_pq.encapsulate();
 
-    let transcript = hybrid_transcript(e.as_bytes(), &mlkem_ct, recipient_x.as_bytes());
+    let mut transcript = hybrid_transcript(e.as_bytes(), &mlkem_ct, recipient_x.as_bytes());
+    transcript.extend_from_slice(context); // bind context into the HKDF salt + the AEAD AAD
     let mut okm = derive_hybrid_key_and_commitment(&ss_x, &ss_pq, &transcript);
     ss_x.zeroize();
     ss_pq.zeroize();
@@ -324,6 +364,17 @@ pub fn open_hybrid(
     recipient_pq: &MlKemKeyPair,
     sealed: &[u8],
 ) -> Result<Vec<u8>, SealError> {
+    open_hybrid_with_context(recipient_x, recipient_pq, sealed, &[])
+}
+
+/// Like [`open_hybrid`], requiring the IDENTICAL `context` that [`seal_hybrid_with_context`] bound.
+/// A mismatch (or tampering with the bound context) fails closed with [`SealError::OpenFailed`].
+pub fn open_hybrid_with_context(
+    recipient_x: &DeviceKeyPair,
+    recipient_pq: &MlKemKeyPair,
+    sealed: &[u8],
+    context: &[u8],
+) -> Result<Vec<u8>, SealError> {
     if sealed.len() < EPHEMERAL_PUBKEY_LEN + MLKEM_CT_LEN + COMMITMENT_LEN + NONCE_LEN + TAG_LEN {
         return Err(SealError::Malformed);
     }
@@ -339,7 +390,8 @@ pub fn open_hybrid(
     let mut ss_x = recipient_x.diffie_hellman(&e)?;
     let mut ss_pq = recipient_pq.decapsulate(mlkem_ct)?;
 
-    let transcript = hybrid_transcript(&e_array, mlkem_ct, r.as_bytes());
+    let mut transcript = hybrid_transcript(&e_array, mlkem_ct, r.as_bytes());
+    transcript.extend_from_slice(context); // bind context (must match the sealer's)
     let mut okm = derive_hybrid_key_and_commitment(&ss_x, &ss_pq, &transcript);
     ss_x.zeroize();
     ss_pq.zeroize();

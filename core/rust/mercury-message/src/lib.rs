@@ -205,6 +205,27 @@ fn validate(envelope: &ClientMessageEnvelope, context: &ConversationPolicyState)
     policy::validate_envelope(facts.into())
 }
 
+/// Canonical fixed-order bytes of the envelope header, bound into the sealed-box AEAD associated data
+/// so that tampering with the (otherwise plaintext, stateless-validated) envelope — flipping `kind`
+/// Application↔Control, the suite, a length field, or a flag — flips the AEAD tag on open
+/// (`OpenFailed`). `epoch`/`sequence` are also exact-matched by the policy gate; binding the WHOLE
+/// header here closes the residual field-confusion gap. Must be identical on seal + open.
+fn envelope_aad(e: &ClientMessageEnvelope) -> Vec<u8> {
+    let mut aad = Vec::with_capacity(11 * 4);
+    aad.extend_from_slice(&e.version.to_le_bytes());
+    aad.extend_from_slice(&e.suite.code().to_le_bytes());
+    aad.extend_from_slice(&e.conversation_id_len.to_le_bytes());
+    aad.extend_from_slice(&e.sender_account_id_len.to_le_bytes());
+    aad.extend_from_slice(&e.sender_device_id_len.to_le_bytes());
+    aad.extend_from_slice(&e.epoch.to_le_bytes());
+    aad.extend_from_slice(&e.sequence.to_le_bytes());
+    aad.extend_from_slice(&e.kind.code().to_le_bytes());
+    aad.extend_from_slice(&e.payload_len.to_le_bytes());
+    aad.extend_from_slice(&e.critical_flags.to_le_bytes());
+    aad.extend_from_slice(&e.noncritical_flags.to_le_bytes());
+    aad
+}
+
 /// Seal `plaintext` for `recipient`, gated by the envelope policy.
 ///
 /// The plaintext is first LENGTH-PADDED to a [`PAD_BUCKET`] boundary, so the
@@ -212,6 +233,9 @@ fn validate(envelope: &ClientMessageEnvelope, context: &ConversationPolicyState)
 /// size). `envelope.payload_len` is set to `padded_len + SEALED_OVERHEAD`; the
 /// policy gate runs BEFORE any sealing, so a rejected envelope produces no
 /// ciphertext.
+///
+/// The envelope header is also bound into the sealed-box AEAD (see [`envelope_aad`]), so it cannot be
+/// rewritten in transit.
 pub fn seal_message(
     recipient: &DevicePublicKey,
     plaintext: &[u8],
@@ -237,7 +261,8 @@ pub fn seal_message(
         return Err(MessageError::SuiteMismatch);
     }
 
-    let ciphertext = mercury_sealedbox::seal(recipient, &padded).map_err(MessageError::Seal)?;
+    let ciphertext = mercury_sealedbox::seal_with_context(recipient, &padded, &envelope_aad(&envelope))
+        .map_err(MessageError::Seal)?;
     Ok(SealedMessage {
         envelope,
         ciphertext,
@@ -267,7 +292,9 @@ pub fn open_message(
         return Err(MessageError::PayloadLenMismatch);
     }
 
-    let padded = mercury_sealedbox::open(recipient, &msg.ciphertext).map_err(MessageError::Open)?;
+    let padded =
+        mercury_sealedbox::open_with_context(recipient, &msg.ciphertext, &envelope_aad(&msg.envelope))
+            .map_err(MessageError::Open)?;
     unpad(&padded)
 }
 
@@ -300,8 +327,13 @@ pub fn seal_message_hybrid(
         return Err(MessageError::SuiteMismatch);
     }
 
-    let ciphertext = mercury_sealedbox::seal_hybrid(recipient_x, recipient_pq, &padded)
-        .map_err(MessageError::Seal)?;
+    let ciphertext = mercury_sealedbox::seal_hybrid_with_context(
+        recipient_x,
+        recipient_pq,
+        &padded,
+        &envelope_aad(&envelope),
+    )
+    .map_err(MessageError::Seal)?;
     Ok(SealedMessage {
         envelope,
         ciphertext,
@@ -331,8 +363,13 @@ pub fn open_message_hybrid(
         return Err(MessageError::PayloadLenMismatch);
     }
 
-    let padded = mercury_sealedbox::open_hybrid(recipient_x, recipient_pq, &msg.ciphertext)
-        .map_err(MessageError::Open)?;
+    let padded = mercury_sealedbox::open_hybrid_with_context(
+        recipient_x,
+        recipient_pq,
+        &msg.ciphertext,
+        &envelope_aad(&msg.envelope),
+    )
+    .map_err(MessageError::Open)?;
     unpad(&padded)
 }
 
@@ -570,6 +607,55 @@ mod hybrid_message_tests {
         assert_eq!(
             open_message_hybrid(&x, &pq, &parsed, &context()).unwrap(),
             pt
+        );
+    }
+
+    #[test]
+    fn a_tampered_envelope_field_fails_to_open_classical() {
+        // An attacker holding a valid SealedMessage flips a policy-VALID envelope field — kind
+        // Application -> Control — and re-serializes. The envelope header is bound into the AEAD AAD,
+        // so open fails closed instead of delivering the message tagged as a control frame.
+        let x = DeviceKeyPair::generate();
+        let pt = b"application payload";
+        let sealed =
+            seal_message(&x.public(), pt, envelope(ProtocolSuite::ClassicalDev), &context()).unwrap();
+        assert_eq!(sealed.envelope.kind, MessageKind::Application);
+        // The honest round-trip still opens.
+        assert_eq!(open_message(&x, &sealed, &context()).unwrap(), pt);
+
+        // Tamper: a different, still-policy-valid kind (the gate does not context-constrain kind), so
+        // ONLY the AEAD binding catches the swap.
+        let mut tampered = sealed.clone();
+        tampered.envelope.kind = MessageKind::Control;
+        assert!(
+            matches!(open_message(&x, &tampered, &context()), Err(MessageError::Open(_))),
+            "a flipped envelope field is rejected by the bound AEAD"
+        );
+    }
+
+    #[test]
+    fn a_tampered_envelope_field_fails_to_open_hybrid() {
+        let x = DeviceKeyPair::generate();
+        let pq = MlKemKeyPair::generate();
+        let pt = b"pq application payload";
+        let sealed = seal_message_hybrid(
+            &x.public(),
+            &pq.public(),
+            pt,
+            envelope(ProtocolSuite::HybridPqDev),
+            &context(),
+        )
+        .unwrap();
+        assert_eq!(open_message_hybrid(&x, &pq, &sealed, &context()).unwrap(), pt);
+
+        let mut tampered = sealed.clone();
+        tampered.envelope.kind = MessageKind::Control;
+        assert!(
+            matches!(
+                open_message_hybrid(&x, &pq, &tampered, &context()),
+                Err(MessageError::Open(_))
+            ),
+            "a flipped envelope field is rejected by the bound hybrid AEAD"
         );
     }
 
