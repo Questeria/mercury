@@ -15,6 +15,7 @@ extern "C" {
 #define MERCURY_FFI_INPUT_POINTER_NULL 2
 #define MERCURY_FFI_INVALID_UTF8 3
 #define MERCURY_FFI_INVALID_JSON 4
+#define MERCURY_FFI_INTERNAL_PANIC 5
 
 typedef struct MercuryFfiBuffer {
     uint8_t *ptr;

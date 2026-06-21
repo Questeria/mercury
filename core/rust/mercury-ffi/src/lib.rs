@@ -6,12 +6,16 @@ pub const MERCURY_FFI_OUTPUT_POINTER_NULL: i32 = 1;
 pub const MERCURY_FFI_INPUT_POINTER_NULL: i32 = 2;
 pub const MERCURY_FFI_INVALID_UTF8: i32 = 3;
 pub const MERCURY_FFI_INVALID_JSON: i32 = 4;
+/// An internal panic was CAUGHT at the boundary (it must never unwind into the host = UB). The call
+/// produced no output; the host should treat it as a hard internal error.
+pub const MERCURY_FFI_INTERNAL_PANIC: i32 = 5;
 
 const STATUS_OK: &[u8] = b"OK\0";
 const STATUS_OUTPUT_POINTER_NULL: &[u8] = b"OUTPUT_POINTER_NULL\0";
 const STATUS_INPUT_POINTER_NULL: &[u8] = b"INPUT_POINTER_NULL\0";
 const STATUS_INVALID_UTF8: &[u8] = b"INVALID_UTF8\0";
 const STATUS_INVALID_JSON: &[u8] = b"INVALID_JSON\0";
+const STATUS_INTERNAL_PANIC: &[u8] = b"INTERNAL_PANIC\0";
 const STATUS_UNKNOWN: &[u8] = b"UNKNOWN_STATUS\0";
 
 #[repr(C)]
@@ -34,6 +38,7 @@ pub extern "C" fn mercury_ffi_status_label(status: i32) -> *const c_char {
         MERCURY_FFI_INPUT_POINTER_NULL => STATUS_INPUT_POINTER_NULL.as_ptr(),
         MERCURY_FFI_INVALID_UTF8 => STATUS_INVALID_UTF8.as_ptr(),
         MERCURY_FFI_INVALID_JSON => STATUS_INVALID_JSON.as_ptr(),
+        MERCURY_FFI_INTERNAL_PANIC => STATUS_INTERNAL_PANIC.as_ptr(),
         _ => STATUS_UNKNOWN.as_ptr(),
     }
     .cast()
@@ -60,9 +65,12 @@ pub unsafe extern "C" fn mercury_ffi_handle_bridge_request(
         Ok(request) => request,
         Err(_) => return MERCURY_FFI_INVALID_UTF8,
     };
-    let response = match mercury_bindings::platform_bridge_handle_json(request) {
+    // PANIC FIREWALL: a panic must NEVER unwind across this `extern "C"` boundary into the host
+    // (Swift/Kotlin/Tauri) — that is undefined behavior. `guarded` catches it and converts it into a
+    // defined status code instead.
+    let response = match guarded(|| mercury_bindings::platform_bridge_handle_json(request)) {
         Ok(response) => response,
-        Err(_) => return MERCURY_FFI_INVALID_JSON,
+        Err(status) => return status,
     };
 
     unsafe {
@@ -102,6 +110,25 @@ fn owned_buffer(response: String) -> MercuryFfiBuffer {
     let len = boxed.len();
     std::mem::forget(boxed);
     MercuryFfiBuffer { ptr, len }
+}
+
+/// Runs the bridge handler behind a PANIC FIREWALL and maps the outcome to an FFI status.
+///
+/// A panic must never unwind across the `extern "C"` boundary into the host (Swift/Kotlin/Tauri) —
+/// that is undefined behavior. `catch_unwind` converts a panic into `MERCURY_FFI_INTERNAL_PANIC`
+/// instead. `AssertUnwindSafe` is sound here: each call is independent + stateless, so a caught panic
+/// tears no shared state. Generic over the handler so the three arms are unit-testable with stubs —
+/// the real handler currently never panics on attacker input, and this guards that invariant against
+/// silently breaking during future development.
+fn guarded<F, E>(handler: F) -> Result<String, i32>
+where
+    F: FnOnce() -> Result<String, E>,
+{
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(handler)) {
+        Ok(Ok(response)) => Ok(response),
+        Ok(Err(_)) => Err(MERCURY_FFI_INVALID_JSON),
+        Err(_) => Err(MERCURY_FFI_INTERNAL_PANIC),
+    }
 }
 
 #[cfg(test)]
@@ -223,5 +250,29 @@ mod tests {
         unsafe {
             mercury_ffi_free_buffer(output);
         }
+    }
+
+    #[test]
+    fn the_firewall_maps_a_handler_panic_to_a_defined_status_not_an_unwind() {
+        // The whole point of the firewall: a panicking handler must yield INTERNAL_PANIC — caught and
+        // converted, NEVER unwound across the C boundary (UB). The real handler can't be made to panic
+        // on attacker input, so we drive the firewall directly with a panicking stub.
+        let prev = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {})); // silence the expected panic's default stderr print
+        let status = guarded(|| -> Result<String, ()> { panic!("simulated handler panic") });
+        std::panic::set_hook(prev);
+        assert_eq!(status, Err(MERCURY_FFI_INTERNAL_PANIC));
+    }
+
+    #[test]
+    fn the_firewall_passes_a_handler_error_through_as_invalid_json() {
+        let status = guarded(|| -> Result<String, ()> { Err(()) });
+        assert_eq!(status, Err(MERCURY_FFI_INVALID_JSON));
+    }
+
+    #[test]
+    fn the_firewall_passes_a_handler_success_through_unchanged() {
+        let status = guarded(|| Ok::<_, ()>("ok-body".to_string()));
+        assert_eq!(status, Ok("ok-body".to_string()));
     }
 }
