@@ -259,6 +259,21 @@ fn resolve_username_rejects_a_directory_rollback() {
         "a genuinely-signed OLDER head is rejected as a rollback"
     );
 
+    // PERSISTENCE: the anti-rollback baseline survives an encrypted-pickle restart, so a relay cannot
+    // reset it by rolling back immediately after a restore. Pickle alice (baseline = the newer head),
+    // restore, and confirm the replayed older head is STILL rejected.
+    let pickle_key = [0x33u8; 32];
+    let blob = alice.to_encrypted_pickle(&pickle_key);
+    let mut alice_restored =
+        MercuryClient::from_encrypted_pickle(&blob, &pickle_key).expect("restore alice");
+    assert_eq!(
+        alice_restored
+            .resolve_username(&rolled_back, "bob", Some(&pinned_vrf), Some(&pinned_log))
+            .unwrap_err(),
+        ClientError::DirectoryRollback,
+        "the persisted baseline still rejects the rollback after a restart"
+    );
+
     // The baseline does not break legitimate forward resolution: the current head still resolves.
     alice
         .resolve_username(&transport, "bob", Some(&pinned_vrf), Some(&pinned_log))
