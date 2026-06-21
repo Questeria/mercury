@@ -6,10 +6,16 @@
 //! [`InMemoryTransport`] (tests/demos) and a [`RelayTransport`] that talks to the real
 //! Mercury relay over HTTP.
 //!
-//! Routing note (Milestone 1): the route is the recipient's account id. This means the
-//! relay learns the recipient (no sealed-sender yet) and a route holds one in-flight
-//! message at a time (the relay is a single-slot mailbox per route, deliver-once). The
-//! sealed-sender outer envelope and multi-message mailbox sequencing are later increments.
+//! Routing note: the route is the recipient's account id, so the relay learns the
+//! RECIPIENT (inherent to a store-and-forward mailbox — it must know where to deliver) and a
+//! route holds one in-flight message at a time (a single-slot mailbox per route, deliver-once).
+//! The SENDER, by contrast, is sealed-sender: its identity lives INSIDE the sealed outer
+//! envelope ([`crate::MercuryClient::send`]/`initiate` seal the inner frame — which carries the
+//! sender account id — to the recipient's device key), so a `submit` carries NO sender-identifying
+//! field and the relay never learns who sent. Network-layer caveat: the submitter's source IP is
+//! still visible to the relay — application-layer sealed-sender does not anonymize the network path
+//! (that needs Tor/a proxy). Multi-message mailbox sequencing remains a later increment. See
+//! `docs/METADATA-AND-PRIVACY.md` for the full metadata posture.
 
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
