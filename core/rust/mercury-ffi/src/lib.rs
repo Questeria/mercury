@@ -47,6 +47,13 @@ pub extern "C" fn mercury_ffi_status_label(status: i32) -> *const c_char {
 /// Handles one JSON platform-bridge request and returns an owned JSON buffer.
 ///
 /// The returned buffer must be released with `mercury_ffi_free_buffer`.
+///
+/// # Safety
+///
+/// - `input_ptr` must either be null (with `input_len` == 0) or valid for reads of `input_len` bytes.
+/// - `output` must be non-null and valid for writing one [`MercuryFfiBuffer`].
+/// - On `MERCURY_FFI_OK`, `output` receives a buffer the caller must release exactly once with
+///   [`mercury_ffi_free_buffer`]. On any other status code, `output` is left untouched.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn mercury_ffi_handle_bridge_request(
     input_ptr: *const u8,
@@ -80,6 +87,13 @@ pub unsafe extern "C" fn mercury_ffi_handle_bridge_request(
     MERCURY_FFI_OK
 }
 
+/// Releases a buffer previously returned by [`mercury_ffi_handle_bridge_request`].
+///
+/// # Safety
+///
+/// - `buffer` must be a buffer produced by [`mercury_ffi_handle_bridge_request`] and not yet freed,
+///   and must not be used after this call. A zeroed buffer (`{ ptr: null, len: 0 }`) is a safe no-op.
+///   Passing any other forged or already-freed buffer is undefined behavior.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn mercury_ffi_free_buffer(buffer: MercuryFfiBuffer) {
     if buffer.ptr.is_null() || buffer.len == 0 {
