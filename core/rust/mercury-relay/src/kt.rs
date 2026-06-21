@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use axum::{
     Json, Router,
-    extract::{Path, Query, Request, State},
+    extract::{DefaultBodyLimit, Path, Query, Request, State},
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -105,6 +105,29 @@ const KT_WITNESS_WINDOW_S: i64 = 60;
 /// the epoch has not advanced, so freshness does not decay indefinitely on a low-churn directory
 /// while still giving witnesses a stable window to co-sign a common head.
 const KT_STH_REFRESH_S: i64 = 3600;
+
+/// Maximum epoch span a single `/kt/consistency` request may cover. The only legitimate caller — the
+/// witness — requests a SINGLE-epoch advance (`to == from + 1`); clients verify bundled proofs and
+/// never call this endpoint with a wide range. Without a cap, an attacker-chosen `from=0&to=current`
+/// forces an append-only proof over the ENTIRE log history — a cheap-request / expensive-response
+/// amplifier that grows with the directory's age. 64 leaves generous headroom over the single-epoch
+/// use while bounding the per-request proof cost regardless of how large the log grows.
+const MAX_CONSISTENCY_SPAN: u64 = 64;
+
+/// Whether a `/kt/consistency` request's epoch span is servable: `to >= from` (via `checked_sub`, so
+/// an inverted `from > to` is refused without underflow) AND the width is at most
+/// [`MAX_CONSISTENCY_SPAN`]. Pure, so the bound is unit-testable without a live directory.
+fn consistency_span_ok(from: u64, to: u64) -> bool {
+    matches!(to.checked_sub(from), Some(span) if span <= MAX_CONSISTENCY_SPAN)
+}
+
+/// Body-size cap for the KT POST endpoints (`/username/claim`, `/kt/witness/cosign`,
+/// `/kt/auditor/cosign`). Every legitimate body here is a few hundred bytes (a 32-byte key, a 64-byte
+/// signature, a short username — all hex). Without this they fell back to axum's 2 MiB default,
+/// letting a caller force the relay to buffer up to 2 MiB before the per-field length/hex guards run.
+/// 16 KiB is generous for the real bodies and mirrors the explicit limits the open `/relay/submit` +
+/// `/directory/publish` routes already carry.
+const KT_BODY_LIMIT: usize = 16 * 1024;
 
 impl KtState {
     /// Host an existing directory with a fresh, empty username registry.
@@ -452,9 +475,24 @@ pub fn kt_router(state: KtState) -> Router {
         .route("/kt/sth", get(signed_tree_head).layer(read_limited.clone()))
         .route("/kt/sth/witnessed", get(witnessed_sth).layer(read_limited.clone()))
         .route("/kt/vrf-key", get(vrf_key).layer(read_limited.clone()))
-        .route("/kt/witness/cosign", post(witness_cosign).layer(witness_limited.clone()))
-        .route("/kt/auditor/cosign", post(auditor_cosign).layer(witness_limited))
-        .route("/username/claim", post(username_claim).layer(claim_limited))
+        .route(
+            "/kt/witness/cosign",
+            post(witness_cosign)
+                .layer(DefaultBodyLimit::max(KT_BODY_LIMIT))
+                .layer(witness_limited.clone()),
+        )
+        .route(
+            "/kt/auditor/cosign",
+            post(auditor_cosign)
+                .layer(DefaultBodyLimit::max(KT_BODY_LIMIT))
+                .layer(witness_limited),
+        )
+        .route(
+            "/username/claim",
+            post(username_claim)
+                .layer(DefaultBodyLimit::max(KT_BODY_LIMIT))
+                .layer(claim_limited),
+        )
         .route("/username/{name}", get(username_lookup).layer(read_limited))
         // Operational health probe (no rate limit — monitors poll it frequently; it is cheap).
         .route("/healthz", get(healthz))
@@ -480,6 +518,12 @@ async fn consistency(
     State(state): State<KtState>,
     Query(params): Query<ConsistencyParams>,
 ) -> Response {
+    // Cap the served epoch span BEFORE any proof work (see [`MAX_CONSISTENCY_SPAN`]): refuse an overly
+    // wide or inverted range with an opaque 400, so a malicious client cannot force a full-history
+    // append-only proof. The legitimate witness uses a single-epoch span, well within the cap.
+    if !consistency_span_ok(params.from, params.to) {
+        return StatusCode::BAD_REQUEST.into_response();
+    }
     let dir = state.dir.lock().await;
     match dir.prove_consistency(params.from, params.to).await {
         Ok(proof) => Json(ConsistencyResponse {
@@ -831,5 +875,25 @@ async fn username_lookup(State(state): State<KtState>, Path(name): Path<String>)
         // The guard says the handle is registered, so a proof failure here is a genuine directory
         // error, not an absent label -> opaque 404 (fail-closed; the client simply can't resolve it).
         Err(_) => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn consistency_span_is_capped_and_rejects_inverted_ranges() {
+        // The witness's single-epoch advance is always servable.
+        assert!(consistency_span_ok(0, 1));
+        assert!(consistency_span_ok(1_000, 1_001));
+        // Up to and including the cap is servable...
+        assert!(consistency_span_ok(100, 100 + MAX_CONSISTENCY_SPAN));
+        // ...one past it is refused (the cheap-request / expensive-proof amplifier)...
+        assert!(!consistency_span_ok(100, 100 + MAX_CONSISTENCY_SPAN + 1));
+        // ...and the full-history span an attacker would request is refused outright.
+        assert!(!consistency_span_ok(0, u64::MAX));
+        // An inverted range (from > to) is refused without underflow.
+        assert!(!consistency_span_ok(10, 9));
     }
 }
