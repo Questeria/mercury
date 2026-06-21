@@ -154,3 +154,15 @@ An exit `3` is the signal the whole system exists to produce. Wire it to your al
 - **State is local.** The `--state` file is this witness's memory of what it last vouched for. Losing
   it means the next run trusts-on-first-use the then-current head (it cannot retroactively verify the
   gap). Keep it on durable storage; back it up if you care about continuity across host loss.
+- **The witness/auditor verifies SINGLE-EPOCH steps from a trust-on-first-use baseline — NOT from
+  genesis.** On first contact (and after any re-bootstrap) it accepts the relay's current head on
+  faith, then verifies each ONE-epoch advance is append-only against the head it last co-signed. It
+  does not fetch a consistency proof spanning its pinned checkpoint back to genesis, and a
+  more-than-one-epoch gap is not bridged (exit `4` → re-bootstrap re-TOFUs the current head). So
+  `--auditor` is **single-epoch-delta attestation, not from-genesis append-only auditing**: a relay
+  that is malicious at the auditor's very first poll — or that can stall it past one epoch and then
+  present a forked head after a re-bootstrap — gets that head co-signed with no cross-epoch consistency
+  proof ever checked. `--log-key` pinning still blocks *un-log-signed* forgeries, so any such fork must
+  be genuinely log-signed. Mitigations: pin `--log-key` out-of-band; poll FREQUENTLY (faster than
+  claims arrive) so advances stay single-epoch; and re-bootstrap only from a checkpoint you trust
+  out-of-band, never blindly from whatever the relay serves next.

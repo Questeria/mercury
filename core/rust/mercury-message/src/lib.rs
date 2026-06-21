@@ -274,6 +274,12 @@ pub fn seal_message(
 /// Re-validates the envelope, checks that `payload_len` matches the carried
 /// ciphertext, decrypts, then strips the length padding. Fails closed on
 /// tampering, wrong recipient, or corrupt padding.
+///
+/// REPLAY is the CALLER's responsibility — this is a STATELESS validator. It checks `sequence`/`epoch`
+/// against the supplied `context` but never advances it, caches no nonce, and keeps no seen-set, so
+/// the same `SealedMessage` opens twice if handed the same `context` twice. The embedding session must
+/// advance `expected_sequence` on every accepted message; in a real deployment the relay's per-submit
+/// replay token + the session ratchet own replay (this crate is local-only, no session protocol).
 pub fn open_message(
     recipient: &DeviceKeyPair,
     msg: &SealedMessage,
